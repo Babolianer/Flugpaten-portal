@@ -1,0 +1,292 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ORG_USER
+  ADMIN
+}
+
+enum OrgStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum MemberRole {
+  OWNER
+  MEMBER
+}
+
+enum RequestStatus {
+  OPEN
+  MATCHED
+  COMPLETED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  displayName  String   @map("display_name")
+  phone        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  memberships       OrganizationMember[]
+  createdOrgs       Organization[]       @relation("CreatedBy")
+  volunteerTrips    VolunteerTrip[]
+  applications      RequestApplication[]
+  sentMessages      Message[]            @relation("MessageSender")
+  conversations     Conversation[]       @relation("ConversationUser")
+}
+
+model Organization {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique
+  description     String?
+  landingContent  String?   @map("landing_content")
+  website         String?
+  contactEmail    String    @map("contact_email")
+  contactPhone    String?   @map("contact_phone")
+  contactInstagram String?  @map("contact_instagram")
+  contactFacebook  String?  @map("contact_facebook")
+  status          OrgStatus @default(PENDING)
+  logoUrl         String?   @map("logo_url")
+  createdByUserId String    @map("created_by_user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  createdByUser User                 @relation("CreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  members       OrganizationMember[]
+  locations     OrgLocation[]
+  animals       Animal[]
+  requests      TransportRequest[]
+  conversations Conversation[]       @relation("ConversationOrg")
+}
+
+model OrganizationMember {
+  organizationId String    @map("organization_id")
+  userId         String    @map("user_id")
+  memberRole     MemberRole @map("member_role")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, userId])
+}
+
+model OrgLocation {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  title          String
+  countryCode    String   @map("country_code")
+  city           String
+  address        String?
+  lat            Float
+  lng            Float
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Animal {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  name           String
+  species        String
+  sex            String?
+  sizeClass      String?  @map("size_class")
+  birthdate      DateTime?
+  notes          String?
+  imageUrl       String?  @map("image_url")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transportRequests TransportRequest[]
+}
+
+model TransportRequest {
+  id             String        @id @default(cuid())
+  organizationId String        @map("organization_id")
+  animalId       String?       @map("animal_id")
+  title          String
+  details        String?
+  status         RequestStatus @default(OPEN)
+  earliestDate   DateTime      @map("earliest_date")
+  latestDate     DateTime      @map("latest_date")
+  originAirport  String        @map("origin_airport")
+  destAirport    String        @map("dest_airport")
+  originLat      Float?        @map("origin_lat")
+  originLng      Float?        @map("origin_lng")
+  destLat        Float?        @map("dest_lat")
+  destLng        Float?        @map("dest_lng")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  animal       Animal?              @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  applications RequestApplication[]
+  conversations Conversation[]      @relation("ConversationRequest")
+}
+
+model VolunteerTrip {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  departDate    DateTime  @map("depart_date")
+  returnDate    DateTime? @map("return_date")
+  originAirport String?   @map("origin_airport")
+  destAirport   String?   @map("dest_airport")
+  originLat     Float?    @map("origin_lat")
+  originLng     Float?    @map("origin_lng")
+  destLat       Float?    @map("dest_lat")
+  destLng       Float?    @map("dest_lng")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RequestApplication {
+  id             String            @id @default(cuid())
+  requestId      String            @map("request_id")
+  userId         String            @map("user_id")
+  status         ApplicationStatus @default(PENDING)
+  message        String?
+  applicationData Json?            @map("application_data")
+  attachmentPath  String?           @map("attachment_path")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  request TransportRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, userId])
+}
+
+model Conversation {
+  id             String    @id @default(cuid())
+  requestId      String?   @map("request_id")
+  organizationId String?   @map("organization_id")
+  userId         String?   @map("user_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  request      TransportRequest? @relation("ConversationRequest", fields: [requestId], references: [id], onDelete: Cascade)
+  organization Organization?     @relation("ConversationOrg", fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?             @relation("ConversationUser", fields: [userId], references: [id], onDelete: Cascade)
+  messages     Message[]
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String   @map("conversation_id")
+  senderUserId   String   @map("sender_user_id")
+  body           String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MessageSender", fields: [senderUserId], references: [id], onDelete: Cascade)
+}
+
+// Acquise: Flugpaten-Organisationen / Plattformen zur Kontaktaufnahme
+enum MediationType {
+  ANIMALS       // Tiere
+  HUMANITARIAN  // Humanitär
+  MEDICAL       // Medizin
+  MIXED         // Gemischt
+}
+
+enum MediatesGermany {
+  YES
+  NO
+  UNKNOWN
+}
+
+enum AcquisitionStatus {
+  OPEN        // Offen
+  CONTACTED   // Kontaktiert
+  REPLIED     // Hat geantwortet
+  REGISTERED  // Registriert / Partner
+  REJECTED    // Abgelehnt / Kein Interesse
+}
+
+enum MailStatus {
+  SENT        // Versendet (API erfolgreich)
+  DELIVERED   // Zugestellt (vom Mailserver bestätigt)
+  BOUNCED     // Bounce (permanent zurückgewiesen)
+  FAILED      // Fehlgeschlagen (API-Fehler)
+  COMPLAINED  // Als Spam markiert
+}
+
+model AcquisitionContact {
+  id                  String             @id @default(cuid())
+  name                String
+  country             String
+  continent           String
+  websiteLanguage     String             @map("website_language")
+  websiteUrl          String?            @map("website_url")
+  email               String?
+  contactFormUrl      String?            @map("contact_form_url")
+  mediationType       MediationType      @map("mediation_type")
+  mediatesToGermany   MediatesGermany    @map("mediates_to_germany")
+  mediatesFromGermany MediatesGermany    @map("mediates_from_germany")
+  notes               String?
+  noted               Boolean            @default(false)  // manuell notiert/erfasst
+  emailSent           Boolean            @default(false)  @map("email_sent")  // Email gesendet
+  status              AcquisitionStatus  @default(OPEN)
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  mailLogs            AcquisitionMailLog[]
+}
+
+model AcquisitionMailLog {
+  id                  String      @id @default(cuid())
+  acquisitionContactId String     @map("acquisition_contact_id")
+  resendId            String      @map("resend_id")  // Resend message ID
+  status              MailStatus   @default(SENT)
+  sentAt              DateTime    @default(now()) @map("sent_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  contact             AcquisitionContact @relation(fields: [acquisitionContactId], references: [id], onDelete: Cascade)
+
+  @@index([acquisitionContactId])
+  @@index([resendId])
+}
+
+// Einstellungen für Acquise-E-Mails (eine Zeile, id = 'default')
+model AcquisitionMailSettings {
+  id         String   @id @default("default")
+  subject    String?  @map("subject")  // E-Mail-Betreff – im Frontend bearbeitbar
+  body       String?  @map("body")  // E-Mail-Text – im Frontend bearbeitbar
+  footerText String?  @map("footer_text")  // Footer-Text (Name, E-Mail, Telefon) – im Frontend bearbeitbar
+  updatedAt  DateTime @updatedAt @map("updated_at")
+}
+
+// Globale Site-Einstellungen (z. B. Wartungsmodus)
+model SiteSetting {
+  key   String @id
+  value String
+}

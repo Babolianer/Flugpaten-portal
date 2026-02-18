@@ -1,0 +1,30 @@
+diff --git a/node_modules/@vue-macros/common/dist/index.js b/node_modules/@vue-macros/common/dist/index.js
+index 3c02d67..23a8e1a 100644
+--- a/node_modules/@vue-macros/common/dist/index.js
++++ b/node_modules/@vue-macros/common/dist/index.js
+@@ -142,18 +142,13 @@ var _require;
+ if (false) {
+   _require = __require;
+ } else if (typeof process !== "undefined" && process.version) {
+-  if (process.getBuiltinModule) {
+-    const module = process.getBuiltinModule("module");
+-    _require = module.createRequire(import.meta.url);
+-  } else {
+-    import("node:module").then(
+-      ({ default: { createRequire } }) => {
+-        _require = createRequire(import.meta.url);
+-      },
+-      () => {
+-      }
+-    );
+-  }
++  import("node:module").then(
++    ({ default: { createRequire } }) => {
++      _require = createRequire(import.meta.url);
++    },
++    () => {
++    }
++  );
+ }
+ function detectVueVersion(root, defaultVersion = 3.5) {
+   if (!_require) {

@@ -1,0 +1,33 @@
+-- Acquise-Kontakte: Flugpaten-Organisationen / Plattformen
+-- Tabelle und Enums werden durch Prisma Migration angelegt.
+-- Empfohlener Import: npx tsx prisma/seed-acquisition.ts
+--
+-- Optionale manuelle INSERTs (nach Migration, IDs als CUIDs z.B. mit https://github.com/paralleldrive/cuid2):
+-- INSERT INTO "AcquisitionContact" (
+--   id, name, country, continent, website_language, website_url, email, contact_form_url,
+--   mediation_type, mediates_to_germany, mediates_from_germany, notes, noted, email_sent, status, created_at, updated_at
+-- ) VALUES (
+--   'clxxxxxxxxxxxxxxxxxxx',  -- CUID
+--   'Tiervermittlung.de',
+--   'Deutschland',
+--   'Europa',
+--   'Deutsch',
+--   'https://www.tiervermittlung.de/flugpaten_gesucht.shtml',
+--   NULL,
+--   'https://www.tiervermittlung.de/',
+--   'ANIMALS',
+--   'YES',
+--   'YES',
+--   NULL,
+--   false,
+--   false,
+--   'OPEN',
+--   NOW(),
+--   NOW()
+-- );
+--
+-- Enum-Werte: mediation_type = ANIMALS|HUMANITARIAN|MEDICAL|MIXED
+--             mediates_to_germany, mediates_from_germany = YES|NO|UNKNOWN
+--             status = OPEN|CONTACTED|REPLIED|REGISTERED|REJECTED
+
+SELECT 1;
