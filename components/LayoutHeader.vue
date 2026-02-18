@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import logoImg from '~/assets/images/logo.png'
-import logoImgHover from '~/assets/images/Logo_2.png'
+import logoImgHover from '~/assets/images/logo_2.png'
 
 const { user, fetchUser, logout } = useAuth()
 const { locale, locales, t, setLocale } = useI18n()
