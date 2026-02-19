@@ -1,6 +1,6 @@
 /**
- * Wartungsmodus: Blockiert alle Seiten – nur die Wartungsseite und Login sind erreichbar.
- * Eingeloggte Admins (admin@tierschutz.de / b2bsellers) haben vollen Zugriff.
+ * Wartungsmodus: Blockiert alle Seiten – nur die Wartungsseite, Login und Org-Pre-Registrierung sind erreichbar.
+ * Eingeloggte Admins und Org-Benutzer haben Zugriff.
  */
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
@@ -9,13 +9,13 @@ export default defineEventHandler(async (event) => {
     '/maintenance',
     '/api/site/maintenance',
     '/api/auth/login',
+    '/api/auth/register-org',
     '/api/auth/maintenance-login',
     '/api/auth/logout',
     '/api/auth/me',
   ]
-  if (allowedWithoutAuth.some((p) => path === p || path.startsWith(p + '?'))) {
-    return
-  }
+  if (path === '/maintenance' || path.startsWith('/maintenance/')) return
+  if (allowedWithoutAuth.some((p) => path === p || path.startsWith(p + '?'))) return
   // Statische Assets (JS, CSS, Bilder) – nötig, damit die Wartungsseite laden kann
   if (path.startsWith('/_nuxt/') || path.startsWith('/__nuxt') || path === '/favicon.ico' || path.startsWith('/assets/')) {
     return
@@ -48,8 +48,15 @@ export default defineEventHandler(async (event) => {
   if (token) {
     const { verifyJwt } = await import('../utils/auth')
     const payload = await verifyJwt(token)
-    if (payload?.role === 'ADMIN') {
-      return
+    if (payload?.role === 'ADMIN') return
+    if (payload?.role === 'ORG_USER') {
+      const { prisma } = await import('../utils/prisma')
+      const memberships = await prisma.organizationMember.findMany({
+        where: { userId: payload.sub },
+        include: { organization: { select: { status: true } } },
+      })
+      const hasApprovedOrg = memberships.some((m) => m.organization.status === 'APPROVED')
+      if (hasApprovedOrg) return
     }
   }
 
@@ -57,9 +64,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 503, message: 'Wartungsarbeiten. Bitte später erneut versuchen.' })
   }
 
-  if (path === '/login' || path === '/register') {
-    return sendRedirect(event, '/maintenance', 302)
-  }
+  if (path === '/login') return sendRedirect(event, '/maintenance/login', 302)
+  if (path === '/register') return sendRedirect(event, '/maintenance/register', 302)
 
   return sendRedirect(event, '/maintenance', 302)
 })

@@ -62,5 +62,576 @@
         "answer": "A flight sponsor travels privately and takes the animal along on their own trip – without commercial transportation. An animal transport company carries out the transport commercially, is subject to special approvals and is responsible for the entire logistics process."
       }
     ]
+  },
+  "ablauf-einer-flugpatenschaft": {
+    "meta": {
+      "title": "Flight Sponsorship Process – Step by Step | PawBridge",
+      "description": "How a flight sponsorship works: from initial contact through check-in and flight to handover at the destination. Transparent and practical.",
+      "ogTitle": "Flight Sponsorship Process | PawBridge",
+      "ogDescription": "Initial contact, document verification, handover at airport, transport and arrival – the complete flight sponsorship process."
+    },
+    "sections": [
+      {
+        "id": "kontaktaufnahme",
+        "title": "Initial Contact",
+        "paragraphs": [
+          "The flight sponsorship begins with contact between the traveller and the animal welfare organisation. Many associations publish planned flight dates and routes (e.g. Mallorca – Munich) on their website or on social media. Interested parties register with the travel date, departure and destination airports, and the number of accompanying persons.",
+          "The organisation checks whether a suitable animal is planned for this route and whether the flight sponsor's capacity is sufficient (e.g. one animal per person for cabin transport). Details are then recorded in writing: which animal, which documents, where and when handover at departure and destination."
+        ]
+      },
+      {
+        "id": "dokumentenpruefung",
+        "title": "Document Verification",
+        "paragraphs": [
+          "Before the binding commitment, the organisation verifies that all entry and flight requirements are met. These include: EU pet passport with valid rabies vaccination and microchip, and for entry from third countries often an official veterinary health certificate and TRACES entry. The organisation provides the documents and hands them over to the flight sponsor before or at the animal handover.",
+          "The flight sponsor should verify the documents before departure and contact the organisation or a veterinarian in case of doubt. Missing or incorrect papers can lead to rejection at the border or by the airline."
+        ]
+      },
+      {
+        "id": "uebergabe-abflug",
+        "title": "Handover at Departure Airport",
+        "paragraphs": [
+          "The animal is usually handed over at the departure airport, often on the day of the flight or the evening before. A representative of the organisation or a foster home hands over the animal in the designated transport crate together with the documents. The flight sponsor checks the crate, fastening and papers and confirms receipt.",
+          "A brief written handover note or email confirmation protects both parties and documents the time of handover. This clarifies from when the flight sponsor is responsible for the animal."
+        ]
+      },
+      {
+        "id": "check-in",
+        "title": "Check-In Process",
+        "paragraphs": [
+          "At the counter, the flight sponsor presents their luggage, flight tickets and animal documents. The airline checks the booking (cabin or cargo), weight and transport crate. For cabin transport, the bag/crate is often weighed and registered as carry-on or additional baggage. For cargo transport, the animal is registered separately and taken to the cargo area.",
+          "Important: allow sufficient time. Some airlines require advance notification (e.g. 48 hours before departure). The exact conditions are in the airline's conditions of carriage."
+        ]
+      },
+      {
+        "id": "transport-flugzeug",
+        "title": "Transport in Cargo Hold or Cabin",
+        "paragraphs": [
+          "Small dogs and most cats travel in an approved transport bag in the cabin under the seat. Larger animals travel in the climate-controlled cargo hold in an IATA-compliant transport crate. During the flight, the flight sponsor cannot care for the animal in the cargo hold; the crew is informed about the animal passenger.",
+          "After landing, the animal is either delivered with the luggage (cabin) or collected at the special baggage area (cargo). The organisation or the collecting person at the destination airport is usually notified before arrival."
+        ]
+      },
+      {
+        "id": "uebergabe-ziel",
+        "title": "Handover at Destination",
+        "paragraphs": [
+          "At the destination airport, a representative of the receiving organisation or the future foster home/adoptive family takes over the animal. The flight sponsor hands over the animal, crate and documents and often receives a brief confirmation. This ends their responsibility.",
+          "Reputable associations confirm arrival in writing and provide feedback on the animal's rehoming if requested. Thus the flight sponsor experiences the completion of the chain and can be pleased with the successful transport."
+        ]
+      },
+      {
+        "id": "nachbereitung",
+        "title": "Follow-Up",
+        "paragraphs": [
+          "After handover, the flight sponsor has no further obligations. Many organisations thank by email or on social media and remain available for future flights. Those wishing to act as flight sponsor again can register with the same or another organisation with their next travel route."
+        ]
+      }
+    ],
+    "faqs": [
+      {
+        "question": "How long before the flight should I register as a flight sponsor?",
+        "answer": "The earlier, the better. Many organisations need at least 1–2 weeks to find a suitable animal and prepare the papers. For some routes, short notice is sufficient if an animal is already waiting."
+      },
+      {
+        "question": "Where exactly does the handover take place at the destination airport?",
+        "answer": "The organisation agrees a specific meeting point with you, e.g. in the arrivals area, at the car park or at special baggage. Often the collecting person is coordinated with a sign or by mobile contact."
+      },
+      {
+        "question": "Am I responsible for the animal during the flight?",
+        "answer": "Yes. From the time of takeover until handover at the destination, you are responsible for the animal. This includes compliance with carriage regulations and handling the animal at the airport."
+      }
+    ]
+  },
+  "rechtliche-hinweise": {
+    "meta": {
+      "title": "Legal Notes on Flight Sponsorship | PawBridge",
+      "description": "Responsibility, liability, import requirements, TRACES, EU Pet Regulation, vaccination requirements and microchip – what flight sponsors must observe legally.",
+      "ogTitle": "Legal Notes Flight Sponsorship | PawBridge",
+      "ogDescription": "Legal obligations of the flight sponsor: liability, import, TRACES, vaccinations and customs."
+    },
+    "sections": [
+      {
+        "id": "verantwortung",
+        "title": "Responsibility of the Flight Sponsor",
+        "paragraphs": [
+          "As a flight sponsor, you assume factual custody of the animal for the duration of the transport. You are obliged to comply with applicable entry and animal disease regulations and to transport the animal in accordance with animal welfare. This includes using a suitable transport crate, carrying complete documents and complying with airline requirements.",
+          "The organisation is in turn obliged to provide you with all necessary papers in good time and correctly. A clear written agreement between organisation and flight sponsor is recommended to regulate areas of responsibility and costs."
+        ]
+      },
+      {
+        "id": "haftung",
+        "title": "Liability",
+        "paragraphs": [
+          "Anyone transporting an animal is liable for damage caused by the animal or by errors during transport – for example if documents are missing and the animal is rejected or the animal is harmed. The exact distribution of liability between organisation and flight sponsor should be clarified in advance.",
+          "Many associations conclude an agreement with the flight sponsor regulating the assumption of costs in case of document-related problems or participation in obtaining replacement documents. Private liability insurance generally does not cover commercial or association-related activities; for damage to the animal or third parties, it should be discussed with the organisation whether association insurance applies."
+        ]
+      },
+      {
+        "id": "einfuhr-tracer",
+        "title": "Import Requirements and TRACES",
+        "paragraphs": [
+          "The entry of dogs and cats into the EU is subject to the EU Pet Regulation and third-country regulations. For entry from third countries into the EU, registration in the TRACES system (TRAde Control and Expert System) is often required. The competent authority in the country of origin or the organisation creates the TRACES certificate; the flight sponsor carries it and presents it at border control.",
+          "Without valid TRACES certificate and the required veterinary documents, the animal may be rejected at the border or placed in quarantine. The flight sponsor has the duty to carry; creation of content is generally the responsibility of the organisation or an official veterinarian."
+        ]
+      },
+      {
+        "id": "eu-heimtierverordnung",
+        "title": "EU Pet Regulation",
+        "paragraphs": [
+          "Within the EU, uniform minimum requirements apply: microchip (ISO 11784/11785), valid rabies vaccination, EU pet passport. For travel from third countries, additional official veterinary health certificates and treatments against Echinococcus (tapeworm) may be required. The exact requirements depend on the country of origin.",
+          "The EU Pet Regulation concerns non-commercial transportation, i.e. the private transport of up to five animals per trip (unless with puppies/young animals). Flight sponsors generally fall under this \"non-commercial transportation\" if they receive no payment for the transport."
+        ]
+      },
+      {
+        "id": "impfpflicht-mikrochip",
+        "title": "Vaccination Requirement, Microchip and Rabies",
+        "paragraphs": [
+          "Rabies vaccination is mandatory for entry into the EU and within the EU for dogs and cats. The vaccination must be administered after the microchip and, depending on the country and vaccine, at least 21 days before entry. The EU pet passport documents microchip number and vaccinations.",
+          "The microchip must be implanted before the rabies vaccination and comply with ISO standards. Without a readable microchip and valid rabies vaccination, legal entry is not possible."
+        ]
+      },
+      {
+        "id": "zoll",
+        "title": "Customs",
+        "paragraphs": [
+          "At border crossing, customs or veterinary officials may check the papers and possibly the animal. The flight sponsor must present the documents on request. In case of suspicion of violations (e.g. missing papers, suspicion of illegal trade), seizure or rejection may occur. Careful preparation by the organisation and carrying all documents by the flight sponsor minimise the risk."
+        ]
+      }
+    ],
+    "faqs": [
+      {
+        "question": "Do I need a special permit as a flight sponsor?",
+        "answer": "For the private transport of an animal within a flight sponsorship, no commercial permit is required. You must, however, comply with animal disease and import regulations (documents, TRACES for third-country import)."
+      },
+      {
+        "question": "Who is liable if the animal is rejected at the airport?",
+        "answer": "This depends on the agreement with the organisation and the cause. Missing or incorrect documents are often the organisation's responsibility. The flight sponsor should verify the papers before departure and ask in case of doubt."
+      },
+      {
+        "question": "What is TRACES and who creates it?",
+        "answer": "TRACES is the EU system for registering animals when entering from third countries. The certificate is created by the competent authority or an official veterinarian in the country of origin. The organisation usually takes care of this; the flight sponsor carries the certificate."
+      }
+    ]
+  },
+  "tiertransport-im-flugzeug": {
+    "meta": {
+      "title": "Animal Transport by Air – IATA, Cabin & Cargo | PawBridge",
+      "description": "Animal transport by air: IATA guidelines, transport crates, cabin vs. cargo hold, stress reduction and differences between airlines.",
+      "ogTitle": "Animal Transport by Air | PawBridge",
+      "ogDescription": "Everything about transport crates, cabin transport, cargo and airline conditions."
+    },
+    "sections": [
+      {
+        "id": "iata",
+        "title": "IATA Guidelines",
+        "paragraphs": [
+          "IATA (International Air Transport Association) publishes Live Animals Regulations that many airlines apply as minimum standards for animal transport. They regulate, among other things, the size and design of transport containers, ventilation, floor area and labelling.",
+          "Flight sponsors must observe their airline's respective requirements; these can be stricter than IATA minimum requirements. The organisation usually provides a transport crate suited to the airline or specifies which crate must be used."
+        ]
+      },
+      {
+        "id": "transportboxen",
+        "title": "Transport Crates",
+        "paragraphs": [
+          "For the cabin, soft or semi-rigid bags that fit under the front seat are common. Each airline defines maximum dimensions and weight (animal plus bag). For the cargo hold, rigid IATA-compliant plastic crates with grill front and adequate ventilation are required. The animal must be able to stand upright, turn around and lie down.",
+          "The crate must be securely closed and marked \"Live Animal\" and \"This Way Up\". Food and water can be attached to the crate in accessible containers; for short-haul flights, a small water intake before the flight is often sufficient."
+        ]
+      },
+      {
+        "id": "kabine-vs-fracht",
+        "title": "Cabin vs. Cargo Hold",
+        "paragraphs": [
+          "In the cabin, the animal usually travels in the footwell under the front seat. It is with you, you can observe it and, with some airlines by arrangement, calm it. Usually only small dogs and cats up to a certain weight (e.g. 8 kg including crate) are allowed.",
+          "In the cargo hold, larger animals travel in specially climate-controlled areas. The flight sponsor has no access during the flight; the crew is informed. After landing, the animal is handed over at special baggage. Many airlines exclude cargo transport at excessively high or low outside temperatures (embargo)."
+        ]
+      },
+      {
+        "id": "stressreduktion",
+        "title": "Stress Reduction for Animals",
+        "paragraphs": [
+          "Familiar blanket or toy (if the airline allows it), calm speech and as direct a journey as possible to the airport reduce stress. Sedation is rejected by most veterinarians and airlines as it can be risky at altitude. Instead: allow sufficient time, avoid loud noises and put the animal in the crate only shortly before departure.",
+          "The organisation should have accustomed the animal to the crate. A familiar scent (e.g. cloth from the foster home) in the crate can be calming."
+        ]
+      },
+      {
+        "id": "temperatur-embargo",
+        "title": "Temperature Regulations and Embargo",
+        "paragraphs": [
+          "Airlines may prohibit animal transport in the cargo hold at outside temperatures above about 30°C or below 0°C (depending on route and airport). These \"embargo\" periods are set seasonally. For cabin transport, embargo does not apply as the cabin is climate-controlled.",
+          "Flight sponsors should ask about embargo periods for departure and destination airports when booking or at latest when requesting the animal."
+        ]
+      },
+      {
+        "id": "airline-unterschiede",
+        "title": "Differences Between Airlines",
+        "paragraphs": [
+          "Each airline has its own rules: maximum number of animals per flight, weight and dimensions for cabin/cargo, fees, advance notification (e.g. 48 h before departure) and permitted breeds (some airlines exclude certain brachycephalic breeds from the cargo hold).",
+          "The organisation usually selects routes and airlines with which it has experience. As a flight sponsor, you should name your planned airline so it can be checked whether transport is possible."
+        ]
+      }
+    ],
+    "faqs": [
+      {
+        "question": "May animals travel in the cabin?",
+        "answer": "Yes, many airlines allow small dogs and cats in a transport bag in the cabin if weight and size limits are observed. Each airline sets the exact conditions (weight, dimensions, fees)."
+      },
+      {
+        "question": "Is the cargo hold safe for animals?",
+        "answer": "The animal cargo area is climate-controlled and monitored by airlines. With compliance with regulations and suitable outside temperatures, transport there is common and recognised by animal welfare associations. Embargo periods in heat or cold protect the animals."
+      },
+      {
+        "question": "Which transport crate do I need?",
+        "answer": "For the cabin: soft or semi-rigid bag according to airline specifications. For the cargo hold: rigid IATA-compliant crate. The organisation usually provides the suitable crate or specifies the exact requirements."
+      }
+    ]
+  },
+  "haeufige-fragen": {
+    "meta": {
+      "title": "Frequently Asked Questions about Flight Sponsorship | PawBridge",
+      "description": "Over 20 answers on flight sponsor, flight sponsorship, animal transport by air, costs, documents and process. Your guide for getting started.",
+      "ogTitle": "FAQ Flight Sponsorship | PawBridge",
+      "ogDescription": "The most important questions and answers about flight sponsor and flight sponsorship."
+    },
+    "sections": [
+      {
+        "id": "einstieg",
+        "title": "Getting Started and Basics",
+        "paragraphs": [
+          "The following questions and answers cover the most common topics: from definition through process to costs, law and safety. For detailed information, use the linked topic pages in our knowledge base."
+        ]
+      }
+    ],
+    "faqs": [
+      { "question": "What is a flight sponsor?", "answer": "A flight sponsor is a private individual who voluntarily takes an animal (usually a dog or cat) on an already planned flight and hands it over at the destination airport to an animal welfare organisation or foster home. The transport is not commercial; the organisation usually covers costs for documents, crate and flight fees." },
+      { "question": "What does the flight sponsorship cost me?", "answer": "Usually nothing. The animal welfare organisation covers costs for transport crate, veterinary papers and airline fees for animal carriage. You only pay for your own trip. Details should be clarified in writing with the organisation beforehand." },
+      { "question": "May I take several animals as a flight sponsor?", "answer": "That depends on the airline and booking. In the cabin, often only one animal per person is allowed. In the cargo hold, several crates can be booked depending on the airline. The organisation coordinates capacity with your trip." },
+      { "question": "What documents does the animal need?", "answer": "Standard are: EU pet passport, microchip (before rabies vaccination), valid rabies vaccination. For entry from third countries often additionally: official veterinary health certificate and TRACES certificate. The organisation provides the papers; you carry them and present them at control." },
+      { "question": "How do I register as a flight sponsor?", "answer": "Via websites or social media of animal welfare organisations looking for flight sponsors. You provide the travel date, departure and destination airports. If a suitable animal and route are found, details are agreed in writing." },
+      { "question": "Can I take a cat from abroad as a flight sponsor?", "answer": "Yes. Many organisations arrange flight sponsors exactly for this: to bring cats (and dogs) from abroad to rehoming or foster care in the destination country. Prerequisites are valid entry documents and compliance with airline and animal welfare regulations." },
+      { "question": "Can I take a dog as a flight sponsor?", "answer": "Yes. Dogs travel depending on size in the cabin (in transport bag) or in the cargo hold in an IATA crate. The organisation selects an animal passenger that suits your route and airline." },
+      { "question": "Am I insured for the animal?", "answer": "Private liability generally does not cover association-related activities. You should ask the organisation beforehand whether it has association insurance for flight sponsors. Clear agreement with the association is important for damage to the animal or third parties." },
+      { "question": "What happens if the animal gets sick or the papers are missing?", "answer": "For health problems before or during the trip, you should contact the organisation and possibly a veterinarian. With missing or incorrect papers, the airline or border control may refuse carriage. The organisation should clarify replacement documents or alternatives; exact responsibility should be agreed in advance." },
+      { "question": "How long does preparing a flight sponsorship take?", "answer": "At least 1–2 weeks is usual so the organisation can assign an animal, verify papers and provide the crate. Short-term arrangements are possible if an animal candidate and all documents are already available." },
+      { "question": "Do I have to meet the animal before the flight?", "answer": "Not necessarily. Handover often takes place only at the airport. If the organisation offers it, you can visit the animal beforehand or meet it by video – this increases safety and trust." },
+      { "question": "May I have the animal in the cabin with me?", "answer": "Yes, if the airline allows it and animal plus transport bag meet weight and size limits. Then the animal travels under the front seat. Larger animals travel in the cargo hold." },
+      { "question": "What is TRACES?", "answer": "TRACES (TRAde Control and Expert System) is the EU system for registering animals when entering from third countries. The certificate is created by the competent authority or an official veterinarian. The organisation takes care of it; you carry the certificate." },
+      { "question": "Can I claim anything tax-deductible as a flight sponsor?", "answer": "Flight sponsors generally receive no payment; it is an unpaid favour. Whether expenses (e.g. journey to the airport) are deductible depends on your situation. A tax adviser should be consulted for this." },
+      { "question": "How do I recognise reputable organisations?", "answer": "Reputable associations are e.g. registered, have clear statutes, name contacts and disclose process and documents. They do not pressure, demand no advance payment for the animal and work transparently. More on this in the section \"Risks and Safety\"." },
+      { "question": "What must I observe at the airport?", "answer": "Allow sufficient time, have all papers readily available, check the transport crate and comply with airline requirements (advance notification, check-in times). You will find a checklist on our page \"Flight Sponsorship Checklist\"." },
+      { "question": "Can I fly with my own pet and as a flight sponsor at the same time?", "answer": "That depends on the airline. Some allow only one animal per person in the cabin. If you have your own animal in the cabin, another animal (flight sponsor animal) could only travel in the cargo hold, if the airline offers this. This must be clarified in each case." },
+      { "question": "What happens to the animal after handover?", "answer": "The receiving organisation or foster home takes over the animal. It goes into quarantine/care or directly to a new home. Many associations give flight sponsors feedback on further rehoming if requested." },
+      { "question": "Is there a minimum age for flight sponsors?", "answer": "Legally there is no nationwide age limit; the airline may, however, require a minimum age for transporting an animal. Many organisations set a minimum age (e.g. 18 years) to ensure responsibility." },
+      { "question": "Can I volunteer as a flight sponsor multiple times?", "answer": "Yes. Many flight sponsors fly with an animal on every suitable trip. You can register with the same organisation or various associations with your next route." },
+      { "question": "Which airlines allow animal transport?", "answer": "Most major airlines allow transport of dogs and cats – in the cabin, cargo hold or both, depending on size and breed. Conditions (fees, weight, advance notification) differ. The organisation usually selects routes with airlines it knows." },
+      { "question": "What is the difference between a flight sponsor and an animal transport company?", "answer": "The flight sponsor travels privately and takes the animal on their trip; it is not commercial transportation. An animal transport company carries out the transport commercially and is subject to special permits and regulations." }
+    ]
+  },
+  "fuer-organisationen": {
+    "meta": {
+      "title": "Flight Sponsors for Organisations – Benefits & Processes | PawBridge",
+      "description": "Why flight sponsors make sense for animal welfare organisations: optimise processes, documentation, build trust and transparency.",
+      "ogTitle": "Flight Sponsors for Organisations | PawBridge",
+      "ogDescription": "Benefits and processes for associations: how organisations benefit from flight sponsors."
+    },
+    "sections": [
+      {
+        "id": "warum-sinnvoll",
+        "title": "Why Flight Sponsors Make Sense for Organisations",
+        "paragraphs": [
+          "Flight sponsors expand transport capacity without expensive charter flights or commercial freight. Each flight sponsorship enables the rehoming of another animal and creates space in shelters and foster homes. Thus more animals can be rehomed to safe hands without the organisation bearing the full cost of commercial transport.",
+          "At the same time, flight sponsors involve the public: travellers become ambassadors of animal welfare and carry the cause into their daily lives. This strengthens the visibility and trust in the organisation's work."
+        ]
+      },
+      {
+        "id": "prozesse-optimieren",
+        "title": "Optimise Processes",
+        "paragraphs": [
+          "Clear processes are crucial: fixed contacts for flight sponsors, standardised checklists for documents and handover, timely communication. Those who centrally record travel dates and routes (e.g. via a platform or simple list) can quickly match suitable animals and avoid duplicate work.",
+          "Preparation of papers (EU passport, TRACES, health certificate) should start early so that no flight sponsorship fails due to missing documents. An internal deadline (e.g. documents ready 7 days before departure) helps all involved."
+        ]
+      },
+      {
+        "id": "dokumentation",
+        "title": "Documentation",
+        "paragraphs": [
+          "Each flight sponsorship should be documented: which animal, which flight sponsor, date, route, handover confirmed. This serves traceability, animal welfare and transparency towards authorities and donors. A brief handover note at handover at departure and destination airport protects organisation and flight sponsor.",
+          "Digital filing (e.g. scans of papers, email correspondence) facilitates later verification and helps with recurring flight sponsors to use experience."
+        ]
+      },
+      {
+        "id": "vertrauen-transparenz",
+        "title": "Building Trust and Transparency",
+        "paragraphs": [
+          "Reputable organisations make their processes understandable to the public: How to register, what is needed, who is the contact? A clear presentation on the website and social media reduces uncertainty and attracts responsible flight sponsors.",
+          "Transparency builds trust: those who communicate openly that no fees are charged to the flight sponsor and that the organisation bears the costs avoid misunderstandings and strengthen the image. Feedback to flight sponsors (e.g. \"Animal arrived safely\") reinforces the relationship."
+        ]
+      },
+      {
+        "id": "sicherheit",
+        "title": "Safety",
+        "paragraphs": [
+          "Organisations share responsibility for ensuring only legal and animal-welfare-compliant transports take place. This includes: verifying flight sponsors (e.g. age, reliability), completeness of documents before handover and clear agreements on liability and costs. Thus association and flight sponsor protect themselves and prevent abuse."
+        ]
+      }
+    ],
+    "faqs": [
+      { "question": "How do we find enough flight sponsors?", "answer": "Via website, social media, newsletter and word of mouth. Many travellers search for \"flight sponsor\" or \"take animal on holiday\". Clear postings with route and date and simple contact option increase reach." },
+      { "question": "Should we bind flight sponsors contractually?", "answer": "A written agreement (responsibility, costs, handover) is recommended. It does not need to be complicated but should record the most important points. A legal adviser or umbrella association can help if needed." },
+      { "question": "Who bears costs for document errors?", "answer": "This should be regulated in the agreement with the flight sponsor. Typically, the organisation ensures correct papers are provided and bears costs for errors it caused. The flight sponsor verifies papers before departure and reports any issues." }
+    ]
+  },
+  "fuer-flugpaten": {
+    "meta": {
+      "title": "For Flight Sponsors – Requirements, Effort & Responsibility | PawBridge",
+      "description": "Everything for prospective flight sponsors: requirements, time commitment, responsibility, risks, benefits and motivation. Practical and factual.",
+      "ogTitle": "For Flight Sponsors | PawBridge",
+      "ogDescription": "Requirements and tips for everyone who wants to accompany an animal as a flight sponsor."
+    },
+    "sections": [
+      {
+        "id": "voraussetzungen",
+        "title": "Requirements",
+        "paragraphs": [
+          "You should be of age, have valid travel identity and be able to reliably provide the planned route (departure and destination airport) and travel date. Reliability and willingness to carry documents and transport the animal in accordance with animal welfare are important.",
+          "No special training is required; the organisation explains the process and provides the necessary documents. Experience with dogs or cats is helpful but not mandatory – many animals are calm in the crate and are only briefly handled at handover."
+        ]
+      },
+      {
+        "id": "zeitaufwand",
+        "title": "Time Commitment",
+        "paragraphs": [
+          "The additional time is essentially limited to handover at departure and destination airport (15–30 minutes each depending on arrangement) and carrying the crate and papers. Travel to the airport and check-in take place anyway; with an animal you should allow some extra buffer.",
+          "Before the trip: registration, brief exchange with the organisation, possibly advance verification of documents. Overall it is a manageable extra effort that many find worthwhile for the good feeling of helping an animal."
+        ]
+      },
+      {
+        "id": "verantwortung",
+        "title": "Responsibility",
+        "paragraphs": [
+          "From the time of takeover until handover at the destination, you have custody of the animal. This includes: carrying crate and papers safely, complying with airline requirements, not stressing the animal unnecessarily and informing the organisation in case of issues (e.g. health problems).",
+          "You are not responsible for creating the papers but for carrying and presenting them at controls. Careful verification before departure reduces risks for all."
+        ]
+      },
+      {
+        "id": "risiken",
+        "title": "Risks",
+        "paragraphs": [
+          "Possible risks: the animal becomes ill or is injured; papers are objected to; the airline refuses carriage (e.g. during embargo). Most risks can be minimised through clear agreements with the organisation, complete documents and compliance with airline rules.",
+          "Legally, claims for damages can arise if you breach your duty of care. A written agreement with the organisation should clarify who is liable in which cases and whether association insurance applies."
+        ]
+      },
+      {
+        "id": "vorteile",
+        "title": "Benefits",
+        "paragraphs": [
+          "You use your already planned trip for a concrete animal welfare project without additional travel costs. You experience directly that your flight helps an animal and relieve the organisation. Many flight sponsors value the clear, limited framework: one route, one animal, clear handover points.",
+          "You also often learn more about the work of animal welfare associations and can volunteer again on future trips."
+        ]
+      },
+      {
+        "id": "motivation",
+        "title": "Emotional Motivation",
+        "paragraphs": [
+          "Many flight sponsors are animal lovers and want to help actively without being able to adopt an animal themselves. Flight sponsorship combines the useful with the feasible: you travel anyway, and with little extra effort you enable an animal's journey to a new life. This creates meaning and is experienced by many as enriching."
+        ]
+      }
+    ],
+    "faqs": [
+      { "question": "Do I need experience with dogs or cats?", "answer": "Not necessarily. The organisation usually selects animals that are fit for transport. You do not need to train or care for the animal – only bring it safely from A to B. Experience can help with uncertain or anxious animals but is not a requirement." },
+      { "question": "Can I be rejected as a flight sponsor?", "answer": "Organisations can reject for capacity or safety reasons (e.g. if no suitable animal for your route is available or the airline does not allow the transport). A blanket rejection without reason is unusual for reputable associations." },
+      { "question": "What if I have to cancel my flight?", "answer": "Contact the organisation immediately. It can look for a replacement animal or replacement flight sponsor if necessary. Short-term cancellation strains planning; the earlier you give notice, the better." }
+    ]
+  },
+  "risiken-und-sicherheit": {
+    "meta": {
+      "title": "Risks and Safety – Reputable Flight Sponsorship | PawBridge",
+      "description": "Prevent abuse, recognise reputable organisations, verify documents. How to protect yourself and the animals in flight sponsorship.",
+      "ogTitle": "Risks and Safety | PawBridge",
+      "ogDescription": "Safe and reputable as a flight sponsor: warning signs and trust indicators."
+    },
+    "sections": [
+      {
+        "id": "missbrauch-verhindern",
+        "title": "Preventing Abuse",
+        "paragraphs": [
+          "Flight sponsorship is based on trust. Unfortunately there are cases where the model is misused: for illegal imports, undeclared puppy sales or animals without proper papers. You can protect yourself by only working with transparent organisations, verifying all documents before departure and asking or declining if suspicious.",
+          "Reputable associations do not demand advance payment from you for the animal, provide all papers and name clear contacts. They explain the process and are available for questions."
+        ]
+      },
+      {
+        "id": "serioese-organisationen",
+        "title": "Recognising Reputable Organisations",
+        "paragraphs": [
+          "Signs of reputability: registered association (e.V.) with imprint and statutes, clear presentation of processes on the website, fixed contacts with name or function, no request for payment of fees or deposit to private accounts without association reference.",
+          "Caution with: unclear senders, pressure (\"only today possible\"), payment demands to you for taking the animal, missing or vague document information. In doubt, ask an established umbrella association or another organisation."
+        ]
+      },
+      {
+        "id": "dokumente-pruefen",
+        "title": "Verifying Documents",
+        "paragraphs": [
+          "Before taking over the animal, you should check the EU pet passport (or official health certificate): Is the microchip number recorded? Is the rabies vaccination valid (date, booster)? Does the animal description match (breed, age, coat)? For entry from third countries: Is a TRACES certificate present?",
+          "If something is unclear or contradictory, ask the organisation. Missing or incorrect papers can lead to rejection at the border – and in the worst case to suspicion of illegal trade."
+        ]
+      },
+      {
+        "id": "keine-illegalen-transporte",
+        "title": "No Illegal Transport",
+        "paragraphs": [
+          "Legal flight sponsorship means: the animal meets entry requirements, papers are complete and genuine, and handover is to a traceable organisation or foster home. You should never take an animal if you have the impression that papers are forged, the animal does not match the passport or the organisation is not reachable.",
+          "If you suspect illegal import or trade, you can contact the competent veterinary authority or customs. As a flight sponsor you share responsibility for compliance with the law."
+        ]
+      },
+      {
+        "id": "warnzeichen",
+        "title": "Warning Signs",
+        "paragraphs": [
+          "Caution is advised with: pressure, demanding immediate payment; refusal to show papers before handover; unclear or changing contacts; animals that obviously appear sick or unfit for transport; instruction to say nothing at the border or to withhold information.",
+          "In such cases you should decline the transport and consider making a report. Reputable organisations have nothing to hide and support your care."
+        ]
+      }
+    ],
+    "faqs": [
+      { "question": "Must I verify an organisation before participating?", "answer": "Yes. Check imprint, association status and reviews. Ask about the exact process and documents. Reputable associations answer transparently and do not demand payment from you for the animal." },
+      { "question": "What if the papers seem suspicious to me?", "answer": "Address this with the organisation before departure and ask for clarification. In case of doubt, decline the transport. Better a cancelled flight sponsorship than having to surrender an animal at the border or getting into a legal case." },
+      { "question": "Can I be prosecuted as a flight sponsor?", "answer": "If you knowingly participate in illegal imports or animal trade, criminal and administrative consequences may follow. With compliance with regulations and cooperation with reputable organisations, the risk is minimised." }
+    ]
+  },
+  "checkliste": {
+    "meta": {
+      "title": "Flight Sponsorship Checklist – Before Flight, at Airport, After | PawBridge",
+      "description": "Checklist for flight sponsors: before the flight, at the airport and after arrival. Forget nothing – travel safely and relaxed.",
+      "ogTitle": "Flight Sponsorship Checklist | PawBridge",
+      "ogDescription": "Practical checklist for flight sponsors: preparation, airport, arrival."
+    },
+    "sections": [
+      {
+        "id": "vor-dem-flug",
+        "title": "Before the Flight",
+        "subs": [
+          {
+            "title": "Registration and Agreement",
+            "paragraphs": [
+              "Inform the organisation of travel date, departure and destination airport and airline.",
+              "Obtain written confirmation from the organisation: which animal, when and where handover departure/destination.",
+              "Save contact details of contacts (departure and destination) in your phone."
+            ]
+          },
+          {
+            "title": "Documents",
+            "paragraphs": [
+              "Check EU pet passport (or official veterinary health certificate for third-country import): microchip number, valid rabies vaccination, TRACES certificate if applicable.",
+              "Carry all papers in a waterproof folder readily available (carry-on).",
+              "Ask the organisation or a veterinarian in case of doubt before departure."
+            ]
+          },
+          {
+            "title": "Transport Crate",
+            "paragraphs": [
+              "Receive crate/bag from the organisation or check requirements (IATA-compliant for cargo, airline dimensions for cabin).",
+              "Securely closed, \"Live Animal\" / \"This Way Up\" labelling for cargo crate."
+            ]
+          },
+          {
+            "title": "Airline",
+            "paragraphs": [
+              "Advance notification of the animal to the airline (observe deadline, e.g. 48 h before departure).",
+              "Know fees and maximum number of animals per flight.",
+              "Check embargo periods (heat/cold) for departure and destination airport if cargo transport."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "am-flughafen",
+        "title": "At the Airport",
+        "subs": [
+          {
+            "title": "Departure Handover",
+            "paragraphs": [
+              "Observe meeting point with the organisation.",
+              "Take over and check animal, crate and documents (crate closed, papers complete).",
+              "Arrange brief confirmation of takeover (e.g. signature or email)."
+            ]
+          },
+          {
+            "title": "Check-In",
+            "paragraphs": [
+              "Allow sufficient time (at least as for normal check-in, plus buffer for animal).",
+              "Have papers and booking confirmation for the animal ready if applicable.",
+              "For cargo: take animal to designated area, keep receipt/collection slip for destination."
+            ]
+          },
+          {
+            "title": "After Landing",
+            "paragraphs": [
+              "Collect animal at baggage carousel (cabin) or special baggage (cargo).",
+              "Contact the organisation's collecting person and go to handover point.",
+              "Hand over animal, crate and documents and have handover confirmed."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "nach-ankunft",
+        "title": "After Arrival",
+        "paragraphs": [
+          "Your responsibility ends with the handover. Optional: brief feedback to the organisation (\"Animal handed over safely\").",
+          "You can register again as a flight sponsor for your next trip if you wish."
+        ]
+      }
+    ],
+    "faqs": [
+      { "question": "What must I definitely have with me?", "answer": "All veterinary documents (EU passport, TRACES if applicable, health certificate), the transport crate with animal, organisation contact details for departure and destination, and your own travel documentation (ticket, ID)." },
+      { "question": "How much earlier should I be at the airport?", "answer": "At least as early as for a normal flight; for cargo animal often allow a bit more time as registration can be separate. The organisation or airline usually gives a recommendation." },
+      { "question": "What if the collecting person is not at the destination?", "answer": "The organisation should leave an emergency number. Call the contact and wait at an agreed location. The animal should not be left unattended until handover is complete." }
+    ]
+  },
+  "eu-regelungen": {
+    "meta": {
+      "title": "EU Regulations on Flight Sponsorship – Pet Regulation & More | PawBridge",
+      "description": "EU Pet Regulation, country differences, special cases and entry from non-EU countries. Legally secure as a flight sponsor.",
+      "ogTitle": "EU Regulations Flight Sponsorship | PawBridge",
+      "ogDescription": "EU requirements for the private transport of dogs and cats – for flight sponsors."
+    },
+    "sections": [
+      {
+        "id": "heimtierverordnung",
+        "title": "EU Pet Regulation",
+        "paragraphs": [
+          "Regulation (EU) No 576/2013 governs the non-commercial movement of dogs, cats and ferrets into and within the EU. It applies to the private transport of up to five animals per trip (under certain conditions also more, e.g. puppies under 6 months). Flight sponsors who receive no payment for the transport generally fall under this \"non-commercial movement\".",
+          "Core requirements: identification by microchip (ISO 11784/11785), valid rabies vaccination (after chip implantation), EU pet passport. For entry from listed third countries, additional conditions may apply (e.g. antibody test, waiting period)."
+        ]
+      },
+      {
+        "id": "laenderunterschiede",
+        "title": "Country Differences Within the EU",
+        "paragraphs": [
+          "Within the EU, minimum requirements are harmonised. Some Member States, however, require additional measures: e.g. treatment against Echinococcus (tapeworm) for dogs before entry into Finland, Ireland, Malta or the United Kingdom. Rabies antibody tests may also be required in individual countries.",
+          "As a flight sponsor you should know the destination country of the trip. The organisation receiving the animal is usually familiar with national additional requirements and prepares the papers accordingly."
+        ]
+      },
+      {
+        "id": "sonderfaelle",
+        "title": "Special Cases",
+        "paragraphs": [
+          "Young animals: puppies and kittens may only be moved after the first rabies vaccination and after the waiting period (often 21 days); before that only in exceptions (e.g. with mother). Assistance dogs are sometimes subject to eased regulations.",
+          "Return travel: When entering the EU from a third country, third-country provisions apply (health certificate, TRACES). For travel within the EU only, the EU pet passport with microchip and valid rabies vaccination is sufficient."
+        ]
+      },
+      {
+        "id": "nicht-eu-einreise",
+        "title": "Entry from Non-EU Countries",
+        "paragraphs": [
+          "For entry from third countries into the EU, the following are generally required: official veterinary health certificate, valid rabies vaccination (possibly antibody test and waiting period), often TRACES certificate. The exact requirements depend on the country of origin (listed vs. non-listed third countries).",
+          "The organisation in the country of origin or an official veterinarian creates the documents; the flight sponsor carries them and presents them at border control. Without complete papers, entry is not permitted."
+        ]
+      }
+    ],
+    "faqs": [
+      { "question": "Does the EU Pet Regulation also apply to flight sponsors?", "answer": "Yes. Flight sponsors move the animal non-commercially (no payment for transport). They must meet the same requirements: microchip, rabies vaccination, EU pet passport or, for third-country import, the documents prescribed there." },
+      { "question": "What must be observed for flights to the United Kingdom?", "answer": "After leaving the EU, the United Kingdom has its own entry requirements for dogs and cats (including treatment against Echinococcus, tick treatment). The organisation must prepare the papers accordingly; the flight sponsor carries them." },
+      { "question": "Do I need TRACES for travel within the EU only?", "answer": "For travel within the EU (animal from EU country, destination EU country), the EU pet passport is usually sufficient. TRACES is mainly intended for entry from third countries into the EU. The organisation clarifies the requirements for your specific route." }
+    ]
   }
 }

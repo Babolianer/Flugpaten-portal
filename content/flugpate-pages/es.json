@@ -57,5 +57,169 @@
         "answer": "El padrino viaja de forma privada; la empresa realiza transporte comercial con permisos especiales."
       }
     ]
+  },
+  "ablauf-einer-flugpatenschaft": {
+    "meta": {
+      "title": "Proceso del padrinazgo de vuelo – Paso a paso | PawBridge",
+      "description": "Cómo funciona un padrinazgo de vuelo: desde el contacto inicial hasta el check-in, el vuelo y la entrega en el destino. Transparente y práctico.",
+      "ogTitle": "Proceso del padrinazgo de vuelo | PawBridge",
+      "ogDescription": "Contacto inicial, verificación de documentos, entrega en aeropuerto, transporte y llegada – el proceso completo."
+    },
+    "sections": [
+      {"id": "kontaktaufnahme", "title": "Contacto inicial", "paragraphs": ["El padrinazgo de vuelo comienza con el contacto entre el viajero y la organización. Muchas asociaciones publican fechas y rutas (ej. Mallorca–Múnich) en su web o redes. Los interesados se registran con fecha, aeropuertos y número de acompañantes.", "La organización verifica si hay un animal adecuado y si la capacidad del padrino es suficiente. Los detalles se registran por escrito."]},
+      {"id": "dokumentenpruefung", "title": "Verificación de documentos", "paragraphs": ["Antes del compromiso, la organización verifica requisitos: pasaporte UE, vacunación antirrábica, microchip; en países terceros a menudo certificado veterinario y TRACES.", "El padrino debe verificar los documentos antes de salir. Documentos incorrectos pueden provocar rechazo."]},
+      {"id": "uebergabe-abflug", "title": "Entrega en aeropuerto de salida", "paragraphs": ["La entrega suele realizarse en el aeropuerto de salida, el día del vuelo o la víspera. Un representante entrega el animal en la jaula con los documentos.", "Un breve documento de entrega o confirmación por email protege a ambas partes."]},
+      {"id": "check-in", "title": "Proceso de facturación", "paragraphs": ["En el mostrador se presentan equipaje, billetes y documentos del animal. La aerolínea comprueba reserva, peso y jaula.", "Reserve tiempo suficiente. Algunas aerolíneas exigen aviso previo (ej. 48 h)."]},
+      {"id": "transport-flugzeug", "title": "Transporte en bodega o cabina", "paragraphs": ["Perros pequeños y la mayoría de gatos viajan en cabina bajo el asiento. Animales más grandes en bodega climatizada en jaula IATA.", "Tras el aterrizaje el animal se recoge en equipaje de mano o equipaje especial."]},
+      {"id": "uebergabe-ziel", "title": "Entrega en destino", "paragraphs": ["En el aeropuerto de destino, un representante de la organización receptora o la futura familia de acogida recoge el animal.", "Las asociaciones serias confirman la llegada por escrito."]},
+      {"id": "nachbereitung", "title": "Seguimiento", "paragraphs": ["Tras la entrega el padrino no tiene más obligaciones. Muchas organizaciones agradecen y permanecen disponibles para futuros vuelos."]}
+    ],
+    "faqs": [
+      {"question": "¿Cuánto antes del vuelo debo registrarme?", "answer": "Cuanto antes mejor. Muchas organizaciones necesitan al menos 1–2 semanas para encontrar un animal y preparar los papeles."},
+      {"question": "¿Dónde tiene lugar la entrega en destino?", "answer": "La organización acuerda un punto de encuentro concreto."},
+      {"question": "¿Soy responsable del animal durante el vuelo?", "answer": "Sí. Desde la recepción hasta la entrega en destino usted es responsable del animal."}
+    ]
+  },
+  "rechtliche-hinweise": {
+    "meta": {"title": "Aspectos legales del padrinazgo de vuelo | PawBridge", "description": "Responsabilidad, indemnización, requisitos de importación, TRACES, reglamento UE sobre mascotas.", "ogTitle": "Aspectos legales | PawBridge", "ogDescription": "Obligaciones legales del padrino."},
+    "sections": [
+      {"id": "verantwortung", "title": "Responsabilidad del padrino", "paragraphs": ["Como padrino asume la custodia del animal durante el transporte. Debe cumplir las normas de entrada y bienestar animal.", "Se recomienda un acuerdo escrito claro."]},
+      {"id": "haftung", "title": "Responsabilidad civil", "paragraphs": ["Quien transporta un animal responde de daños. La distribución entre organización y padrino debe aclararse de antemano."]},
+      {"id": "einfuhr-tracer", "title": "Requisitos de importación y TRACES", "paragraphs": ["La entrada de perros y gatos en la UE está sujeta al Reglamento UE. Para países terceros suele ser necesaria TRACES."]},
+      {"id": "eu-heimtierverordnung", "title": "Reglamento de mascotas de la UE", "paragraphs": ["En la UE: microchip, vacunación antirrábica, pasaporte UE. Los padrinos suelen quedar en transporte no comercial."]},
+      {"id": "impfpflicht-mikrochip", "title": "Vacunación, microchip y rabia", "paragraphs": ["La vacunación antirrábica es obligatoria. Debe administrarse después del microchip, al menos 21 días antes de la entrada."]},
+      {"id": "zoll", "title": "Aduanas", "paragraphs": ["En frontera pueden revisar documentos y animal. El padrino debe presentar los documentos a petición."]}
+    ],
+    "faqs": [
+      {"question": "¿Necesito un permiso especial?", "answer": "Para transporte privado no se necesita permiso comercial."},
+      {"question": "¿Quién responde si rechazan al animal?", "answer": "Depende del acuerdo con la organización."},
+      {"question": "¿Qué es TRACES y quién lo crea?", "answer": "TRACES es el sistema UE para registrar animales en entrada desde países terceros."}
+    ]
+  },
+  "tiertransport-im-flugzeug": {
+    "meta": {"title": "Transporte de animales en avión | PawBridge", "description": "Directrices IATA, jaulas, cabina vs. bodega, reducción del estrés.", "ogTitle": "Transporte en avión | PawBridge", "ogDescription": "Jaulas, cabina, bodega y condiciones de aerolíneas."},
+    "sections": [
+      {"id": "iata", "title": "Directrices IATA", "paragraphs": ["La IATA publica Live Animals Regulations. Regulan tamaño de contenedores, ventilación y etiquetado.", "Los padrinos deben observar los requisitos de su aerolínea."]},
+      {"id": "transportboxen", "title": "Jaulas de transporte", "paragraphs": ["Para cabina: bolsas blandas o semirrígidas. Para bodega: jaulas rígidas IATA con rejilla y ventilación."]},
+      {"id": "kabine-vs-fracht", "title": "Cabina vs. bodega", "paragraphs": ["En cabina el animal viaja bajo el asiento. En bodega animales más grandes en zonas climatizadas."]},
+      {"id": "stressreduktion", "title": "Reducción del estrés", "paragraphs": ["Manta familiar, hablar con calma, llegada directa reducen el estrés. La sedación suele desaconsejarse."]},
+      {"id": "temperatur-embargo", "title": "Temperatura y embargo", "paragraphs": ["Las aerolíneas pueden prohibir transporte en bodega con temperaturas extremas."]},
+      {"id": "airline-unterschiede", "title": "Diferencias entre aerolíneas", "paragraphs": ["Cada aerolínea tiene sus propias normas: número máximo, peso, dimensiones, tasas."]}
+    ],
+    "faqs": [
+      {"question": "¿Pueden los animales viajar en cabina?", "answer": "Sí, muchas aerolíneas permiten perros y gatos pequeños en cabina."},
+      {"question": "¿Es segura la bodega?", "answer": "La zona de carga para animales está climatizada y vigilada."},
+      {"question": "¿Qué jaula necesito?", "answer": "Para cabina: bolsa según aerolínea. Para bodega: jaula rígida IATA."}
+    ]
+  },
+  "haeufige-fragen": {
+    "meta": {"title": "Preguntas frecuentes sobre el padrinazgo de vuelo | PawBridge", "description": "Más de 20 respuestas sobre padrino, padrinazgo, transporte, costes y documentos.", "ogTitle": "FAQ Padrinazgo de vuelo | PawBridge", "ogDescription": "Preguntas y respuestas más importantes."},
+    "sections": [{"id": "einstieg", "title": "Introducción", "paragraphs": ["Las siguientes preguntas cubren los temas más frecuentes."]}],
+    "faqs": [
+      {"question": "¿Qué es un padrino de vuelo?", "answer": "Persona que lleva voluntariamente un animal en un vuelo ya planificado y lo entrega en destino."},
+      {"question": "¿Cuánto me cuesta?", "answer": "Normalmente nada. La organización cubre jaula, documentos y tasas."},
+      {"question": "¿Puedo llevar varios animales?", "answer": "Depende de la aerolínea. En cabina suele ser un animal por persona."},
+      {"question": "¿Qué documentos necesita el animal?", "answer": "Pasaporte UE, microchip, vacunación antirrábica. Para países terceros: TRACES."},
+      {"question": "¿Cómo me registro?", "answer": "A través de webs o redes de organizaciones que buscan padrinos."},
+      {"question": "¿Puedo llevar un gato del extranjero?", "answer": "Sí. Requisitos: documentos de entrada válidos."},
+      {"question": "¿Puedo llevar un perro?", "answer": "Sí. Viajan en cabina o bodega según tamaño."},
+      {"question": "¿Estoy asegurado?", "answer": "El seguro privado suele no cubrir actividades asociativas."},
+      {"question": "¿Qué pasa si el animal enferma?", "answer": "Contacte con la organización y un veterinario."},
+      {"question": "¿Cuánto tarda la preparación?", "answer": "Al menos 1–2 semanas."},
+      {"question": "¿Debo conocer al animal antes?", "answer": "No necesariamente."},
+      {"question": "¿Puedo tener el animal en cabina?", "answer": "Sí, si la aerolínea lo permite."},
+      {"question": "¿Qué es TRACES?", "answer": "Sistema UE para registrar animales en entrada desde países terceros."},
+      {"question": "¿Puedo deducir algo fiscalmente?", "answer": "Consulte a un asesor fiscal."},
+      {"question": "¿Cómo reconozco organizaciones serias?", "answer": "Asociaciones registradas, estatutos claros, transparencia."},
+      {"question": "¿Qué debo observar en el aeropuerto?", "answer": "Tiempo suficiente, documentos a mano. Véase checklist."},
+      {"question": "¿Puedo volar con mi mascota y como padrino?", "answer": "Depende de la aerolínea."},
+      {"question": "¿Qué pasa con el animal tras la entrega?", "answer": "La organización receptora o familia de acogida lo recibe."},
+      {"question": "¿Hay edad mínima?", "answer": "Legalmente no hay límite; las aerolíneas pueden exigir edad mínima."},
+      {"question": "¿Puedo ser padrino varias veces?", "answer": "Sí."},
+      {"question": "¿Qué aerolíneas permiten transporte?", "answer": "La mayoría de aerolíneas importantes permiten perros y gatos."},
+      {"question": "¿Diferencia entre padrino y empresa de transporte?", "answer": "El padrino viaja privado; la empresa realiza transporte comercial."}
+    ]
+  },
+  "fuer-organisationen": {
+    "meta": {"title": "Padrinos de vuelo para organizaciones | PawBridge", "description": "Por qué los padrinos tienen sentido: optimizar procesos, documentación, confianza.", "ogTitle": "Padrinos para organizaciones | PawBridge", "ogDescription": "Beneficios y procesos."},
+    "sections": [
+      {"id": "warum-sinnvoll", "title": "Por qué los padrinos tienen sentido", "paragraphs": ["Los padrinos amplían la capacidad de transporte. Cada padrinazgo permite reubicar otro animal.", "Los viajeros se convierten en embajadores del bienestar animal."]},
+      {"id": "prozesse-optimieren", "title": "Optimizar procesos", "paragraphs": ["Procesos claros, contactos fijos, listas de verificación, comunicación puntual."]},
+      {"id": "dokumentation", "title": "Documentación", "paragraphs": ["Cada padrinazgo debe documentarse."]},
+      {"id": "vertrauen-transparenz", "title": "Confianza y transparencia", "paragraphs": ["La transparencia genera confianza. El feedback refuerza la relación."]},
+      {"id": "sicherheit", "title": "Seguridad", "paragraphs": ["Verificación de padrinos, documentos completos, acuerdos claros."]}
+    ],
+    "faqs": [
+      {"question": "¿Cómo encontramos suficientes padrinos?", "answer": "Web, redes, boletín, boca a boca."},
+      {"question": "¿Debemos vincular padrinos contractualmente?", "answer": "Un acuerdo escrito es recomendable."},
+      {"question": "¿Quién asume costes por errores?", "answer": "Debe regularse en el acuerdo."}
+    ]
+  },
+  "fuer-flugpaten": {
+    "meta": {"title": "Para padrinos de vuelo | PawBridge", "description": "Requisitos, esfuerzo y responsabilidad para aspirantes a padrinos.", "ogTitle": "Para padrinos | PawBridge", "ogDescription": "Requisitos y consejos."},
+    "sections": [
+      {"id": "voraussetzungen", "title": "Requisitos", "paragraphs": ["Mayor de edad, documentación válida, indicar ruta y fecha. Fiabilidad importante."]},
+      {"id": "zeitaufwand", "title": "Tiempo necesario", "paragraphs": ["Entrega en aeropuertos (15–30 min) y llevar jaula y papeles."]},
+      {"id": "verantwortung", "title": "Responsabilidad", "paragraphs": ["Custodia del animal desde recepción hasta entrega."]},
+      {"id": "risiken", "title": "Riesgos", "paragraphs": ["Animal enfermo, papeles cuestionados. Acuerdo escrito debe aclarar responsabilidades."]},
+      {"id": "vorteile", "title": "Ventajas", "paragraphs": ["Aprovecha su viaje para protección animal. Experimenta que su vuelo ayuda."]},
+      {"id": "motivation", "title": "Motivación", "paragraphs": ["Muchos padrinos son amantes de los animales y quieren ayudar."]}
+    ],
+    "faqs": [
+      {"question": "¿Necesito experiencia?", "answer": "No necesariamente."},
+      {"question": "¿Pueden rechazarme?", "answer": "Las organizaciones pueden rechazar por capacidad o seguridad."},
+      {"question": "¿Y si cancelo mi vuelo?", "answer": "Contacte inmediatamente con la organización."}
+    ]
+  },
+  "risiken-und-sicherheit": {
+    "meta": {"title": "Riesgos y seguridad | PawBridge", "description": "Prevenir abusos, reconocer organizaciones serias, verificar documentos.", "ogTitle": "Riesgos y seguridad | PawBridge", "ogDescription": "Padrinazgo seguro y serio."},
+    "sections": [
+      {"id": "missbrauch-verhindern", "title": "Prevenir abusos", "paragraphs": ["Trabaje solo con organizaciones transparentes. Verifique documentos."]},
+      {"id": "serioese-organisationen", "title": "Reconocer organizaciones serias", "paragraphs": ["Asociación registrada, procesos claros, contactos fijos. Cuidado con presión o pago."]},
+      {"id": "dokumente-pruefen", "title": "Verificar documentos", "paragraphs": ["Compruebe pasaporte UE: microchip, vacunación, descripción del animal."]},
+      {"id": "keine-illegalen-transporte", "title": "Sin transportes ilegales", "paragraphs": ["Nunca acepte si sospecha de papeles falsos."]},
+      {"id": "warnzeichen", "title": "Señales de alerta", "paragraphs": ["Cuidado con: presión, pago inmediato; negativa a mostrar papeles."]}
+    ],
+    "faqs": [
+      {"question": "¿Debo verificar la organización?", "answer": "Sí. Compruebe imprenta y reseñas."},
+      {"question": "¿Qué hacer si los papeles parecen sospechosos?", "answer": "Hable con la organización. En duda, decline."},
+      {"question": "¿Puedo tener consecuencias penales?", "answer": "Cumpliendo las normas el riesgo es mínimo."}
+    ]
+  },
+  "checkliste": {
+    "meta": {"title": "Checklist padrinazgo de vuelo | PawBridge", "description": "Checklist: antes del vuelo, en aeropuerto, tras llegada.", "ogTitle": "Checklist | PawBridge", "ogDescription": "Checklist práctica."},
+    "sections": [
+      {"id": "vor-dem-flug", "title": "Antes del vuelo", "subs": [
+        {"title": "Registro y acuerdo", "paragraphs": ["Informar a la organización. Obtener confirmación por escrito. Guardar contactos."]},
+        {"title": "Documentos", "paragraphs": ["Comprobar pasaporte UE. Llevar papeles en carpeta impermeable."]},
+        {"title": "Jaula", "paragraphs": ["Recibir jaula o comprobar requisitos. Cerrada, etiquetada."]},
+        {"title": "Aerolínea", "paragraphs": ["Aviso previo. Conocer tasas y límites."]}
+      ]},
+      {"id": "am-flughafen", "title": "En el aeropuerto", "subs": [
+        {"title": "Entrega salida", "paragraphs": ["Respetar punto de encuentro. Recibir animal y documentos."]},
+        {"title": "Facturación", "paragraphs": ["Tiempo suficiente. Papeles a mano."]},
+        {"title": "Tras aterrizaje", "paragraphs": ["Recoger animal. Contactar persona de recogida."]}
+      ]},
+      {"id": "nach-ankunft", "title": "Tras la llegada", "paragraphs": ["Su responsabilidad termina con la entrega."]}
+    ],
+    "faqs": [
+      {"question": "¿Qué debo llevar?", "answer": "Documentos veterinarios, jaula, contactos, documentación de viaje."},
+      {"question": "¿Cuánto antes en aeropuerto?", "answer": "Al menos como para vuelo normal."},
+      {"question": "¿Y si no está la persona de recogida?", "answer": "La organización debe dejar número de emergencia."}
+    ]
+  },
+  "eu-regelungen": {
+    "meta": {"title": "Reglamentos UE sobre padrinazgo | PawBridge", "description": "Reglamento de mascotas UE, diferencias entre países, entrada desde no UE.", "ogTitle": "Reglamentos UE | PawBridge", "ogDescription": "Requisitos UE para transporte privado."},
+    "sections": [
+      {"id": "heimtierverordnung", "title": "Reglamento de mascotas UE", "paragraphs": ["El Reglamento (UE) 576/2013 regula el movimiento no comercial. Los padrinos sin pago suelen estar incluidos."]},
+      {"id": "laenderunterschiede", "title": "Diferencias entre países", "paragraphs": ["Algunos Estados exigen medidas adicionales: tratamiento contra equinococos (Finlandia, Irlanda, Malta, Reino Unido)."]},
+      {"id": "sonderfaelle", "title": "Casos especiales", "paragraphs": ["Cachorros: solo tras vacunación y periodo de espera."]},
+      {"id": "nicht-eu-einreise", "title": "Entrada desde no UE", "paragraphs": ["Certificado veterinario, vacunación antirrábica, TRACES."]}
+    ],
+    "faqs": [
+      {"question": "¿El Reglamento UE aplica a padrinos?", "answer": "Sí. Microchip, vacunación, pasaporte."},
+      {"question": "¿Qué para vuelos al Reino Unido?", "answer": "Reino Unido tiene requisitos propios."},
+      {"question": "¿Necesito TRACES dentro UE?", "answer": "Para viajes dentro UE suele bastar el pasaporte UE."}
+    ]
   }
 }

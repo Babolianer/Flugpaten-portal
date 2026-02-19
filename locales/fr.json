@@ -110,6 +110,49 @@
     "transparencyText": "Les organisations peuvent également transporter des animaux dans les villes voisines. Tu clarifies les détails directement avec l'organisation.",
     "detailsApply": "Détails / Postuler"
   },
+  "orgsMap": {
+    "title": "Organisations de protection des animaux",
+    "intro": "Vous trouverez ici toutes les organisations de protection des animaux vérifiées et leurs emplacements sur la carte. Filtrez par pays ou terme de recherche.",
+    "filter": "Filtres",
+    "country": "Pays",
+    "countryFilterAria": "Filtrer par pays",
+    "searchLabel": "Recherche (nom / description)",
+    "searchPlaceholder": "p. ex. refuge, chien",
+    "searchAria": "Terme de recherche",
+    "searchButton": "Rechercher",
+    "mapLoading": "Chargement de la carte...",
+    "mapNote": "Remarque : Chaque point représente un emplacement d'une organisation de protection des animaux. Cliquez sur un point ou une organisation dans la liste.",
+    "loading": "Chargement...",
+    "orgCount_one": "{count} organisation",
+    "orgCount_other": "{count} organisations",
+    "locationCount_one": "{count} emplacement",
+    "locationCount_other": "{count} emplacements",
+    "viewProfile": "Voir le profil →",
+    "noOrgsFound": "Aucune organisation trouvée. Ajustez les filtres.",
+    "loadError": "Les organisations n'ont pas pu être chargées. Veuillez réessayer plus tard.",
+    "countries": {
+      "all": "Tous les pays",
+      "DE": "Allemagne",
+      "AT": "Autriche",
+      "CH": "Suisse",
+      "ES": "Espagne",
+      "IT": "Italie",
+      "GR": "Grèce",
+      "PT": "Portugal",
+      "PL": "Pologne",
+      "RO": "Roumanie",
+      "HU": "Hongrie",
+      "NL": "Pays-Bas",
+      "BE": "Belgique",
+      "FR": "France",
+      "CZ": "République tchèque",
+      "HR": "Croatie",
+      "BG": "Bulgarie",
+      "TR": "Turquie",
+      "MA": "Maroc",
+      "EG": "Égypte"
+    }
+  },
   "requestStatus": {
     "OPEN": "Ouvert",
     "MATCHED": "En cours",
@@ -143,6 +186,7 @@
   },
   "footer": {
     "mitmachen": "Participer",
+    "cookieSettings": "Paramètres des cookies",
     "rechtliches": "Mentions légales",
     "tagline": "Votre vol peut sauver des vies.",
     "forOrgs": "Pour les organisations",
@@ -451,6 +495,23 @@
     "noAccount": "Pas encore de compte ?",
     "testAccount": "Compte test : admin@tierschutz.de / password123"
   },
+  "maintenance": {
+    "title": "Page en préparation",
+    "intro": "Pour les utilisateurs, la page est actuellement en construction. Les organisations peuvent s'inscrire à l'avance.",
+    "backToStart": "Retour à l'accueil",
+    "orgHeading": "Enregistrer une organisation",
+    "orgPreRegisterHint": "Les organisations peuvent s'inscrire ici à l'avance. Le responsable sera informé et recevra un accès complet après approbation.",
+    "orgPreRegisterSubmit": "Enregistrer l'organisation",
+    "orgSuccess": "Vous avez été enregistré et attendez la validation. Après validation, vous pourrez vous connecter.",
+    "passwordPlaceholder": "••••••••",
+    "adminLink": "Admin",
+    "bypassTitle": "Mode maintenance – Accès avec autorisation",
+    "bypassLabel": "Mot de passe",
+    "bypassSubmit": "Accès",
+    "bypassError": "Mot de passe incorrect.",
+    "loginUserNotAllowed": "Pendant la maintenance, seules les organisations et les administrateurs ont accès.",
+    "loginOrgPending": "Votre organisation attend encore la validation. Après validation, vous pourrez vous connecter."
+  },
   "contact": {
     "title": "Contact",
     "metaDescription": "Contactez-nous.",
@@ -526,6 +587,25 @@
     "telefon": "Téléphone",
     "handy": "Portable"
   },
+  "privacy": {
+    "title": "Privacy Policy",
+    "section1Title": "1. Responsible Party",
+    "section1Content": "Aaron Löchner\nSchönbuchstraße 28\n73666 Baltmannsweiler\nGermany\nPhone: +49 152 24822057\nWebsite: https://flugpaten-portal.vercel.app/",
+    "section2Title": "2. Hosting",
+    "section2Content": "This website is hosted by:\n\nVercel Inc.\n340 S Lemon Ave #4133\nWalnut, CA 91789\nUSA\n\nVercel processes server log data (IP address, browser information, date/time of request) to ensure technical stability.\n\nLegal basis: Art. 6(1)(f) GDPR (legitimate interest).",
+    "section3Title": "3. Google Analytics",
+    "section3Content": "This website uses Google Analytics, a web analytics service provided by:\n\nGoogle Ireland Limited\nGordon House\nBarrow Street\nDublin 4\nIreland\n\nGoogle Analytics uses cookies that allow analysis of user behavior.\n\nData processed may include: IP address (anonymized), device information, browser information, pages visited, duration of visit.\n\nIP anonymization is activated.\n\nThe use of Google Analytics is based on your consent (Art. 6(1)(a) GDPR). You can withdraw your consent at any time via the cookie banner.\n\nData may be transferred to the United States. Google relies on EU Standard Contractual Clauses for data protection compliance.\n\nYou can prevent Google Analytics tracking by installing: https://tools.google.com/dlpage/gaoptout",
+    "section4Title": "4. Cookies",
+    "section4Content": "This website uses cookies. Cookies are small text files stored on your device.\n\nWe use: Essential cookies (necessary for site functionality), Analytics cookies (Google Analytics, only with consent).\n\nYou can manage your cookie preferences via the cookie banner.\n\nLegal basis: Essential cookies → Art. 6(1)(f) GDPR, Analytics cookies → Art. 6(1)(a) GDPR (consent).",
+    "section5Title": "5. OpenStreetMap / MapLibre",
+    "section5Content": "This website integrates map services based on OpenStreetMap data via MapLibre.\n\nOpenStreetMap Foundation\n132 Maney Hill Road\nSutton Coldfield\nWest Midlands\nUnited Kingdom\n\nWhen loading the map, your IP address may be transmitted to OpenStreetMap servers.\n\nLegal basis: Art. 6(1)(f) GDPR (legitimate interest in providing map functionality).\n\nMore information: https://wiki.osmfoundation.org/wiki/Privacy_Policy",
+    "section6Title": "6. Contact & Enquiries",
+    "section6Content": "If you contact us via email or platform forms, we process: Name, email address, message content.\n\nLegal basis: Art. 6(1)(b) GDPR.",
+    "section7Title": "7. Platform Function",
+    "section7Content": "PawBridge is a networking platform connecting flight sponsors and animal welfare organizations. The website operator does not conduct animal transports.",
+    "section8Title": "8. Your Rights",
+    "section8Content": "You have the right to: Access (Art. 15 GDPR), Rectification (Art. 16 GDPR), Erasure (Art. 17 GDPR), Restriction of processing (Art. 18 GDPR), Data portability (Art. 20 GDPR), Object (Art. 21 GDPR).\n\nYou also have the right to lodge a complaint with a supervisory authority."
+  },
   "impressum": {
     "title": "Mentions légales",
     "backToHome": "← Retour à l'accueil",
@@ -535,6 +615,15 @@
     "responsible": "Responsable du contenu",
     "liability": "Avertissement",
     "liabilityText": "Les contenus ont été créés avec le plus grand soin. Nous ne pouvons toutefois pas en garantir l'exactitude ou l'actualité."
+  },
+  "cookie": {
+    "text": "Nous utilisons des cookies pour la fonctionnalité du site, la préférence de langue et – uniquement avec ton accord – Google Analytics. Plus d'infos dans notre",
+    "textSuffix": ".",
+    "privacyLink": "Politique de confidentialité",
+    "opensInNewTab": "ouvre dans un nouvel onglet",
+    "moreInfo": "En savoir plus",
+    "decline": "Essentiels uniquement",
+    "accept": "Tout accepter"
   },
   "meta": {
     "title": "PawBridge – Portail des parrains et marraines pour la protection des animaux",

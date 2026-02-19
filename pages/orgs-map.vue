@@ -3,6 +3,8 @@ import type { OrgListItem, OrgLocation, OrgsMapPin } from '~/types/orgs-map'
 
 definePageMeta({ layout: 'default' })
 
+const { t } = useI18n()
+
 const filters = ref({
   countryCode: '',
   search: '',
@@ -15,28 +17,13 @@ const loadError = ref('')
 const selectedPinId = ref<string | null>(null)
 const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void } | null>(null)
 
-const countryOptions = [
-  { value: '', label: 'Alle Länder' },
-  { value: 'DE', label: 'Deutschland' },
-  { value: 'AT', label: 'Österreich' },
-  { value: 'CH', label: 'Schweiz' },
-  { value: 'ES', label: 'Spanien' },
-  { value: 'IT', label: 'Italien' },
-  { value: 'GR', label: 'Griechenland' },
-  { value: 'PT', label: 'Portugal' },
-  { value: 'PL', label: 'Polen' },
-  { value: 'RO', label: 'Rumänien' },
-  { value: 'HU', label: 'Ungarn' },
-  { value: 'NL', label: 'Niederlande' },
-  { value: 'BE', label: 'Belgien' },
-  { value: 'FR', label: 'Frankreich' },
-  { value: 'CZ', label: 'Tschechien' },
-  { value: 'HR', label: 'Kroatien' },
-  { value: 'BG', label: 'Bulgarien' },
-  { value: 'TR', label: 'Türkei' },
-  { value: 'MA', label: 'Marokko' },
-  { value: 'EG', label: 'Ägypten' },
-]
+const countryCodes = ['', 'DE', 'AT', 'CH', 'ES', 'IT', 'GR', 'PT', 'PL', 'RO', 'HU', 'NL', 'BE', 'FR', 'CZ', 'HR', 'BG', 'TR', 'MA', 'EG'] as const
+const countryOptions = computed(() =>
+  countryCodes.map((code) => ({
+    value: code,
+    label: code ? t(`orgsMap.countries.${code}`) : t('orgsMap.countries.all'),
+  }))
+)
 
 async function loadData() {
   loading.value = true
@@ -52,7 +39,7 @@ async function loadData() {
   } catch (e) {
     organizations.value = []
     mapPins.value = []
-    loadError.value = 'Organisationen konnten nicht geladen werden. Bitte später erneut versuchen.'
+    loadError.value = 'error'
   } finally {
     loading.value = false
   }
@@ -90,25 +77,25 @@ onMounted(loadData)
   <div class="container mx-auto w-4/5 max-w-full px-4 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
     <section class="mb-4 sm:mb-6">
       <h1 class="text-xl sm:text-2xl font-bold text-slate-900">
-        Tierschutzorganisationen
+        {{ t('orgsMap.title') }}
       </h1>
       <p class="mt-2 text-sm sm:text-base text-slate-600 max-w-2xl">
-        Hier findest du alle geprüften Tierschutzorganisationen und ihre Standorte auf der Karte. Filtere nach Land oder Suchbegriff.
+        {{ t('orgsMap.intro') }}
       </p>
     </section>
 
     <!-- Filter für Organisationen -->
     <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 p-4 sm:p-6 mb-4 sm:mb-6">
       <h2 class="text-base font-semibold text-slate-700 mb-4">
-        Filter
+        {{ t('orgsMap.filter') }}
       </h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Land</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgsMap.country') }}</label>
           <select
             v-model="filters.countryCode"
             class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 min-h-[44px]"
-            aria-label="Land filtern"
+            :aria-label="t('orgsMap.countryFilterAria')"
           >
             <option v-for="opt in countryOptions" :key="opt.value || 'all'" :value="opt.value">
               {{ opt.label }}
@@ -116,13 +103,13 @@ onMounted(loadData)
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Suche (Name / Beschreibung)</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgsMap.searchLabel') }}</label>
           <input
             v-model="filters.search"
             type="text"
             class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 min-h-[44px]"
-            placeholder="z.B. Tierheim, Hund"
-            aria-label="Suchbegriff"
+            :placeholder="t('orgsMap.searchPlaceholder')"
+            :aria-label="t('orgsMap.searchAria')"
             @keydown.enter="applyFilters"
           />
         </div>
@@ -132,7 +119,7 @@ onMounted(loadData)
             class="px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium transition-colors min-h-[44px]"
             @click="applyFilters"
           >
-            Suchen
+            {{ t('orgsMap.searchButton') }}
           </button>
         </div>
       </div>
@@ -151,25 +138,25 @@ onMounted(loadData)
           />
           <template #fallback>
             <div class="h-[280px] sm:h-[380px] lg:h-[500px] bg-slate-200 flex items-center justify-center">
-              Karte wird geladen...
+              {{ t('orgsMap.mapLoading') }}
             </div>
           </template>
         </ClientOnly>
         <p class="mt-3 text-xs sm:text-sm text-slate-600 bg-slate-50 rounded-b-xl px-3 sm:px-4 py-2 sm:py-3 border border-t-0 border-slate-200">
-          <strong class="text-slate-700">Hinweis:</strong> Jeder Punkt entspricht einem Standort einer Tierschutzorganisation. Klicke auf einen Punkt oder eine Organisation in der Liste.
+          {{ t('orgsMap.mapNote') }}
         </p>
       </div>
 
       <div class="space-y-4 order-2 min-w-0">
         <div v-if="loadError" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mb-4">
-            {{ loadError }}
+            {{ t('orgsMap.loadError') }}
           </div>
           <div v-if="loading" class="text-slate-500 text-sm">
-            Lade...
+            {{ t('orgsMap.loading') }}
           </div>
           <template v-else>
           <h2 class="font-semibold text-slate-900 text-base sm:text-lg">
-            {{ organizations.length }} Organisation{{ organizations.length !== 1 ? 'en' : '' }}
+            {{ t(organizations.length === 1 ? 'orgsMap.orgCount_one' : 'orgsMap.orgCount_other', { count: organizations.length }) }}
           </h2>
           <div class="space-y-4 max-h-[50vh] sm:max-h-[420px] lg:max-h-[520px] overflow-y-auto overflow-x-hidden">
             <div
@@ -199,14 +186,14 @@ onMounted(loadData)
                       {{ org.description }}
                     </p>
                     <p class="text-slate-400 text-xs mt-1">
-                      {{ org.locationCount }} Standort{{ org.locationCount !== 1 ? 'e' : '' }}
+                      {{ t(org.locationCount === 1 ? 'orgsMap.locationCount_one' : 'orgsMap.locationCount_other', { count: org.locationCount }) }}
                     </p>
                     <NuxtLink
                       :to="`/org/${org.slug}`"
                       class="inline-block mt-2 text-sm font-medium text-amber-600 hover:text-amber-700"
                       @click.stop
                     >
-                      Profil ansehen →
+                      {{ t('orgsMap.viewProfile') }}
                     </NuxtLink>
                   </div>
                 </div>
@@ -228,7 +215,7 @@ onMounted(loadData)
             </div>
           </div>
           <p v-if="organizations.length === 0 && !loading" class="text-slate-500 text-sm py-4">
-            Keine Organisationen gefunden. Passe die Filter an.
+            {{ t('orgsMap.noOrgsFound') }}
           </p>
         </template>
       </div>

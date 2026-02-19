@@ -3,6 +3,7 @@ import logoImg from '~/assets/images/logo.png'
 
 const { t } = useI18n()
 const { user } = useAuth()
+const { openSettings } = useCookieConsent()
 
 const year = new Date().getFullYear()
 const copyright = computed(() => t('footer.copyright').replace('{year}', String(year)))
@@ -21,6 +22,7 @@ const linkGroups = computed(() => {
       { to: '/kontakt', label: t('footer.contact') },
       { to: '/impressum', label: t('footer.impressum') },
       { to: '/datenschutz', label: t('footer.datenschutz') },
+      { isAction: true, label: t('footer.cookieSettings'), action: 'openCookieSettings' },
     ]},
   ]
 })
@@ -50,14 +52,23 @@ const linkGroups = computed(() => {
               {{ group.label }}
             </span>
             <div class="flex flex-col gap-3">
-              <NuxtLink
-                v-for="link in group.links"
-                :key="link.to"
-                :to="link.to"
-                class="text-sm text-slate-400 hover:text-amber-400 transition-colors w-fit"
-              >
-                {{ link.label }}
-              </NuxtLink>
+              <template v-for="link in group.links" :key="'to' in link ? link.to : link.label">
+                <NuxtLink
+                  v-if="!('isAction' in link && link.isAction)"
+                  :to="(link as { to: string }).to"
+                  class="text-sm text-slate-400 hover:text-amber-400 transition-colors w-fit"
+                >
+                  {{ link.label }}
+                </NuxtLink>
+                <button
+                  v-else
+                  type="button"
+                  class="text-sm text-slate-400 hover:text-amber-400 transition-colors w-fit text-left"
+                  @click="openSettings"
+                >
+                  {{ link.label }}
+                </button>
+              </template>
             </div>
           </div>
         </nav>

@@ -9,6 +9,7 @@ const schema = z.object({
   description: z.string().optional(),
   website: z.string().url().optional().or(z.literal('')),
   contactEmail: z.string().email(),
+  maintenancePreRegister: z.boolean().optional(),
 })
 
 function slugify(text: string): string {
@@ -29,7 +30,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid input', data: parsed.error.flatten() })
   }
 
-  const { email, password, displayName, description, website, contactEmail } = parsed.data
+  const { email, password, displayName, description, website, contactEmail, maintenancePreRegister } = parsed.data
   const name = displayName.trim()
 
   const existingUser = await prisma.user.findUnique({ where: { email } })
@@ -79,16 +80,18 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  const token = await signJwt({ sub: user.id, role: user.role })
-  const config = useRuntimeConfig()
-  const cookieName = config.cookieName || 'tierschutz_session'
-  setCookie(event, cookieName, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/',
-  })
+  if (!maintenancePreRegister) {
+    const token = await signJwt({ sub: user.id, role: user.role })
+    const config = useRuntimeConfig()
+    const cookieName = config.cookieName || 'tierschutz_session'
+    setCookie(event, cookieName, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    })
+  }
 
   return { user }
 })

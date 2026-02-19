@@ -105,7 +105,50 @@
     "groupCountry": "Im selben Zielland möglich",
     "transparencyTitle": "Warum sehe ich Anfragen für andere Städte?",
     "transparencyText": "Organisationen können Tiere auch in nahegelegene Städte weitertransportieren. Die Details klärst du direkt mit der Organisation.",
-    "detailsApply": "Details / Bewerben"
+    "detailsApply": "Szczegóły / Aplikuj"
+  },
+  "orgsMap": {
+    "title": "Organizacje ochrony zwierząt",
+    "intro": "Tu znajdziesz wszystkie zweryfikowane organizacje ochrony zwierząt i ich lokalizacje na mapie. Filtruj według kraju lub hasła wyszukiwania.",
+    "filter": "Filtry",
+    "country": "Kraj",
+    "countryFilterAria": "Filtruj według kraju",
+    "searchLabel": "Szukaj (nazwa / opis)",
+    "searchPlaceholder": "np. schronisko, pies",
+    "searchAria": "Hasło wyszukiwania",
+    "searchButton": "Szukaj",
+    "mapLoading": "Ładowanie mapy...",
+    "mapNote": "Uwaga: Każdy punkt odpowiada lokalizacji organizacji ochrony zwierząt. Kliknij punkt lub organizację z listy.",
+    "loading": "Ładowanie...",
+    "orgCount_one": "{count} organizacja",
+    "orgCount_other": "{count} organizacji",
+    "locationCount_one": "{count} lokalizacja",
+    "locationCount_other": "{count} lokalizacji",
+    "viewProfile": "Zobacz profil →",
+    "noOrgsFound": "Nie znaleziono organizacji. Dostosuj filtry.",
+    "loadError": "Nie udało się załadować organizacji. Spróbuj ponownie później.",
+    "countries": {
+      "all": "Wszystkie kraje",
+      "DE": "Niemcy",
+      "AT": "Austria",
+      "CH": "Szwajcaria",
+      "ES": "Hiszpania",
+      "IT": "Włochy",
+      "GR": "Grecja",
+      "PT": "Portugalia",
+      "PL": "Polska",
+      "RO": "Rumunia",
+      "HU": "Węgry",
+      "NL": "Holandia",
+      "BE": "Belgia",
+      "FR": "Francja",
+      "CZ": "Czechy",
+      "HR": "Chorwacja",
+      "BG": "Bułgaria",
+      "TR": "Turcja",
+      "MA": "Maroko",
+      "EG": "Egipt"
+    }
   },
   "requestStatus": {
     "OPEN": "Offen",
@@ -114,15 +157,33 @@
     "CANCELLED": "Storniert"
   },
   "flugpate": {
-    "heroTitle": "Wissensdatenbank Flugpate",
-    "heroSubtitle": "Alles rund um Flugpatenschaft, Tiertransport im Flugzeug und rechtliche Hinweise – für Flugpaten und Organisationen.",
-    "overviewTitle": "Alle Themen im Überblick",
-    "ctaRegisterPatron": "Jetzt als Flugpate registrieren",
-    "ctaRegisterOrg": "Als Organisation registrieren",
-    "navAriaLabel": "Wissensdatenbank Flugpate"
+    "heroTitle": "Baza wiedzy Opiekun lotu",
+    "heroSubtitle": "Wszystko o opiece lotniczej, transporcie zwierząt samolotem i informacjach prawnych – dla opiekunów i organizacji.",
+    "overviewTitle": "Przegląd wszystkich tematów",
+    "ctaRegisterPatron": "Zarejestruj się jako opiekun lotu",
+    "ctaRegisterOrg": "Zarejestruj organizację",
+    "navAriaLabel": "Baza wiedzy Opiekun lotu",
+    "topics": {
+      "was-ist-ein-flugpate": { "title": "Co to jest opiekun lotu?", "shortDescription": "Definicja, znaczenie i różnica względem przewozu komercyjnego." },
+      "ablauf-einer-flugpatenschaft": { "title": "Przebieg opieki lotniczej", "shortDescription": "Od pierwszego kontaktu do przekazania na miejscu docelowym." },
+      "rechtliche-hinweise": { "title": "Informacje prawne", "shortDescription": "Odpowiedzialność, TRACES, import i szczepienia." },
+      "tiertransport-im-flugzeug": { "title": "Transport zwierząt samolotem", "shortDescription": "IATA, transporty, kabina vs. bagaż." },
+      "haeufige-fragen": { "title": "Często zadawane pytania", "shortDescription": "Odpowiedzi na najważniejsze pytania o opiekę lotniczą." },
+      "fuer-organisationen": { "title": "Dla organizacji", "shortDescription": "Korzyści, procesy i zaufanie z opiekunami." },
+      "fuer-flugpaten": { "title": "Dla opiekunów lotu", "shortDescription": "Wymagania, nakład pracy i odpowiedzialność." },
+      "risiken-und-sicherheit": { "title": "Ryzyka i bezpieczeństwo", "shortDescription": "Pozostać wiarygodnym i unikać nadużyć." },
+      "checkliste": { "title": "Lista kontrolna", "shortDescription": "Przed lotem, na lotnisku i po przybyciu." },
+      "eu-regelungen": { "title": "Przepisy UE", "shortDescription": "Rozporządzenie o zwierzętach domowych, kraje i przypadki specjalne." }
+    },
+    "ctaNowRegister": "Zarejestruj się jako opiekun lotu",
+    "ctaBackToOverview": "Powrót do przeglądu",
+    "faqTitle": "Często zadawane pytania",
+    "topicsTitle": "Tematy",
+    "ctaNowTitle": "Zacznij teraz"
   },
   "footer": {
     "mitmachen": "Dołącz",
+    "cookieSettings": "Ustawienia cookies",
     "rechtliches": "Prawne",
     "tagline": "Twój lot może ocalić życie.",
     "forOrgs": "Für Organisationen",
@@ -349,6 +410,23 @@
     "noAccount": "Nie masz konta?",
     "testAccount": "Konto testowe: admin@tierschutz.de / password123"
   },
+  "maintenance": {
+    "title": "Strona w przygotowaniu",
+    "intro": "Dla użytkowników strona jest obecnie w budowie. Organizacje mogą się wstępnie zarejestrować.",
+    "backToStart": "Powrót do strony startowej",
+    "orgHeading": "Zarejestruj organizację",
+    "orgPreRegisterHint": "Organizacje mogą się tutaj wstępnie zarejestrować. Właściciel zostanie poinformowany i otrzyma pełny dostęp po zatwierdzeniu.",
+    "orgPreRegisterSubmit": "Zarejestruj organizację",
+    "orgSuccess": "Zostałeś zarejestrowany i oczekujesz na zatwierdzenie. Po zatwierdzeniu możesz się zalogować.",
+    "passwordPlaceholder": "••••••••",
+    "adminLink": "Admin",
+    "bypassTitle": "Tryb konserwacji – Dostęp z uprawnieniami",
+    "bypassLabel": "Hasło",
+    "bypassSubmit": "Dostęp",
+    "bypassError": "Nieprawidłowe hasło.",
+    "loginUserNotAllowed": "Podczas konserwacji dostęp mają tylko organizacje i administratorzy.",
+    "loginOrgPending": "Twoja organizacja czeka jeszcze na zatwierdzenie. Po zatwierdzeniu możesz się zalogować."
+  },
   "contact": {
     "title": "Kontakt",
     "metaDescription": "Skontaktuj się z nami.",
@@ -424,6 +502,25 @@
     "telefon": "Telefon",
     "handy": "Komórka"
   },
+  "privacy": {
+    "title": "Privacy Policy",
+    "section1Title": "1. Responsible Party",
+    "section1Content": "Aaron Löchner\nSchönbuchstraße 28\n73666 Baltmannsweiler\nGermany\nPhone: +49 152 24822057\nWebsite: https://flugpaten-portal.vercel.app/",
+    "section2Title": "2. Hosting",
+    "section2Content": "This website is hosted by:\n\nVercel Inc.\n340 S Lemon Ave #4133\nWalnut, CA 91789\nUSA\n\nVercel processes server log data (IP address, browser information, date/time of request) to ensure technical stability.\n\nLegal basis: Art. 6(1)(f) GDPR (legitimate interest).",
+    "section3Title": "3. Google Analytics",
+    "section3Content": "This website uses Google Analytics, a web analytics service provided by:\n\nGoogle Ireland Limited\nGordon House\nBarrow Street\nDublin 4\nIreland\n\nGoogle Analytics uses cookies that allow analysis of user behavior.\n\nData processed may include: IP address (anonymized), device information, browser information, pages visited, duration of visit.\n\nIP anonymization is activated.\n\nThe use of Google Analytics is based on your consent (Art. 6(1)(a) GDPR). You can withdraw your consent at any time via the cookie banner.\n\nData may be transferred to the United States. Google relies on EU Standard Contractual Clauses for data protection compliance.\n\nYou can prevent Google Analytics tracking by installing: https://tools.google.com/dlpage/gaoptout",
+    "section4Title": "4. Cookies",
+    "section4Content": "This website uses cookies. Cookies are small text files stored on your device.\n\nWe use: Essential cookies (necessary for site functionality), Analytics cookies (Google Analytics, only with consent).\n\nYou can manage your cookie preferences via the cookie banner.\n\nLegal basis: Essential cookies → Art. 6(1)(f) GDPR, Analytics cookies → Art. 6(1)(a) GDPR (consent).",
+    "section5Title": "5. OpenStreetMap / MapLibre",
+    "section5Content": "This website integrates map services based on OpenStreetMap data via MapLibre.\n\nOpenStreetMap Foundation\n132 Maney Hill Road\nSutton Coldfield\nWest Midlands\nUnited Kingdom\n\nWhen loading the map, your IP address may be transmitted to OpenStreetMap servers.\n\nLegal basis: Art. 6(1)(f) GDPR (legitimate interest in providing map functionality).\n\nMore information: https://wiki.osmfoundation.org/wiki/Privacy_Policy",
+    "section6Title": "6. Contact & Enquiries",
+    "section6Content": "If you contact us via email or platform forms, we process: Name, email address, message content.\n\nLegal basis: Art. 6(1)(b) GDPR.",
+    "section7Title": "7. Platform Function",
+    "section7Content": "PawBridge is a networking platform connecting flight sponsors and animal welfare organizations. The website operator does not conduct animal transports.",
+    "section8Title": "8. Your Rights",
+    "section8Content": "You have the right to: Access (Art. 15 GDPR), Rectification (Art. 16 GDPR), Erasure (Art. 17 GDPR), Restriction of processing (Art. 18 GDPR), Data portability (Art. 20 GDPR), Object (Art. 21 GDPR).\n\nYou also have the right to lodge a complaint with a supervisory authority."
+  },
   "impressum": {
     "title": "Impressum",
     "backToHome": "← Strona główna",
@@ -433,6 +530,15 @@
     "responsible": "Odpowiedzialny za treść",
     "liability": "Wyłączenie odpowiedzialności",
     "liabilityText": "Treści stworzono z największą starannością. Nie gwarantujemy jednak poprawności, kompletności ani aktualności."
+  },
+  "cookie": {
+    "text": "Używamy plików cookie do funkcjonalności strony, preferencji językowych oraz – wyłącznie za Twoją zgodą – Google Analytics. Więcej w naszej",
+    "textSuffix": ".",
+    "privacyLink": "Polityce prywatności",
+    "opensInNewTab": "otwiera się w nowej karcie",
+    "moreInfo": "Więcej informacji",
+    "decline": "Tylko niezbędne",
+    "accept": "Akceptuj wszystko"
   },
   "meta": {
     "title": "PawBridge – Tierschutz-Flugpaten Portal",

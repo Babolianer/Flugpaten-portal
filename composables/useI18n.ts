@@ -2,6 +2,8 @@ import de from '~/locales/de.json'
 import en from '~/locales/en.json'
 import fr from '~/locales/fr.json'
 import es from '~/locales/es.json'
+import it from '~/locales/it.json'
+import pl from '~/locales/pl.json'
 
 const COOKIE_KEY = 'pawbridge_locale'
 
@@ -12,6 +14,8 @@ const messages: Record<string, Messages> = {
   en: en as Messages,
   fr: fr as Messages,
   es: es as Messages,
+  it: it as Messages,
+  pl: pl as Messages,
 }
 
 const locales = [
@@ -19,6 +23,8 @@ const locales = [
   { code: 'en', name: 'English', flagCountry: 'gb' },
   { code: 'fr', name: 'Français', flagCountry: 'fr' },
   { code: 'es', name: 'Español', flagCountry: 'es' },
+  { code: 'it', name: 'Italiano', flagCountry: 'it' },
+  { code: 'pl', name: 'Polski', flagCountry: 'pl' },
 ]
 
 function getNested(obj: unknown, path: string): string | undefined {

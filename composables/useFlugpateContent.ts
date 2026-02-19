@@ -13,6 +13,8 @@ import { euRegelungenContent } from '~/content/flugpate/eu-regelungen'
 import enPages from '~/content/flugpate-pages/en.json'
 import esPages from '~/content/flugpate-pages/es.json'
 import frPages from '~/content/flugpate-pages/fr.json'
+import itPages from '~/content/flugpate-pages/it.json'
+import plPages from '~/content/flugpate-pages/pl.json'
 
 const CONTENT_MAP: Record<string, FlugpatePageContent> = {
   'was-ist-ein-flugpate': wasIstEinFlugpateContent,
@@ -32,6 +34,8 @@ const LOCALE_PAGES: Record<string, Record<string, FlugpatePageContent>> = {
   en: enPages as Record<string, FlugpatePageContent>,
   es: esPages as Record<string, FlugpatePageContent>,
   fr: frPages as Record<string, FlugpatePageContent>,
+  it: itPages as Record<string, FlugpatePageContent>,
+  pl: plPages as Record<string, FlugpatePageContent>,
 }
 
 export function useFlugpateContent() {
@@ -46,7 +50,7 @@ export function useFlugpateContent() {
   )
 
   function getPageContent(slug: string): FlugpatePageContent | null {
-    const loc = (locale.value || 'de') as 'de' | 'en' | 'es' | 'fr'
+    const loc = (locale.value || 'de') as 'de' | 'en' | 'es' | 'fr' | 'it' | 'pl'
     if (loc === 'de') {
       return CONTENT_MAP[slug] ?? null
     }

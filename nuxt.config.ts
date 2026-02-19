@@ -36,6 +36,7 @@ export default defineNuxtConfig({
     mailLogoUrl: process.env.MAIL_LOGO_URL || '',
     public: {
       appUrl: process.env.NUXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      googleAnalyticsId: process.env.NUXT_PUBLIC_GOOGLE_ANALYTICS_ID || 'G-SCGFJKSM77',
     },
   },
   app: {
