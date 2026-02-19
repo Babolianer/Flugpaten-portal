@@ -1,5 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  experimental: {
+    appManifest: false,
+  },
   devtools: {
     enabled: true,
     // Deaktiviert den Vue Component Inspector (vite-plugin-vue-inspector), der bei orgs-map.vue einen 500-Fehler verursacht.
