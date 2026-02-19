@@ -1,13 +1,8 @@
-import path from 'node:path'
-import { writeFile, mkdir } from 'node:fs/promises'
-import { randomBytes } from 'node:crypto'
 import { z } from 'zod'
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 import { ensureOrgAccess } from '~~/server/utils/orgAccess'
-
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+import { uploadAnimalImage } from '~~/server/utils/supabaseStorage'
 
 const schema = z.object({
   name: z.string().min(1).optional(),
@@ -58,21 +53,12 @@ export default defineEventHandler(async (event) => {
     if (parsed.isActive !== undefined) data.isActive = parsed.isActive
 
     if (imagePart) {
-      if (imagePart.data.length > MAX_IMAGE_SIZE) {
-        throw createError({ statusCode: 400, message: 'Bild zu groß (max. 5 MB)' })
-      }
-      const mime = (imagePart.type || '').toLowerCase()
-      if (mime && !ALLOWED_IMAGE_TYPES.includes(mime)) {
-        throw createError({ statusCode: 400, message: 'Nur Bilder erlaubt (JPG, PNG, WebP, GIF)' })
-      }
-      const ext = path.extname(imagePart.filename).toLowerCase() || '.jpg'
-      const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext) ? ext : '.jpg'
-      const safeName = `${id}-${randomBytes(4).toString('hex')}${safeExt}`
-      const dir = path.join(process.cwd(), 'public', 'uploads', 'animals', animal.organizationId)
-      await mkdir(dir, { recursive: true })
-      const filePath = path.join(dir, safeName)
-      await writeFile(filePath, imagePart.data)
-      data.imageUrl = `/uploads/animals/${animal.organizationId}/${safeName}`
+      data.imageUrl = await uploadAnimalImage(
+        animal.organizationId,
+        imagePart.filename,
+        imagePart.data,
+        imagePart.type || 'image/jpeg'
+      )
     }
   } else {
     const body = await readBody(event)

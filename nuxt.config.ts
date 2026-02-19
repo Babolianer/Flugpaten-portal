@@ -19,6 +19,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL || '',
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
     maintenancePassword: process.env.MAINTENANCE_PASSWORD || 'b2bsellers',
     maintenanceAdminEmail: process.env.MAINTENANCE_ADMIN_EMAIL || 'admin@tierschutz.de',

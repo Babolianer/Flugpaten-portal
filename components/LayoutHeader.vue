@@ -6,10 +6,38 @@ const { user, fetchUser, logout } = useAuth()
 const { locale, locales, t, setLocale } = useI18n()
 const mobileMenuOpen = ref(false)
 const logoHover = ref(false)
+const langDropdownOpen = ref(false)
+const langDropdownDesktopRef = ref<HTMLElement | null>(null)
+const langDropdownMobileRef = ref<HTMLElement | null>(null)
+
+const currentLocale = computed(() => locales.find((l) => l.code === locale.value) ?? locales[0])
 
 function closeMobileMenu() {
   mobileMenuOpen.value = false
 }
+
+function closeLangDropdown() {
+  langDropdownOpen.value = false
+}
+
+function selectLocale(code: string) {
+  setLocale(code)
+  closeLangDropdown()
+}
+
+watch(langDropdownOpen, (isOpen) => {
+  if (!import.meta.client || !isOpen) return
+  const handler = (e: MouseEvent) => {
+    const target = e.target as Node
+    const inDesktop = langDropdownDesktopRef.value?.contains(target)
+    const inMobile = langDropdownMobileRef.value?.contains(target)
+    if (!inDesktop && !inMobile) {
+      langDropdownOpen.value = false
+      document.removeEventListener('click', handler)
+    }
+  }
+  setTimeout(() => document.addEventListener('click', handler), 0)
+})
 
 onMounted(fetchUser)
 </script>
@@ -69,27 +97,82 @@ onMounted(fetchUser)
             {{ t('nav.register') }}
           </NuxtLink>
         </template>
-        <div class="flex items-center gap-1.5 pl-4 ml-2 border-l border-slate-600" role="group" :aria-label="t('nav.language')">
-          <select
-            :value="locale"
-            class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 min-h-[40px] cursor-pointer"
-            @change="setLocale(($event.target as HTMLSelectElement).value)"
+        <div ref="langDropdownDesktopRef" class="relative flex items-center pl-4 ml-2 border-l border-slate-600" role="group" :aria-label="t('nav.language')">
+          <button
+            type="button"
+            class="flex items-center justify-center w-10 h-10 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-amber-400 text-2xl leading-none cursor-pointer"
+            :aria-expanded="langDropdownOpen"
+            :aria-haspopup="true"
+            @click.stop="langDropdownOpen = !langDropdownOpen"
           >
-            <option v-for="loc in locales" :key="loc.code" :value="loc.code">{{ loc.flagEmoji }} {{ loc.name }}</option>
-          </select>
+            {{ currentLocale.flagEmoji }}
+          </button>
+          <Transition
+            enter-active-class="transition ease-out duration-150"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-active-class="transition ease-in duration-100"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <div
+              v-show="langDropdownOpen"
+              class="absolute right-0 top-full mt-1 py-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[160px]"
+            >
+              <button
+                v-for="loc in locales"
+                :key="loc.code"
+                type="button"
+                class="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-white hover:bg-slate-700 transition-colors"
+                :class="{ 'bg-slate-700': locale === loc.code }"
+                @click="selectLocale(loc.code)"
+              >
+                <span class="text-xl">{{ loc.flagEmoji }}</span>
+                {{ loc.name }}
+              </button>
+            </div>
+          </Transition>
         </div>
       </nav>
 
-      <!-- Mobile: Sprache-Dropdown + Hamburger -->
+      <!-- Mobile: Flaggen-Sprachauswahl + Hamburger -->
       <div class="flex md:hidden items-center gap-2">
-        <select
-          :value="locale"
-          class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-amber-400 min-h-[44px] min-w-[100px] cursor-pointer"
-          :aria-label="t('nav.language')"
-          @change="setLocale(($event.target as HTMLSelectElement).value)"
-        >
-          <option v-for="loc in locales" :key="loc.code" :value="loc.code">{{ loc.flagEmoji }} {{ loc.name }}</option>
-        </select>
+        <div ref="langDropdownMobileRef" class="relative" role="group" :aria-label="t('nav.language')">
+          <button
+            type="button"
+            class="flex items-center justify-center w-11 h-11 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-amber-400 text-2xl leading-none cursor-pointer min-h-[44px] min-w-[44px]"
+            :aria-expanded="langDropdownOpen"
+            :aria-haspopup="true"
+            @click.stop="langDropdownOpen = !langDropdownOpen"
+          >
+            {{ currentLocale.flagEmoji }}
+          </button>
+          <Transition
+            enter-active-class="transition ease-out duration-150"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-active-class="transition ease-in duration-100"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <div
+              v-show="langDropdownOpen"
+              class="absolute right-0 top-full mt-1 py-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[160px]"
+            >
+              <button
+                v-for="loc in locales"
+                :key="loc.code"
+                type="button"
+                class="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-white hover:bg-slate-700 transition-colors"
+                :class="{ 'bg-slate-700': locale === loc.code }"
+                @click="selectLocale(loc.code)"
+              >
+                <span class="text-xl">{{ loc.flagEmoji }}</span>
+                {{ loc.name }}
+              </button>
+            </div>
+          </Transition>
+        </div>
         <button
           type="button"
           class="p-2.5 rounded-lg hover:bg-slate-800 min-h-[44px] min-w-[44px] flex items-center justify-center"
