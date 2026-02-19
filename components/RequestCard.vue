@@ -83,7 +83,7 @@ defineEmits<{
       </div>
       <h3 class="font-semibold text-slate-900">{{ request.title }}</h3>
       <p v-if="request.animal" class="text-sm text-slate-600 mt-1">
-        {{ request.animal.name }} ({{ request.animal.species }})
+        {{ request.animal.name }} ({{ request.animal.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }})
       </p>
       <p class="text-sm text-slate-600 mt-1">
         {{ request.originAirport }} → {{ request.destAirport }}

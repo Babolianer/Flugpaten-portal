@@ -100,12 +100,19 @@ onMounted(fetchUser)
         <div ref="langDropdownDesktopRef" class="relative flex items-center pl-4 ml-2 border-l border-slate-600" role="group" :aria-label="t('nav.language')">
           <button
             type="button"
-            class="flex items-center justify-center w-10 h-10 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-amber-400 text-2xl leading-none cursor-pointer"
+            class="flex items-center justify-center w-10 h-10 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-amber-400 cursor-pointer overflow-hidden"
             :aria-expanded="langDropdownOpen"
             :aria-haspopup="true"
             @click.stop="langDropdownOpen = !langDropdownOpen"
           >
-            {{ currentLocale.flagEmoji }}
+            <img
+              :src="`https://flagcdn.com/w40/${currentLocale.flagCountry}.png`"
+              :alt="currentLocale.name"
+              class="w-7 h-5 object-cover rounded-sm"
+              loading="eager"
+              width="28"
+              height="20"
+            />
           </button>
           <Transition
             enter-active-class="transition ease-out duration-150"
@@ -123,11 +130,18 @@ onMounted(fetchUser)
                 v-for="loc in locales"
                 :key="loc.code"
                 type="button"
-                class="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-white hover:bg-slate-700 transition-colors"
+                class="w-full flex items-center gap-3 px-4 py-2 text-left text-sm text-white hover:bg-slate-700 transition-colors"
                 :class="{ 'bg-slate-700': locale === loc.code }"
                 @click="selectLocale(loc.code)"
               >
-                <span class="text-xl">{{ loc.flagEmoji }}</span>
+                <img
+                  :src="`https://flagcdn.com/w40/${loc.flagCountry}.png`"
+                  :alt="loc.name"
+                  class="w-7 h-5 object-cover rounded-sm shrink-0"
+                  loading="lazy"
+                  width="28"
+                  height="20"
+                />
                 {{ loc.name }}
               </button>
             </div>
@@ -140,12 +154,19 @@ onMounted(fetchUser)
         <div ref="langDropdownMobileRef" class="relative" role="group" :aria-label="t('nav.language')">
           <button
             type="button"
-            class="flex items-center justify-center w-11 h-11 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-amber-400 text-2xl leading-none cursor-pointer min-h-[44px] min-w-[44px]"
+            class="flex items-center justify-center w-11 h-11 rounded-lg bg-slate-800 border border-slate-600 hover:bg-slate-700 focus:ring-2 focus:ring-amber-400 cursor-pointer min-h-[44px] min-w-[44px] overflow-hidden"
             :aria-expanded="langDropdownOpen"
             :aria-haspopup="true"
             @click.stop="langDropdownOpen = !langDropdownOpen"
           >
-            {{ currentLocale.flagEmoji }}
+            <img
+              :src="`https://flagcdn.com/w40/${currentLocale.flagCountry}.png`"
+              :alt="currentLocale.name"
+              class="w-8 h-6 object-cover rounded-sm"
+              loading="eager"
+              width="32"
+              height="24"
+            />
           </button>
           <Transition
             enter-active-class="transition ease-out duration-150"
@@ -163,11 +184,18 @@ onMounted(fetchUser)
                 v-for="loc in locales"
                 :key="loc.code"
                 type="button"
-                class="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-white hover:bg-slate-700 transition-colors"
+                class="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-white hover:bg-slate-700 transition-colors"
                 :class="{ 'bg-slate-700': locale === loc.code }"
                 @click="selectLocale(loc.code)"
               >
-                <span class="text-xl">{{ loc.flagEmoji }}</span>
+                <img
+                  :src="`https://flagcdn.com/w40/${loc.flagCountry}.png`"
+                  :alt="loc.name"
+                  class="w-7 h-5 object-cover rounded-sm shrink-0"
+                  loading="lazy"
+                  width="28"
+                  height="20"
+                />
                 {{ loc.name }}
               </button>
             </div>

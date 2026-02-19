@@ -1,0 +1,66 @@
+{
+  "was-ist-ein-flugpate": {
+    "meta": {
+      "title": "What is a Flight Sponsor? Definition & Meaning | PawBridge",
+      "description": "A flight sponsor brings animals from abroad to safe hands – voluntarily and legally secured. Learn what makes a flight sponsorship and why it is indispensable in animal welfare.",
+      "ogTitle": "What is a Flight Sponsor? | PawBridge Knowledge Base",
+      "ogDescription": "Definition, meaning and distinction: What makes a flight sponsor and why flight sponsorships are so important for animal welfare."
+    },
+    "sections": [
+      {
+        "id": "definition",
+        "title": "Definition: What is a Flight Sponsor?",
+        "paragraphs": [
+          "A flight sponsor (Flugpate or Flugpatin) is a private individual who voluntarily takes an animal – usually a dog or cat – on an already planned flight and hands it over at the destination airport to an animal welfare organisation or a designated foster home. In the vast majority of cases, the flight sponsor pays no extra fees for taking the animal; the organisation covers the costs for documents, transport crate and flight fees.",
+          "Unlike commercial animal transport, the flight sponsor model focuses on private travel. The animal travels as baggage or in the cabin, depending on the airline and animal size. Legally, it is a favour within the scope of the existing purpose of travel – not commercial transportation."
+        ]
+      },
+      {
+        "id": "bedeutung",
+        "title": "Why Flight Sponsors Are Important",
+        "paragraphs": [
+          "Animal welfare organisations in southern countries – such as Spain, Greece, Cyprus, Romania – rescue dogs and cats from the streets, shelters or kill shelters every day. Many of these animals are adoptable and would find a new home in Germany or other northern European countries. The bottleneck is often transport: commercial animal transports are expensive and logistically complex. Flight sponsors use their already planned trip to enable an animal to be transferred.",
+          "Without flight sponsors, significantly fewer animals could be rehomed. Each flight sponsorship creates space in the organisation of origin and gives an animal the chance of adoption. This makes flight sponsors a vital pillar of international animal welfare work."
+        ]
+      },
+      {
+        "id": "historie",
+        "title": "History in Animal Welfare",
+        "paragraphs": [
+          "The idea of combining holiday or business trips with animal rescue emerged in the 1990s and 2000s, parallel to the growing commitment of animal welfare associations abroad. Especially in countries with high stray populations and limited local capacity, rehoming to other EU countries became a fixed part of the work.",
+          "With the EU Pet Regulation and the introduction of uniform rules (microchip, rabies vaccination, health certificate), the legal transport of dogs and cats within the EU was simplified. Today, numerous associations and platforms coordinate flight sponsors and facilitate contacts between organisations and travellers. Flight sponsorship has established itself as a trusted, standard practice."
+        ]
+      },
+      {
+        "id": "abgrenzung",
+        "title": "Difference from Commercial Animal Transport",
+        "paragraphs": [
+          "In commercial animal transport, the animal is transported from A to B for a fee; the transport itself is the business purpose. The carrier requires approvals, vehicles and specialist knowledge according to the animal welfare transport regulation, depending on the legal situation.",
+          "The flight sponsor, however, does not carry out commercial transport. They travel for private reasons (holiday, visit, business trip) and take an animal with them on this trip. They generally receive no payment; the organisation covers the material costs. Thus, flight sponsorship is not subject to the same official and commercial requirements as commercial animal transport. Nevertheless, animal welfare and import regulations (import requirements, TRACES, vaccinations) apply without restriction."
+        ]
+      },
+      {
+        "id": "emotionale-bedeutung",
+        "title": "Emotional and Social Significance",
+        "paragraphs": [
+          "For many flight sponsors, taking an animal is a meaningful addition to their journey. They experience directly that their flight helps a specific animal. At the same time, they relieve the local organisations and enable adoptions that would otherwise not take place.",
+          "Socially, flight sponsorship helps to raise awareness of animal suffering abroad and of legal, animal-welfare-compliant rehoming. It connects travellers, associations and adopters in a trusting network and stands for a transparent, responsible form of animal welfare."
+        ]
+      }
+    ],
+    "faqs": [
+      {
+        "question": "Can anyone fly as a flight sponsor?",
+        "answer": "Legally, anyone who meets the entry requirements of the destination country and the airline may take an animal. Serious organisations, however, check whether the flight sponsor acts responsibly, carries the necessary documents and transports the animal in a species-appropriate manner. A minimum age and clear agreement are common."
+      },
+      {
+        "question": "Does the flight sponsorship cost the flight sponsor anything?",
+        "answer": "As a rule, the animal welfare organisation covers the costs for the transport crate, veterinary documents and applicable airline fees. The flight sponsor bears no additional travel costs for the animal. Details should be clarified in writing beforehand."
+      },
+      {
+        "question": "What distinguishes a flight sponsor from an animal transport company?",
+        "answer": "A flight sponsor travels privately and takes the animal along on their own trip – without commercial transportation. An animal transport company carries out the transport commercially, is subject to special approvals and is responsible for the entire logistics process."
+      }
+    ]
+  }
+}

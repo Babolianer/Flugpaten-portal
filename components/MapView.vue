@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl'
 
 interface Pin {
   id: string
-  type: 'request' | 'org'
+  type: 'request'
   lat: number
   lng: number
   title?: string
@@ -234,9 +234,25 @@ function flyTo(lng: number, lat: number, zoom = 10) {
   map?.flyTo({ center: [lng, lat], zoom })
 }
 
+function fitToPins() {
+  if (!map || props.pins.length === 0) return
+  const bounds = new maplibregl.LngLatBounds()
+  for (const pin of props.pins) {
+    bounds.extend([pin.lng, pin.lat])
+  }
+  try {
+    map.fitBounds(bounds, { padding: 60, maxZoom: 10 })
+  } catch {
+    // ignore
+  }
+}
+
 watch(
   () => [props.pins, props.selectedId],
-  () => updateMarkers(),
+  () => {
+    updateMarkers()
+    if (!props.selectedRoute && props.pins.length > 0) fitToPins()
+  },
   { deep: true }
 )
 watch(
@@ -261,7 +277,7 @@ onUnmounted(() => {
   map = null
 })
 
-defineExpose({ flyTo })
+defineExpose({ flyTo, fitToPins })
 </script>
 
 <template>

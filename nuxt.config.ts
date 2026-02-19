@@ -16,6 +16,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   nitro: {
     preset: 'vercel',
+    serverAssets: [{ baseName: 'data', dir: './data' }],
   },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL || '',

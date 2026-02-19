@@ -1,8 +1,18 @@
 import { prisma } from '~~/server/utils/prisma'
-import { getAirportByCode } from '~~/server/utils/airports'
+import { getAirportByIata } from '~~/server/utils/airports-global'
 import { haversineKm } from '~~/server/utils/geo'
 
 export type MatchType = 'DIRECT' | 'RADIUS' | 'COUNTRY'
+
+function getMatchScore(matchType: MatchType, distanceKm?: number): number {
+  if (matchType === 'DIRECT') return 100
+  if (matchType === 'RADIUS') {
+    const d = distanceKm ?? 200
+    return Math.max(10, 70 - d / 10)
+  }
+  if (matchType === 'COUNTRY') return 40
+  return 0
+}
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -21,11 +31,12 @@ export default defineEventHandler(async (event) => {
   const dest_country = query.dest_country ? String(query.dest_country).trim().toUpperCase() : null
   const radius_km = query.radius_km != null ? Math.max(0, parseFloat(String(query.radius_km))) : 200
   const species = query.species ? String(query.species) : null
+  const onlyDirectMatches = query.onlyDirectMatches === 'true' || query.onlyDirectMatches === '1'
 
   const useExtendedMatch = !!(origin_iata && dest_iata)
-  const userDestLat = dest_lat ?? (dest_iata ? getAirportByCode(dest_iata)?.lat : null)
-  const userDestLng = dest_lng ?? (dest_iata ? getAirportByCode(dest_iata)?.lng : null)
-  const userDestCountry = dest_country ?? (dest_iata ? getAirportByCode(dest_iata)?.country : null)
+  const userDestLat = dest_lat ?? (dest_iata ? getAirportByIata(dest_iata)?.lat : null)
+  const userDestLng = dest_lng ?? (dest_iata ? getAirportByIata(dest_iata)?.lng : null)
+  const userDestCountry = dest_country ?? (dest_iata ? getAirportByIata(dest_iata)?.country : null)
 
   const requestsWhere: Record<string, unknown> = {
     status: 'OPEN',
@@ -84,7 +95,7 @@ export default defineEventHandler(async (event) => {
       if (originMatch && destMatch) {
         matchType = 'DIRECT'
       } else {
-        const reqDestCountry = getAirportByCode(r.destAirport)?.country?.toUpperCase()
+        const reqDestCountry = getAirportByIata(r.destAirport)?.country?.toUpperCase()
         const sameCountry = userDestCountry && reqDestCountry && reqDestCountry === userDestCountry
 
         if (r.destLat != null && r.destLng != null && userDestLat != null && userDestLng != null) {
@@ -104,24 +115,22 @@ export default defineEventHandler(async (event) => {
       }
     }
     enrichedList.sort((a, b) => {
-      const order: Record<MatchType, number> = { DIRECT: 0, RADIUS: 1, COUNTRY: 2 }
-      return (order[a.matchType!] ?? 99) - (order[b.matchType!] ?? 99)
+      const scoreA = getMatchScore(a.matchType!, a.distanceKm)
+      const scoreB = getMatchScore(b.matchType!, b.distanceKm)
+      return scoreB - scoreA
     })
   }
 
-  const orgIds = [...new Set(enrichedList.map((r) => r.organizationId))]
-  const locations = await prisma.orgLocation.findMany({
-    where: { organizationId: { in: orgIds } },
-    include: { organization: { select: { id: true, name: true, slug: true } } },
-  })
+  if (onlyDirectMatches && useExtendedMatch) {
+    enrichedList = enrichedList.filter((r) => r.matchType === 'DIRECT')
+  }
 
   type Pin = {
     id: string
-    type: 'request' | 'org'
+    type: 'request'
     lat: number
     lng: number
     requestId?: string
-    orgId?: string
     title?: string
     organization?: { id: string; name: string; slug: string }
     animal?: { id: string; name: string; species: string }
@@ -130,8 +139,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const pins: Pin[] = []
-
   const addedOriginDest = new Set<string>()
+
   for (const r of enrichedList) {
     const addPin = (lat: number, lng: number, idSuffix: string) => {
       if (lat === 0 && lng === 0) return
@@ -160,22 +169,6 @@ export default defineEventHandler(async (event) => {
     const destLng = r.destLng ?? 0
     addPin(originLat, originLng, '-origin')
     if (destLat !== 0 || destLng !== 0) addPin(destLat, destLng, '-dest')
-  }
-
-  for (const loc of locations) {
-    if (west != null && south != null && east != null && north != null) {
-      if (loc.lng < west || loc.lat < south || loc.lng > east || loc.lat > north) continue
-    }
-
-    pins.push({
-      id: `loc-${loc.id}`,
-      type: 'org',
-      lat: loc.lat,
-      lng: loc.lng,
-      orgId: loc.organizationId,
-      title: loc.title,
-      organization: loc.organization,
-    })
   }
 
   const requestList = enrichedList.map((r) => ({

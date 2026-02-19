@@ -1,0 +1,61 @@
+{
+  "was-ist-ein-flugpate": {
+    "meta": {
+      "title": "Qu'est-ce qu'un parrain de vol ? | PawBridge",
+      "description": "Un parrain de vol transporte des animaux de l'étranger vers des mains sûres. Découvrez ce qu'implique le parrainage de vol.",
+      "ogTitle": "Qu'est-ce qu'un parrain de vol ? | PawBridge",
+      "ogDescription": "Définition et signification du parrainage de vol dans la protection animale."
+    },
+    "sections": [
+      {
+        "id": "definition",
+        "title": "Définition : Qu'est-ce qu'un parrain de vol ?",
+        "paragraphs": [
+          "Un parrain de vol est une personne privée qui accompagne volontairement un animal – généralement un chien ou un chat – sur un vol déjà planifié et le remet à l'aéroport de destination à une organisation de protection animale ou à une famille d'accueil."
+        ]
+      },
+      {
+        "id": "bedeutung",
+        "title": "Pourquoi les parrains de vol sont importants",
+        "paragraphs": [
+          "Les organisations de protection animale dans les pays du sud sauvent quotidiennement des chiens et des chats. Le parrainage de vol permet de transférer des animaux vers des foyers d'adoption dans d'autres pays."
+        ]
+      },
+      {
+        "id": "historie",
+        "title": "Historique dans la protection animale",
+        "paragraphs": [
+          "L'idée de combiner voyages et sauvetage d'animaux est née dans les années 90 et 2000. Le parrainage de vol est aujourd'hui une pratique établie."
+        ]
+      },
+      {
+        "id": "abgrenzung",
+        "title": "Différence avec le transport commercial",
+        "paragraphs": [
+          "Le parrain de vol voyage à titre privé et n'effectue pas de transport commercial. Les entreprises de transport animal opèrent à des fins commerciales."
+        ]
+      },
+      {
+        "id": "emotionale-bedeutung",
+        "title": "Signification émotionnelle et sociale",
+        "paragraphs": [
+          "Pour de nombreux parrains, accompagner un animal est une expérience porteuse de sens. Cela contribue à sensibiliser au bien-être animal."
+        ]
+      }
+    ],
+    "faqs": [
+      {
+        "question": "Tout le monde peut-il voler comme parrain de vol ?",
+        "answer": "Légalement oui, si les conditions d'entrée sont remplies. Les organisations sérieuses vérifient que le parrain agit de manière responsable."
+      },
+      {
+        "question": "Le parrainage coûte-t-il quelque chose au parrain ?",
+        "answer": "En règle générale, l'organisation prend en charge les frais de transport, les documents vétérinaires et les frais de vol."
+      },
+      {
+        "question": "Quelle est la différence entre un parrain et une entreprise de transport ?",
+        "answer": "Le parrain voyage à titre privé ; l'entreprise effectue un transport commercial avec des autorisations spéciales."
+      }
+    ]
+  }
+}

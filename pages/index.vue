@@ -170,7 +170,7 @@ useHead({
                 {{ formatDateRange(r.earliestDate, r.latestDate) }}
               </p>
               <p v-if="r.animal" class="text-sm text-slate-600 mb-3">
-                {{ r.animal.name }} · {{ r.animal.species === 'dog' ? 'Hund' : 'Katze' }}
+                {{ r.animal.name }} · {{ r.animal.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }}
               </p>
               <p class="text-sm font-bold text-amber-600 mb-4">
                 {{ t('home.exampleCost') }}

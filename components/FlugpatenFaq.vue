@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { FlugpateFaq } from '~/content/flugpate/types'
 
+const { t } = useI18n()
+
 const props = defineProps<{
   faqs: FlugpateFaq[]
   title?: string
@@ -36,7 +38,7 @@ useHead(
 <template>
   <section v-if="faqs.length" class="flugpaten-faq">
     <h2 class="text-2xl font-semibold text-slate-900 mb-4">
-      {{ title || 'Häufige Fragen' }}
+      {{ title || t('flugpate.faqTitle') }}
     </h2>
     <ul class="space-y-2">
       <li

@@ -213,7 +213,7 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
           {{ getRequestStatusLabel(request.status) }}
         </span>
         <p v-if="request.animal" class="mt-2 text-slate-600">
-          {{ request.animal.name }} ({{ request.animal.species }})
+          {{ request.animal.name }} ({{ request.animal.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }})
         </p>
         <p class="mt-2 text-slate-600">
           <span class="font-medium">{{ request.originAirport }}</span>

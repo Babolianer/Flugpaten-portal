@@ -1,0 +1,61 @@
+{
+  "was-ist-ein-flugpate": {
+    "meta": {
+      "title": "¿Qué es un padrino de vuelo? | PawBridge",
+      "description": "Un padrino de vuelo lleva animales del extranjero a manos seguras. Descubra qué implica el padrinazgo de vuelo.",
+      "ogTitle": "¿Qué es un padrino de vuelo? | PawBridge",
+      "ogDescription": "Definición y significado del padrinazgo de vuelo en la protección animal."
+    },
+    "sections": [
+      {
+        "id": "definition",
+        "title": "Definición: ¿Qué es un padrino de vuelo?",
+        "paragraphs": [
+          "Un padrino de vuelo es una persona privada que acompaña voluntariamente un animal – normalmente un perro o gato – en un vuelo ya planificado y lo entrega en el aeropuerto de destino a una organización de protección animal o a una familia de acogida."
+        ]
+      },
+      {
+        "id": "bedeutung",
+        "title": "Por qué son importantes los padrinos de vuelo",
+        "paragraphs": [
+          "Las organizaciones de protección animal en países del sur rescatan diariamente perros y gatos. El padrinazgo de vuelo permite trasladar animales a hogares adoptivos en otros países."
+        ]
+      },
+      {
+        "id": "historie",
+        "title": "Historia en la protección animal",
+        "paragraphs": [
+          "La idea de combinar viajes con rescate animal surgió en los años 90 y 2000. Hoy el padrinazgo de vuelo es una práctica establecida."
+        ]
+      },
+      {
+        "id": "abgrenzung",
+        "title": "Diferencia con el transporte comercial",
+        "paragraphs": [
+          "El padrino de vuelo viaja por motivos privados y no realiza transporte comercial. Las empresas de transporte animal operan con fines comerciales."
+        ]
+      },
+      {
+        "id": "emotionale-bedeutung",
+        "title": "Significado emocional y social",
+        "paragraphs": [
+          "Para muchos padrinos, llevar un animal es una experiencia con sentido. Contribuye a sensibilizar sobre el bienestar animal."
+        ]
+      }
+    ],
+    "faqs": [
+      {
+        "question": "¿Puede cualquiera volar como padrino de vuelo?",
+        "answer": "Legalmente sí, si se cumplen los requisitos de entrada. Las organizaciones serias verifican que el padrino actúe con responsabilidad."
+      },
+      {
+        "question": "¿Le cuesta algo al padrino de vuelo?",
+        "answer": "Normalmente la organización cubre los gastos de transporte, documentos veterinarios y tasas de vuelo."
+      },
+      {
+        "question": "¿Qué diferencia hay entre un padrino y una empresa de transporte?",
+        "answer": "El padrino viaja de forma privada; la empresa realiza transporte comercial con permisos especiales."
+      }
+    ]
+  }
+}

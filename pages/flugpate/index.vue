@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { FLUGPATE_LANDING, FLUGPATE_TOPICS } from '~/content/flugpate'
+import { FLUGPATE_LANDING } from '~/content/flugpate'
 
 const { t } = useI18n()
+const { topics } = useFlugpateContent()
 
 useHead({
   title: FLUGPATE_LANDING.metaTitle,
@@ -35,7 +36,7 @@ useHead({
       </h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <NuxtLink
-          v-for="topic in FLUGPATE_TOPICS"
+          v-for="topic in topics"
           :key="topic.slug"
           :to="`/flugpate/${topic.slug}`"
           class="block p-6 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-200 transition-all text-left group"

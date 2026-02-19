@@ -71,9 +71,6 @@ async function submit() {
         </form>
       </div>
 
-      <p class="mt-6 text-center text-sm text-slate-500">
-        Nach dem Login gelangst du ins Admin-Panel und kannst den Wartungsmodus wieder ausschalten.
-      </p>
     </div>
   </div>
 </template>

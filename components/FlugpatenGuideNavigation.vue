@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { FLUGPATE_TOPICS } from '~/content/flugpate/types'
-
 const { t } = useI18n()
+const { topics } = useFlugpateContent()
 
 const props = defineProps<{
   currentSlug?: string
@@ -12,10 +11,10 @@ const props = defineProps<{
 <template>
   <nav class="flugpate-guide-nav" :aria-label="t('flugpate.navAriaLabel')">
     <h2 v-if="title" class="text-lg font-semibold text-slate-800 mb-3">
-      {{ title }}
+      {{ title || t('flugpate.topicsTitle') }}
     </h2>
     <ul class="space-y-1">
-      <li v-for="topic in FLUGPATE_TOPICS" :key="topic.slug">
+      <li v-for="topic in topics" :key="topic.slug">
         <NuxtLink
           :to="`/flugpate/${topic.slug}`"
           class="block py-2 px-3 rounded-lg text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors text-sm"

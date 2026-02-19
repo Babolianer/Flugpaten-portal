@@ -5,12 +5,11 @@ type MatchType = 'DIRECT' | 'RADIUS' | 'COUNTRY'
 
 interface Pin {
   id: string
-  type: 'request' | 'org'
+  type: 'request'
   lat: number
   lng: number
   title?: string
   requestId?: string
-  orgId?: string
   organization?: { name: string; slug: string }
   animal?: { name: string; species: string }
   matchType?: MatchType
@@ -34,19 +33,24 @@ interface Request {
   distanceKm?: number
 }
 
-const filters = ref({
+type FlexibilityOption = 'exact' | '1' | '3' | '7' | '14' | 'custom'
+
+const defaultFilters = (): MapFilterValues => ({
   dateFrom: '',
   dateTo: '',
   originAirport: '',
   destAirport: '',
   species: 'all',
-  flexDays: false,
+  flexOption: '3',
 })
 
+type MapFilterValues = import('~/components/MapFilterBar.vue').MapFilterValues
+
+const filters = ref<MapFilterValues>(defaultFilters())
 const pins = ref<Pin[]>([])
 const requests = ref<Request[]>([])
 const selectedId = ref<string | null>(null)
-const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void } | null>(null)
+const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void } | null>(null)
 const loading = ref(false)
 
 const selectedRoute = computed(() => {
@@ -59,31 +63,33 @@ const selectedRoute = computed(() => {
   }
 })
 
-const hasOriginDest = computed(() => !!(filters.value.originAirport && filters.value.destAirport))
-
 const groupedRequests = computed(() => {
   const direct: Request[] = []
   const radius: Request[] = []
   const country: Request[] = []
+  const other: Request[] = []
   for (const r of requests.value) {
     if (r.matchType === 'DIRECT') direct.push(r)
     else if (r.matchType === 'RADIUS') radius.push(r)
     else if (r.matchType === 'COUNTRY') country.push(r)
-    else {
-      direct.push(r)
-    }
+    else other.push(r)
   }
-  return { direct, radius, country }
+  return { direct, radius, country, other }
 })
 
 const hasDirect = computed(() => groupedRequests.value.direct.length > 0)
-const hasAlternatives = computed(() => groupedRequests.value.radius.length > 0 || groupedRequests.value.country.length > 0)
 const headlineText = computed(() => {
   const n = requests.value.length
   if (n === 0) return null
   if (hasDirect.value) return t('map.resultCount', { count: n })
   return t('map.noExactButAlternatives')
 })
+
+let loadDataTimer: ReturnType<typeof setTimeout> | null = null
+function loadDataDebounced() {
+  if (loadDataTimer) clearTimeout(loadDataTimer)
+  loadDataTimer = setTimeout(loadData, 300)
+}
 
 async function loadData() {
   loading.value = true
@@ -100,25 +106,26 @@ async function loadData() {
       params.set('destAirport', filters.value.destAirport)
     }
     if (filters.value.species && filters.value.species !== 'all') params.set('species', filters.value.species)
+    params.set('radius_km', '200')
 
     const res = await $fetch<{ pins: Pin[]; requests: Request[] }>('/api/map/pins?' + params.toString())
     pins.value = res.pins
     requests.value = res.requests
+    nextTick(() => mapRef.value?.fitToPins())
   } finally {
     loading.value = false
   }
 }
 
-function onFilter(f: typeof filters.value) {
+function onFilter(f: MapFilterValues) {
   filters.value = { ...f }
-  loadData()
+  loadDataDebounced()
 }
 
 function onPinClick(pin: Pin) {
   selectedId.value = pin.requestId ?? pin.id
   const req = pin.requestId ? requests.value.find((x) => x.id === pin.requestId) : null
-  if (req && req.originLat != null && req.originLng != null && req.destLat != null && req.destLng != null && mapRef.value) {
-    // selectedRoute computed updates map
+  if (req && req.originLat != null && req.originLng != null && req.destLat != null && req.destLng != null) {
   } else if (pin && mapRef.value) {
     mapRef.value.flyTo(pin.lng, pin.lat)
   }
@@ -127,12 +134,19 @@ function onPinClick(pin: Pin) {
 function onRequestClick(req: Request) {
   selectedId.value = req.id
   if (req.originLat != null && req.originLng != null && req.destLat != null && req.destLng != null) {
-    // selectedRoute updates map
   } else {
     const pin = pins.value.find((p) => p.requestId === req.id)
     if (pin && mapRef.value) mapRef.value.flyTo(pin.lng, pin.lat)
   }
 }
+
+const hasActiveFilters = computed(
+  () =>
+    !!(filters.value.dateFrom ||
+      filters.value.originAirport ||
+      filters.value.destAirport ||
+      filters.value.species !== 'all')
+)
 
 onMounted(loadData)
 </script>
@@ -145,7 +159,7 @@ onMounted(loadData)
         {{ t('map.introText') }}
       </p>
     </section>
-    <FilterBar class="mb-4 sm:mb-6" @filter="onFilter" />
+    <MapFilterBar v-model="filters" class="mb-4 sm:mb-6" @filter="onFilter" />
 
     <!-- Mobile-first: Karte oben volle Breite, Liste unten; ab lg: 2/3 Karte, 1/3 Liste -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -157,6 +171,7 @@ onMounted(loadData)
             :selected-id="selectedId"
             :selected-route="selectedRoute"
             class="h-[280px] sm:h-[380px] lg:h-[500px] w-full"
+            @pin-click="onPinClick"
           />
           <template #fallback>
             <div class="h-[280px] sm:h-[380px] lg:h-[500px] bg-slate-200 flex items-center justify-center">
@@ -178,11 +193,14 @@ onMounted(loadData)
           <h2 v-if="headlineText" class="font-semibold text-slate-900 text-base sm:text-lg">
             {{ headlineText }}
           </h2>
-          <p v-else-if="filters.dateFrom || filters.originAirport || filters.destAirport" class="text-sm sm:text-base text-slate-600">
+          <p v-else-if="hasActiveFilters" class="text-sm sm:text-base text-slate-600">
+            {{ t('map.noResults') }}
+          </p>
+          <p v-else-if="requests.length === 0" class="text-sm sm:text-base text-slate-600">
             {{ t('map.noResults') }}
           </p>
 
-          <div v-if="requests.length === 0 && (filters.dateFrom || filters.originAirport || filters.destAirport)" class="mt-4">
+          <div v-if="requests.length === 0 && hasActiveFilters" class="mt-4">
             <button
               type="button"
               class="w-full px-4 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium transition-colors min-h-[48px]"
@@ -227,6 +245,17 @@ onMounted(loadData)
               <div class="space-y-3">
                 <RequestCard
                   v-for="req in groupedRequests.country"
+                  :key="req.id"
+                  :request="req"
+                  :selected="selectedId === req.id"
+                  @click="onRequestClick(req)"
+                />
+              </div>
+            </section>
+            <section v-if="groupedRequests.other.length" class="space-y-2">
+              <div class="space-y-3">
+                <RequestCard
+                  v-for="req in groupedRequests.other"
                   :key="req.id"
                   :request="req"
                   :selected="selectedId === req.id"
