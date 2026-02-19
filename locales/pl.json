@@ -71,8 +71,11 @@
     "scrollHint3": "Weiter scrollen für Schritt 3"
   },
   "map": {
-    "introTitle": "Transportanfragen für deine Reise",
-    "introText": "Gib Abflug, Ziel und Datum ein – wir zeigen dir passende Transportanfragen, inklusive Optionen in der Nähe deines Ziels oder im selben Zielland.",
+    "introTitle": "Twój lot. Szansa dla zwierzęcia.",
+    "introStepsLabel": "Jak dołączyć do łańcucha ratunkowego:",
+    "step1": "Wpisz miejsce odlotu, cel i datę podróży",
+    "step2": "Znajdź pasujące zapytania transportowe – czasowo i geograficznie, w tym pobliskie lotniska",
+    "step3": "Towarzysz bezpłatnie – zorganizowane przez zweryfikowane organizacje ochrony zwierząt",
     "filterTitle": "Suchfilter",
     "filterDateFrom": "Datum von",
     "filterDateTo": "Datum bis",
@@ -373,6 +376,7 @@
     "contactOrg": "W razie pytań skontaktuj się z organizacją.",
     "toOrgPageButton": "Strona organizacji",
     "applyTitle": "Aplikuj jako patron lotu",
+    "applyLoginRequired": "Zaloguj się lub zarejestruj, aby składać zgłoszenia.",
     "applyIntro": "Tym zgłoszeniem kontaktujesz się z organizacją. Pola oznaczone * są obowiązkowe.",
     "firstName": "Imię *",
     "lastName": "Nazwisko *",

@@ -1,6 +1,8 @@
 import { prisma } from '~~/server/utils/prisma'
-import { ensureAirportsLoaded, getAirportByIata } from '~~/server/utils/airports-global'
+import { ensureAirportsLoaded, getAirportByIata, getIatasInCountry, parseCountryFilter } from '~~/server/utils/airports-global'
 import { haversineKm } from '~~/server/utils/geo'
+import { getRequestLocale } from '~~/server/utils/locale'
+import { translateStrings } from '~~/server/utils/translateContent'
 
 export type MatchType = 'DIRECT' | 'RADIUS' | 'COUNTRY'
 
@@ -15,6 +17,7 @@ function getMatchScore(matchType: MatchType, distanceKm?: number): number {
 }
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   await ensureAirportsLoaded()
   const query = getQuery(event)
   const west = query.west ? parseFloat(String(query.west)) : null
@@ -34,7 +37,10 @@ export default defineEventHandler(async (event) => {
   const species = query.species ? String(query.species) : null
   const onlyDirectMatches = query.onlyDirectMatches === 'true' || query.onlyDirectMatches === '1'
 
-  const useExtendedMatch = !!(origin_iata && dest_iata)
+  const originCountryFilter = parseCountryFilter(originAirport || '')
+  const destCountryFilter = parseCountryFilter(destAirport || '')
+  const useExtendedMatch =
+    !!(origin_iata && dest_iata) && !originCountryFilter && !destCountryFilter
   const userDestLat = dest_lat ?? (dest_iata ? getAirportByIata(dest_iata)?.lat : null)
   const userDestLng = dest_lng ?? (dest_iata ? getAirportByIata(dest_iata)?.lng : null)
   const userDestCountry = dest_country ?? (dest_iata ? getAirportByIata(dest_iata)?.country : null)
@@ -51,10 +57,24 @@ export default defineEventHandler(async (event) => {
     requestsWhere.earliestDate = { lte: new Date(dateTo) }
   }
   if (!useExtendedMatch) {
-    if (originAirport) {
+    if (originCountryFilter) {
+      const iatas = getIatasInCountry(originCountryFilter)
+      if (iatas.length > 0) {
+        requestsWhere.originAirport = { in: iatas }
+      } else {
+        requestsWhere.originAirport = { in: ['__none__'] }
+      }
+    } else if (originAirport) {
       requestsWhere.originAirport = { contains: originAirport, mode: 'insensitive' }
     }
-    if (destAirport) {
+    if (destCountryFilter) {
+      const iatas = getIatasInCountry(destCountryFilter)
+      if (iatas.length > 0) {
+        requestsWhere.destAirport = { in: iatas }
+      } else {
+        requestsWhere.destAirport = { in: ['__none__'] }
+      }
+    } else if (destAirport) {
       requestsWhere.destAirport = { contains: destAirport, mode: 'insensitive' }
     }
   }
@@ -172,7 +192,7 @@ export default defineEventHandler(async (event) => {
     if (destLat !== 0 || destLng !== 0) addPin(destLat, destLng, '-dest')
   }
 
-  const requestList = enrichedList.map((r) => ({
+  let requestList = enrichedList.map((r) => ({
     id: r.id,
     title: r.title,
     details: r.details,
@@ -190,6 +210,33 @@ export default defineEventHandler(async (event) => {
     matchType: r.matchType,
     distanceKm: r.distanceKm,
   }))
+
+  if (locale !== 'de') {
+    const allTexts = enrichedList.flatMap((r) => [r.title, r.organization?.name].filter(Boolean))
+    const translated = await translateStrings(allTexts, locale)
+    let i = 0
+    const translatedByReqId = new Map<string, { title: string; orgName: string }>()
+    requestList = requestList.map((req, idx) => {
+      const r = enrichedList[idx]
+      const title = r.title ? (translated[i++] ?? r.title) : r.title
+      const orgName = r.organization?.name ? (translated[i++] ?? r.organization.name) : r.organization?.name ?? ''
+      if (r.id) translatedByReqId.set(r.id, { title, orgName })
+      return {
+        ...req,
+        title,
+        organization: req.organization ? { ...req.organization, name: orgName || req.organization.name } : undefined,
+      }
+    })
+    for (const pin of pins) {
+      if (pin.requestId) {
+        const t = translatedByReqId.get(pin.requestId)
+        if (t) {
+          pin.title = t.title
+          if (pin.organization) pin.organization = { ...pin.organization, name: t.orgName }
+        }
+      }
+    }
+  }
 
   return { pins, requests: requestList }
 })

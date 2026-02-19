@@ -1,8 +1,12 @@
 import { prisma } from '~~/server/utils/prisma'
+import { getRequestLocale } from '~~/server/utils/locale'
+import { translateStrings } from '~~/server/utils/translateContent'
 
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
   if (!slug) throw createError({ statusCode: 404, message: 'Not found' })
+
+  const locale = getRequestLocale(event)
 
   const org = await prisma.organization.findFirst({
     where: { slug, status: 'APPROVED' },
@@ -33,21 +37,53 @@ export default defineEventHandler(async (event) => {
     // Spalten evtl. noch nicht vorhanden
   }
 
+  let name = org.name
+  let description = org.description
+  let landingContent = org.landingContent
+  let locationTitles: string[] = []
+  let requestTitles: string[] = []
+
+  if (locale !== 'de') {
+    const allTexts = [
+      org.name,
+      org.description,
+      org.landingContent,
+      ...org.locations.map((l) => l.title),
+      ...org.requests.map((r) => r.title),
+    ]
+    const translated = await translateStrings(allTexts, locale)
+    let i = 0
+    name = translated[i++] ?? org.name
+    description = translated[i++] ?? org.description
+    landingContent = translated[i++] ?? org.landingContent
+    locationTitles = org.locations.map(() => translated[i++] ?? '')
+    requestTitles = org.requests.map(() => translated[i++] ?? '')
+  }
+
+  const locations = org.locations.map((loc, idx) => ({
+    ...loc,
+    title: locale === 'de' ? loc.title : (locationTitles[idx] ?? loc.title),
+  }))
+  const requests = org.requests.map((req, idx) => ({
+    ...req,
+    title: locale === 'de' ? req.title : (requestTitles[idx] ?? req.title),
+  }))
+
   return {
     organization: {
       id: org.id,
-      name: org.name,
+      name,
       slug: org.slug,
-      description: org.description,
-      landingContent: org.landingContent,
+      description,
+      landingContent,
       website: org.website,
       contactEmail: org.contactEmail,
       contactPhone,
       contactInstagram,
       contactFacebook,
       logoUrl: org.logoUrl,
-      locations: org.locations,
-      requests: org.requests,
+      locations,
+      requests,
     },
   }
 })

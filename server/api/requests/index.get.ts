@@ -1,6 +1,9 @@
 import { prisma } from '~~/server/utils/prisma'
+import { getRequestLocale } from '~~/server/utils/locale'
+import { translateStrings } from '~~/server/utils/translateContent'
 
 export default defineEventHandler(async (event) => {
+  const locale = getRequestLocale(event)
   const query = getQuery(event)
   const dateFrom = query.dateFrom ? String(query.dateFrom) : null
   const dateTo = query.dateTo ? String(query.dateTo) : null
@@ -32,22 +35,40 @@ export default defineEventHandler(async (event) => {
     orderBy: { earliestDate: 'asc' },
   })
 
-  return {
-    requests: requests.map((r) => ({
-      id: r.id,
-      title: r.title,
-      details: r.details,
-      status: r.status,
-      earliestDate: r.earliestDate,
-      latestDate: r.latestDate,
-      originAirport: r.originAirport,
-      destAirport: r.destAirport,
-      originLat: r.originLat,
-      originLng: r.originLng,
-      destLat: r.destLat,
-      destLng: r.destLng,
-      organization: r.organization,
-      animal: r.animal,
-    })),
+  let result = requests.map((r) => ({
+    id: r.id,
+    title: r.title,
+    details: r.details,
+    status: r.status,
+    earliestDate: r.earliestDate,
+    latestDate: r.latestDate,
+    originAirport: r.originAirport,
+    destAirport: r.destAirport,
+    originLat: r.originLat,
+    originLng: r.originLng,
+    destLat: r.destLat,
+    destLng: r.destLng,
+    organization: r.organization,
+    animal: r.animal,
+  }))
+
+  if (locale !== 'de') {
+    const allTexts = requests.flatMap((r) => [r.title, r.details, r.organization?.name].filter(Boolean))
+    const translated = await translateStrings(allTexts, locale)
+    let i = 0
+    result = result.map((req, idx) => {
+      const r = requests[idx]
+      const title = r.title ? (translated[i++] ?? r.title) : r.title
+      const details = r.details ? (translated[i++] ?? r.details) : r.details
+      const orgName = r.organization?.name ? (translated[i++] ?? r.organization.name) : r.organization?.name
+      return {
+        ...req,
+        title,
+        details,
+        organization: req.organization ? { ...req.organization, name: orgName ?? req.organization.name } : undefined,
+      }
+    })
   }
+
+  return { requests: result }
 })

@@ -1,9 +1,11 @@
 <script setup lang="ts">
+const route = useRoute()
 const { t } = useI18n()
 const email = ref('')
 const password = ref('')
 const displayName = ref('')
 const role = ref<'USER' | 'ORG_USER'>('USER')
+const redirectTo = computed(() => (route.query.redirect as string) || '/dashboard')
 const orgDescription = ref('')
 const orgWebsite = ref('')
 const orgContactEmail = ref('')
@@ -37,7 +39,7 @@ async function submit() {
           displayName: displayName.value,
         },
       })
-      await navigateTo('/login')
+      await navigateTo('/login?redirect=' + encodeURIComponent(redirectTo.value))
     }
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } }
@@ -140,7 +142,7 @@ async function submit() {
         </button>
         <p class="mt-4 text-center text-sm text-slate-600">
           {{ t('register.alreadyRegistered') }}
-          <NuxtLink to="/login" class="text-amber-600 hover:underline">{{ t('nav.login') }}</NuxtLink>
+          <NuxtLink :to="'/login?redirect=' + encodeURIComponent(redirectTo)" class="text-amber-600 hover:underline">{{ t('nav.login') }}</NuxtLink>
         </p>
       </form>
       <p v-if="role === 'ORG_USER'" class="mt-4 text-center text-xs text-slate-500">

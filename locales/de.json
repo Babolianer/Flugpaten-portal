@@ -74,8 +74,11 @@
     "scrollHint3": "Weiter scrollen für Schritt 3"
   },
   "map": {
-    "introTitle": "Transportanfragen für deine Reise",
-    "introText": "Gib Abflug, Ziel und Datum ein – wir zeigen dir passende Transportanfragen, inklusive Optionen in der Nähe deines Ziels oder im selben Zielland.",
+    "introTitle": "Dein Flug. Eine Chance für ein Tier.",
+    "introStepsLabel": "So wirst du Teil der Rettungskette:",
+    "step1": "Abflug, Ziel und Reisedatum eingeben",
+    "step2": "Passende Transportanfragen finden, zeitlich und geografisch zu deiner Reise, inkl. nahegelegener Flughäfen",
+    "step3": "Kostenfrei begleiten, organisiert durch geprüfte Tierschutzorganisationen",
     "filterTitle": "Suchfilter",
     "filterDateFrom": "Datum von",
     "filterDateTo": "Datum bis",
@@ -498,6 +501,7 @@
     "contactOrg": "Bei Fragen wende dich direkt an die Organisation.",
     "toOrgPageButton": "Zur Vereinsseite",
     "applyTitle": "Als Flugpate bewerben",
+    "applyLoginRequired": "Logge dich ein oder registriere dich, um Anfragen stellen zu können.",
     "applyIntro": "Mit dieser Bewerbung nimmst du Kontakt mit der Organisation auf. Nur die mit * markierten Felder sind Pflicht.",
     "firstName": "Vorname *",
     "lastName": "Nachname *",

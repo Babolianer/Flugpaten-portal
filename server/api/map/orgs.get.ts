@@ -1,4 +1,6 @@
 import { prisma } from '~~/server/utils/prisma'
+import { getRequestLocale } from '~~/server/utils/locale'
+import { translateStrings } from '~~/server/utils/translateContent'
 
 /** Pins für die Karte: ein Pin pro Standort einer Tierschutzorganisation */
 type Pin = {
@@ -24,6 +26,7 @@ type OrgListItem = {
 
 export default defineEventHandler(async (event) => {
   try {
+    const locale = getRequestLocale(event)
     const query = getQuery(event)
     const countryCode = query.countryCode ? String(query.countryCode).trim().toUpperCase() : null
     const search = query.search ? String(query.search).trim() : null
@@ -86,6 +89,33 @@ export default defineEventHandler(async (event) => {
           title: loc.title ? `${loc.title} (${org.name})` : org.name,
           organization: { name: org.name, slug: org.slug },
         })
+      }
+    }
+
+    if (locale !== 'de') {
+      const allTexts: string[] = []
+      for (const o of organizations) {
+        allTexts.push(o.name, o.description ?? '')
+        for (const loc of o.locations) {
+          allTexts.push(loc.title)
+        }
+      }
+      const translated = await translateStrings(allTexts, locale)
+      let i = 0
+      for (const o of organizations) {
+        o.name = translated[i++] ?? o.name
+        o.description = o.description ? (translated[i++] ?? o.description) : (i++, null)
+        for (const loc of o.locations) {
+          loc.title = translated[i++] ?? loc.title
+        }
+      }
+      for (const pin of pins) {
+        const orgItem = organizations.find((o) => o.id === pin.orgId)
+        if (orgItem) {
+          const loc = orgItem.locations.find((l) => pin.id === `loc-${l.id}`)
+          pin.title = loc?.title ? `${loc.title} (${orgItem.name})` : orgItem.name
+          pin.organization = { ...pin.organization, name: orgItem.name }
+        }
       }
     }
 

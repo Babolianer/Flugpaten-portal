@@ -125,7 +125,9 @@ const mapGroupedRequests = computed(() => {
 const mapHeadlineText = computed(() => {
   const n = mapRequests.value.length
   if (n === 0) return null
-  if (mapGroupedRequests.value.direct.length > 0) return t('map.resultCount', { count: n })
+  const hasDirect = mapGroupedRequests.value.direct.length > 0
+  const hasSimpleMatches = mapRequests.value.some((r) => !r.matchType)
+  if (hasDirect || hasSimpleMatches) return t('map.resultCount', { count: n })
   return t('map.noExactButAlternatives')
 })
 

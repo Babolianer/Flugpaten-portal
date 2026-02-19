@@ -71,8 +71,11 @@
     "scrollHint3": "Weiter scrollen für Schritt 3"
   },
   "map": {
-    "introTitle": "Transportanfragen für deine Reise",
-    "introText": "Gib Abflug, Ziel und Datum ein – wir zeigen dir passende Transportanfragen, inklusive Optionen in der Nähe deines Ziels oder im selben Zielland.",
+    "introTitle": "Il tuo volo. Una possibilità per un animale.",
+    "introStepsLabel": "Come diventare parte della catena di soccorso:",
+    "step1": "Inserisci partenza, destinazione e data di viaggio",
+    "step2": "Trova richieste di trasporto corrispondenti – per tempo e luogo, anche aeroporti nelle vicinanze",
+    "step3": "Accompagna gratuitamente – organizzato da organizzazioni di protezione degli animali verificate",
     "filterTitle": "Suchfilter",
     "filterDateFrom": "Datum von",
     "filterDateTo": "Datum bis",
@@ -373,6 +376,7 @@
     "contactOrg": "Per domande contatta direttamente l'organizzazione.",
     "toOrgPageButton": "Pagina dell'organizzazione",
     "applyTitle": "Candidati come patrono di volo",
+    "applyLoginRequired": "Accedi o registrati per inviare candidature.",
     "applyIntro": "Con questa candidatura contatti l'organizzazione. Solo i campi contrassegnati con * sono obbligatori.",
     "firstName": "Nome *",
     "lastName": "Cognome *",

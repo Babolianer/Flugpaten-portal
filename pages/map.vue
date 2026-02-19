@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import mapBackground from '~/assets/images/map_background.png'
+
 const { t } = useI18n()
 
 type MatchType = 'DIRECT' | 'RADIUS' | 'COUNTRY'
@@ -78,10 +80,12 @@ const groupedRequests = computed(() => {
 })
 
 const hasDirect = computed(() => groupedRequests.value.direct.length > 0)
+/** Wenn alle Treffer zum Filter passen (kein Extended Match) → Anzahl zeigen; sonst "Keine exakten…" */
+const hasSimpleMatches = computed(() => groupedRequests.value.other.length > 0)
 const headlineText = computed(() => {
   const n = requests.value.length
   if (n === 0) return null
-  if (hasDirect.value) return t('map.resultCount', { count: n })
+  if (hasDirect.value || hasSimpleMatches.value) return t('map.resultCount', { count: n })
   return t('map.noExactButAlternatives')
 })
 
@@ -153,12 +157,40 @@ onMounted(loadData)
 
 <template>
   <div class="container mx-auto w-4/5 max-w-full px-4 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
-    <section class="mb-4 sm:mb-6">
-      <h1 class="text-xl sm:text-2xl font-bold text-slate-900">{{ t('map.introTitle') }}</h1>
-      <p class="mt-2 text-sm sm:text-base text-slate-600 max-w-2xl">
-        {{ t('map.introText') }}
-      </p>
+    <!-- Banner: Hintergrundbild + schwarze Schrift (gleiche Breite wie andere Elemente) -->
+    <section
+      class="relative mb-4 sm:mb-6 w-full min-h-[120px] rounded-xl overflow-hidden bg-cover bg-center bg-no-repeat sm:min-h-[140px]"
+      :style="{ backgroundImage: `url(${mapBackground})` }"
+      aria-label="Intro"
+    >
+      <div
+        class="absolute inset-0 bg-white/70"
+        aria-hidden="true"
+      />
+      <div class="relative z-10 px-4 py-4 sm:px-5 sm:py-5">
+        <h1 class="text-lg font-bold tracking-tight text-black sm:text-xl">
+          {{ t('map.introTitle') }}
+        </h1>
+        <p class="mt-1 text-xs font-medium uppercase tracking-wide text-slate-600 sm:mt-1.5 sm:text-sm">
+          {{ t('map.introStepsLabel') }}
+        </p>
+        <ol class="mt-2 space-y-1.5 sm:mt-2.5 sm:space-y-2">
+          <li class="flex gap-2.5 text-sm text-slate-900 sm:gap-3 sm:text-base">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold text-white sm:h-6 sm:w-6">1</span>
+            <span>{{ t('map.step1') }}</span>
+          </li>
+          <li class="flex gap-2.5 text-sm text-slate-900 sm:gap-3 sm:text-base">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold text-white sm:h-6 sm:w-6">2</span>
+            <span>{{ t('map.step2') }}</span>
+          </li>
+          <li class="flex gap-2.5 text-sm text-slate-900 sm:gap-3 sm:text-base">
+            <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold text-white sm:h-6 sm:w-6">3</span>
+            <span>{{ t('map.step3') }}</span>
+          </li>
+        </ol>
+      </div>
     </section>
+
     <MapFilterBar v-model="filters" class="mb-4 sm:mb-6" @filter="onFilter" />
 
     <!-- Mobile-first: Karte oben volle Breite, Liste unten; ab lg: 2/3 Karte, 1/3 Liste -->

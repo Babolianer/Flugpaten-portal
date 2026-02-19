@@ -73,7 +73,7 @@ async function submit() {
         </button>
         <p class="mt-4 text-center text-sm text-slate-600">
           {{ t('login.noAccount') }}
-          <NuxtLink to="/register" class="text-amber-600 hover:underline">{{ t('nav.register') }}</NuxtLink>
+          <NuxtLink :to="redirect ? '/register?redirect=' + encodeURIComponent(redirect) : '/register'" class="text-amber-600 hover:underline">{{ t('nav.register') }}</NuxtLink>
         </p>
       </form>
       <p class="mt-4 text-center text-xs text-slate-500">

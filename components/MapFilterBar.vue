@@ -85,6 +85,9 @@ function applyFlexToDate(from: string) {
 function update(patch: Partial<MapFilterValues>) {
   Object.assign(filters, patch)
   emit('update:modelValue', { ...filters })
+  if (patch.originAirport === '' || patch.destAirport === '') {
+    emit('filter', { ...filters })
+  }
 }
 
 function onDateFromInput(e: Event) {

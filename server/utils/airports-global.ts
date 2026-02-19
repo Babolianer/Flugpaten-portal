@@ -68,7 +68,29 @@ const countryFuse = new Fuse(countrySearchList, {
   includeScore: true,
 })
 
-/** Findet ein passendes Land (exakt oder unscharf); gibt kanonischen Ländernamen zurück oder null */
+export const COUNTRY_PREFIX = 'COUNTRY:'
+
+/** Prüft, ob ein Wert eine Ländersuche ist (COUNTRY:CanonicalName) */
+export function isCountryFilter(value: string): value is `${typeof COUNTRY_PREFIX}${string}` {
+  return typeof value === 'string' && value.startsWith(COUNTRY_PREFIX)
+}
+
+/** Extrahiert den kanonischen Ländernamen aus COUNTRY:Cyprus */
+export function parseCountryFilter(value: string): string | null {
+  if (!isCountryFilter(value)) return null
+  return value.slice(COUNTRY_PREFIX.length).trim() || null
+}
+
+/** Ländername in Locale (z.B. Cyprus → Zypern für de) */
+function getCountryDisplayName(canonical: string, locale?: Locale): string {
+  const countries = (translationsData as { countries?: Record<string, Record<string, string>> }).countries
+  if (!countries || !countries[canonical]) return canonical
+  const tr = countries[canonical] as Record<string, string> | undefined
+  if (locale && tr?.[locale]) return tr[locale]
+  return canonical
+}
+
+/** Findet ein passendes Land (exakt, Prefix oder unscharf); gibt kanonischen Ländernamen zurück oder null */
 function matchCountry(query: string): string | null {
   const q = query.trim()
   if (q.length < 2) return null
@@ -76,9 +98,10 @@ function matchCountry(query: string): string | null {
   for (const { canonical, searchText } of countrySearchList) {
     const parts = searchText.toLowerCase().split(/\s+/)
     if (parts.some((p) => p === qLower)) return canonical
+    if (parts.some((p) => p.startsWith(qLower))) return canonical
   }
   const [best] = countryFuse.search(q, { limit: 1 })
-  if (best && best.score != null && best.score < 0.3) return best.item.canonical
+  if (best && best.score != null && best.score < 0.4) return best.item.canonical
   return null
 }
 
@@ -113,13 +136,28 @@ function applyLocale(a: AirportGlobal, locale: Locale | undefined): AirportGloba
 
 const MAX_COUNTRY_AIRPORTS = 500
 
+/** Erstellt einen synthetischen "Alle Flughäfen in Land" Eintrag für die Filterauswahl */
+function createCountryOption(canonical: string, locale?: Locale): AirportGlobal {
+  const countryName = getCountryDisplayName(canonical, locale)
+  return {
+    iata: `${COUNTRY_PREFIX}${canonical}`,
+    name: `Alle Flughäfen in ${countryName}`,
+    city: countryName,
+    country: countryName,
+    lat: 0,
+    lon: 0,
+  }
+}
+
 export function searchAirports(query: string, limit = 20, locale?: Locale): AirportGlobal[] {
   const q = (query || '').trim()
   if (q.length < 2) return getPopularAirports(locale).slice(0, limit)
   const matchedCountry = matchCountry(q)
   if (matchedCountry) {
+    const countryOption = createCountryOption(matchedCountry, locale)
     const list = loadAirports().filter((a) => a.country === matchedCountry)
-    return list.slice(0, MAX_COUNTRY_AIRPORTS).map((a) => applyLocale(a, locale))
+    const airports = list.slice(0, MAX_COUNTRY_AIRPORTS).map((a) => applyLocale(a, locale))
+    return [countryOption, ...airports]
   }
   const fuse = getFuse()
   const results = fuse.search(q, { limit })
@@ -133,6 +171,15 @@ function getPopularAirports(locale?: Locale): AirportGlobal[] {
   const byIata = new Map(list.map((a) => [a.iata, a]))
   const popular = POPULAR_IATAS.map((c) => byIata.get(c)).filter(Boolean) as AirportGlobal[]
   return popular.map((a) => applyLocale(a, locale))
+}
+
+/** Alle IATA-Codes von Flughäfen in einem Land (kanonischer Name, z.B. "Cyprus") */
+export function getIatasInCountry(country: string): string[] {
+  if (!country) return []
+  const c = country.trim()
+  return loadAirports()
+    .filter((a) => a.country.toLowerCase() === c.toLowerCase())
+    .map((a) => a.iata)
 }
 
 /** Rückgabe mit lng-Alias für Kompatibilität mit pins API */

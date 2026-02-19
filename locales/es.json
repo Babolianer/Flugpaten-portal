@@ -74,8 +74,11 @@
     "scrollHint3": "Desplazarse más para el paso 3"
   },
   "map": {
-    "introTitle": "Solicitudes de transporte para tu viaje",
-    "introText": "Introduce la salida, el destino y la fecha: te mostraremos las solicitudes de transporte adecuadas, incluidas las opciones cerca de tu destino o en el mismo país de destino.",
+    "introTitle": "Tu vuelo. Una oportunidad para un animal.",
+    "introStepsLabel": "Cómo formar parte de la cadena de rescate:",
+    "step1": "Introduce salida, destino y fecha del viaje",
+    "step2": "Encuentra solicitudes de transporte que coincidan – por tiempo y ubicación, incl. aeropuertos cercanos",
+    "step3": "Acompaña gratis – organizado por organizaciones de protección animal verificadas",
     "filterTitle": "Filtros búsqueda",
     "filterDateFrom": "Fecha desde",
     "filterDateTo": "Fecha hasta",
@@ -474,6 +477,7 @@
     "contactOrg": "Para preguntas contacte directamente con la organización.",
     "toOrgPageButton": "Página de la organización",
     "applyTitle": "Presentarse como padrino de vuelo",
+    "applyLoginRequired": "Inicia sesión o regístrate para enviar candidaturas.",
     "applyIntro": "Con esta candidatura contactas con la organización. Solo los campos marcados con * son obligatorios.",
     "firstName": "Nombre *",
     "lastName": "Apellidos *",

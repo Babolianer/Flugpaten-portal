@@ -137,6 +137,8 @@ const isOpen = computed(() => request.value?.status === 'OPEN')
 // Als Organisation: Bewerbungen laden und anzeigen
 const { data: me } = await useFetch<{ user: { id: string; role: string }; memberships: { organizationId: string }[] }>('/api/auth/me')
 const isOrg = computed(() => !!me.value?.user && ['ORG_USER', 'ADMIN'].includes(me.value.user.role))
+const isLoggedInAsPatron = computed(() => !!me.value?.user && ['USER', 'ADMIN'].includes(me.value.user.role))
+const loginRedirectUrl = computed(() => `/requests/${id}`)
 const { data: applicationsData, execute: fetchApplications } = useFetch<{
   applications: {
     id: string
@@ -355,6 +357,24 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
             >
               {{ t('request.toOrgPageButton') }}
             </NuxtLink>
+          </div>
+          <div v-else-if="!isLoggedInAsPatron" class="sticky top-6 rounded-xl bg-amber-50 border border-amber-200 shadow-sm p-6">
+            <h2 class="font-semibold text-slate-900 text-lg">{{ t('request.applyTitle') }}</h2>
+            <p class="text-slate-600 mt-2">{{ t('request.applyLoginRequired') }}</p>
+            <div class="mt-4 flex flex-col sm:flex-row gap-3">
+              <NuxtLink
+                :to="`/login?redirect=${encodeURIComponent(loginRedirectUrl)}`"
+                class="inline-flex justify-center items-center px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium transition-colors min-h-[44px]"
+              >
+                {{ t('nav.login') }}
+              </NuxtLink>
+              <NuxtLink
+                :to="`/register?redirect=${encodeURIComponent(loginRedirectUrl)}`"
+                class="inline-flex justify-center items-center px-5 py-2.5 rounded-lg border-2 border-amber-500 text-amber-700 hover:bg-amber-50 font-medium transition-colors min-h-[44px]"
+              >
+                {{ t('nav.register') }}
+              </NuxtLink>
+            </div>
           </div>
           <div v-else-if="!applied" class="sticky top-6 rounded-xl bg-white border border-slate-200 shadow-sm p-6">
             <h2 class="font-semibold text-slate-900 text-lg">{{ t('request.applyTitle') }}</h2>

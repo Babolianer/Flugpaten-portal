@@ -74,8 +74,11 @@
     "scrollHint3": "Continue scrolling for step 3"
   },
   "map": {
-    "introTitle": "Transport requests for your trip",
-    "introText": "Enter departure, destination, and date – we'll show you matching transportation requests, including options near your destination or in the same destination country.",
+    "introTitle": "Your flight. A chance for an animal.",
+    "introStepsLabel": "How you become part of the rescue chain:",
+    "step1": "Enter departure, destination and travel date",
+    "step2": "Find matching transport requests – by time and location, including nearby airports",
+    "step3": "Accompany for free – organised by certified animal welfare organisations",
     "filterTitle": "Filter search",
     "filterDateFrom": "Date From",
     "filterDateTo": "Date To",
@@ -479,6 +482,7 @@
     "contactOrg": "For questions please contact the organisation directly.",
     "toOrgPageButton": "To organisation page",
     "applyTitle": "Apply as flight sponsor",
+    "applyLoginRequired": "Log in or register to submit applications.",
     "applyIntro": "With this application you contact the organisation. Only fields marked with * are required.",
     "firstName": "First name *",
     "lastName": "Last name *",

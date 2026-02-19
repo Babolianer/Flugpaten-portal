@@ -74,8 +74,11 @@
     "scrollHint3": "Continuer à faire défiler pour l'étape 3"
   },
   "map": {
-    "introTitle": "Demandes de transport pour votre voyage",
-    "introText": "Saisissez le départ, la destination et la date – nous vous montrerons les demandes de transport appropriées, y compris les options à proximité de votre destination ou dans le même pays de destination.",
+    "introTitle": "Votre vol. Une chance pour un animal.",
+    "introStepsLabel": "Comment faire partie de la chaîne de sauvetage :",
+    "step1": "Indiquez le départ, la destination et la date du voyage",
+    "step2": "Trouvez les demandes de transport correspondantes – par temps et lieu, aéroports à proximité inclus",
+    "step3": "Accompagnez gratuitement – organisé par des organisations de protection des animaux certifiées",
     "filterTitle": "Filtres de recherche",
     "filterDateFrom": "Date, du",
     "filterDateTo": "Date,  au",
@@ -474,6 +477,7 @@
     "contactOrg": "Pour toute question, contactez directement l'organisation.",
     "toOrgPageButton": "Page de l'organisation",
     "applyTitle": "Postuler comme parrain de vol",
+    "applyLoginRequired": "Connectez-vous ou inscrivez-vous pour soumettre des candidatures.",
     "applyIntro": "Avec cette candidature vous contactez l'organisation. Seuls les champs marqués * sont obligatoires.",
     "firstName": "Prénom *",
     "lastName": "Nom *",
