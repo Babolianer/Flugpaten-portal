@@ -41,6 +41,7 @@ defineEmits<{
         :src="request.animal.imageUrl"
         :alt="request.animal.name"
         class="w-full h-full object-cover"
+        @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
       />
       <div v-else class="w-full h-full flex items-center justify-center text-2xl text-slate-400">
         {{ request.animal?.species === 'dog' ? '🐕' : '🐈' }}

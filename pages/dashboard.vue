@@ -365,6 +365,7 @@ onUnmounted(() => {
                   :src="trip.request.animal.imageUrl"
                   :alt="trip.request.animal.name"
                   class="w-full h-full object-cover"
+                  @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
                 />
                 <div v-else class="w-full h-full flex items-center justify-center text-slate-300 text-xs font-medium uppercase">
                   {{ trip.request?.animal?.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }}
@@ -507,6 +508,7 @@ onUnmounted(() => {
                 :src="app.request.animal.imageUrl"
                 :alt="app.request.animal.name"
                 class="w-full h-full object-cover"
+                @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
               />
               <div v-else class="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium uppercase">
                 {{ app.request?.animal?.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }}

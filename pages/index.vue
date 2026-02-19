@@ -156,6 +156,7 @@ useHead({
                 :src="r.animal.imageUrl"
                 :alt="r.animal.name"
                 class="w-full h-full object-cover"
+                @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
               />
               <span v-else class="text-5xl opacity-80" aria-hidden="true">
                 {{ r.animal?.species === 'dog' ? '🐕' : '🐈' }}

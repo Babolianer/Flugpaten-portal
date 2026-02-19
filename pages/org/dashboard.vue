@@ -94,6 +94,7 @@ const formAnimal = reactive({
   imageUrl: '' as string,
 })
 const animalImageFile = ref<File | null>(null)
+const animalImagePreviewUrl = ref<string | null>(null)
 
 const { locale } = useI18n()
 const { getRequestStatusLabel, statusOptions } = useRequestStatus()
@@ -205,6 +206,10 @@ function openCreate(mode: 'location' | 'animal' | 'request') {
   }
   if (mode === 'animal') {
     Object.assign(formAnimal, { name: '', species: 'cat', sex: '', sizeClass: '', notes: '', imageUrl: '' })
+    if (animalImagePreviewUrl.value && typeof URL !== 'undefined' && URL.revokeObjectURL) {
+      URL.revokeObjectURL(animalImagePreviewUrl.value)
+    }
+    animalImagePreviewUrl.value = null
     animalImageFile.value = null
   }
   if (mode === 'request') {
@@ -241,7 +246,15 @@ function openEditLocation(loc: Location) {
 }
 
 function onAnimalImageChange(e: Event) {
-  animalImageFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+  if (animalImagePreviewUrl.value && typeof URL !== 'undefined' && URL.revokeObjectURL) {
+    URL.revokeObjectURL(animalImagePreviewUrl.value)
+  }
+  animalImagePreviewUrl.value = null
+  const file = (e.target as HTMLInputElement).files?.[0] ?? null
+  animalImageFile.value = file
+  if (file && typeof URL !== 'undefined' && URL.createObjectURL) {
+    animalImagePreviewUrl.value = URL.createObjectURL(file)
+  }
 }
 
 function openEditAnimal(a: Animal) {
@@ -255,6 +268,10 @@ function openEditAnimal(a: Animal) {
     notes: a.notes ?? '',
     imageUrl: a.imageUrl ?? '',
   })
+  if (animalImagePreviewUrl.value && typeof URL !== 'undefined' && URL.revokeObjectURL) {
+    URL.revokeObjectURL(animalImagePreviewUrl.value)
+  }
+  animalImagePreviewUrl.value = null
   animalImageFile.value = null
   showModal.value = true
 }
@@ -669,7 +686,7 @@ onUnmounted(() => {
           <li v-for="a in sortedAnimals" :key="a.id" class="p-3 rounded-lg bg-white border border-slate-200 flex justify-between items-center gap-3">
             <div class="flex items-center gap-3 min-w-0">
               <div class="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                <img v-if="a.imageUrl" :src="a.imageUrl" :alt="a.name" class="w-full h-full object-cover" />
+                <img v-if="a.imageUrl" :src="a.imageUrl" :alt="a.name" class="w-full h-full object-cover" @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')" />
                 <div v-else class="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium uppercase">{{ a.species === 'dog' ? 'Hund' : 'Katze' }}</div>
               </div>
               <span class="text-sm text-slate-900">{{ a.name }} ({{ a.species }})</span>
@@ -855,8 +872,8 @@ onUnmounted(() => {
               <div class="flex items-start gap-4">
                 <div class="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
                   <img
-                    v-if="animalImageFile"
-                    :src="URL.createObjectURL(animalImageFile)"
+                    v-if="animalImagePreviewUrl"
+                    :src="animalImagePreviewUrl"
                     alt="Vorschau"
                     class="w-full h-full object-cover"
                   />
