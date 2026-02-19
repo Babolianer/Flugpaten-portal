@@ -14,6 +14,9 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/main.css', 'maplibre-gl/dist/maplibre-gl.css'],
   compatibilityDate: '2024-11-01',
+  nitro: {
+    preset: 'vercel',
+  },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL || '',
     jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
