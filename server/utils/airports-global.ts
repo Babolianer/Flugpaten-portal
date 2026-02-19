@@ -40,10 +40,14 @@ export async function ensureAirportsLoaded(): Promise<void> {
     if (airportsStr) {
       airportsCache = JSON.parse(airportsStr)
       translationsCache = translationsStr ? (JSON.parse(translationsStr) as AirportTranslations) : null
+      if (!airportsCache?.length) {
+        console.warn('[airports] Storage loaded but airports array is empty')
+      }
       return
     }
-  } catch {
-    /* Storage fehlgeschlagen – Fallback zu Dateisystem (lokal) */
+    console.warn('[airports] Storage returned empty airports.json')
+  } catch (e) {
+    console.warn('[airports] Storage load failed:', e instanceof Error ? e.message : String(e))
   }
   try {
     const airPath = join(process.cwd(), 'data', 'airports.json')
@@ -54,7 +58,8 @@ export async function ensureAirportsLoaded(): Promise<void> {
     } catch {
       translationsCache = null
     }
-  } catch {
+  } catch (e) {
+    console.error('[airports] FS fallback failed, airports empty:', e instanceof Error ? e.message : String(e))
     airportsCache = []
     translationsCache = null
   }
