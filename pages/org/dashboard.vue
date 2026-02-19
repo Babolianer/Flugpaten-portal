@@ -72,6 +72,7 @@ const modalMode = ref<'location' | 'animal' | 'request'>('location')
 const editingId = ref<string | null>(null)
 
 const inbox = ref<{ id: string; requestId: string | null; requestTitle: string | null; userDisplayName: string | null; lastMessage: { body: string; createdAt: string } | null }[]>([])
+const inboxLoading = ref(false)
 const inboxPollingInterval = ref<NodeJS.Timeout | null>(null)
 const isPageVisible = ref(true)
 const copiedRequestId = ref<string | null>(null)
@@ -189,12 +190,15 @@ async function load() {
 }
 
 async function loadInbox() {
+  inboxLoading.value = true
   try {
     const query = isAdminViewAsOrg.value && selectedOrgId.value ? { orgId: selectedOrgId.value } : {}
     const res = await $fetch<{ conversations: { id: string; requestId: string | null; requestTitle: string | null; userDisplayName: string | null; lastMessage: { body: string; createdAt: string } | null }[] }>('/api/org/dashboard/conversations', { query })
     inbox.value = res.conversations
   } catch {
     inbox.value = []
+  } finally {
+    inboxLoading.value = false
   }
 }
 
@@ -756,7 +760,8 @@ onUnmounted(() => {
       <!-- Anfragen / Inbox -->
       <div v-if="activeTab === 'inbox'" class="space-y-4">
         <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">{{ t('orgDashboard.inboxChat') }}</h2>
-        <p v-if="!inbox.length" class="text-sm text-slate-500 py-4">{{ t('orgDashboard.noInbox') }}</p>
+        <p v-if="inboxLoading" class="text-sm text-slate-500 py-4">{{ t('orgDashboard.inboxLoading') }}</p>
+        <p v-else-if="!inbox.length" class="text-sm text-slate-500 py-4">{{ t('orgDashboard.noInbox') }}</p>
         <ul v-else class="space-y-2">
           <li v-for="c in inbox" :key="c.id" class="p-4 rounded-lg bg-white border border-slate-200">
             <p class="font-medium text-slate-900 text-sm">{{ c.requestTitle ?? t('dashboard.request') }} – {{ c.userDisplayName ?? t('chat.user') }}</p>

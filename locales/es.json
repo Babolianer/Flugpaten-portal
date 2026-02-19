@@ -142,6 +142,9 @@
     "ctaNowTitle": "Actúa ahora"
   },
   "footer": {
+    "mitmachen": "Participar",
+    "rechtliches": "Legal",
+    "tagline": "Tu vuelo puede salvar vidas.",
     "forOrgs": "Para organizaciones",
     "becomePatron": "Convertirse en padrino de vuelo",
     "contact": "Contacto",
@@ -337,6 +340,7 @@
     "tabAnimals": "Animales",
     "tabRequests": "Transportes",
     "tabInbox": "Solicitudes",
+    "inboxLoading": "Cargando solicitudes…",
     "tabSettings": "Ajustes",
     "addLocation": "Añadir ubicación",
     "addAnimal": "Añadir animal",

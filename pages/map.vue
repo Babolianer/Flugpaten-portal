@@ -156,7 +156,7 @@ onMounted(loadData)
 </script>
 
 <template>
-  <div class="container mx-auto w-4/5 max-w-full px-4 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
+  <div class="container mx-auto w-full lg:w-4/5 max-w-full px-4 sm:px-6 py-4 sm:py-6 overflow-x-hidden">
     <!-- Banner: Hintergrundbild + schwarze Schrift (gleiche Breite wie andere Elemente) -->
     <section
       class="relative mb-4 sm:mb-6 w-full min-h-[120px] rounded-xl overflow-hidden bg-cover bg-center bg-no-repeat sm:min-h-[140px]"
@@ -241,7 +241,7 @@ onMounted(loadData)
             </button>
           </div>
 
-          <div class="space-y-4 sm:space-y-6 max-h-[50vh] sm:max-h-[420px] lg:max-h-[520px] overflow-y-auto overflow-x-hidden">
+          <div class="space-y-4 sm:space-y-6 lg:max-h-[520px] lg:overflow-y-auto overflow-x-hidden">
             <section v-if="groupedRequests.direct.length" class="space-y-2">
               <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">
                 {{ t('map.groupDirect') }}

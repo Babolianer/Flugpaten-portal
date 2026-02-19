@@ -161,6 +161,9 @@
     "ctaNowTitle": "Jetzt aktiv werden"
   },
   "footer": {
+    "mitmachen": "Mitmachen",
+    "rechtliches": "Rechtliches",
+    "tagline": "Dein Flug kann Leben retten.",
     "forOrgs": "Für Organisationen",
     "becomePatron": "Flugpaten werden",
     "contact": "Kontakt",
@@ -383,6 +386,7 @@
     "tabAnimals": "Tiere",
     "tabRequests": "Transporte",
     "tabInbox": "Anfragen",
+    "inboxLoading": "Anfragen werden geladen…",
     "tabSettings": "Einstellungen",
     "addLocation": "Standort hinzufügen",
     "addAnimal": "Tier hinzufügen",

@@ -142,6 +142,9 @@
     "ctaNowTitle": "Get started now"
   },
   "footer": {
+    "mitmachen": "Get involved",
+    "rechtliches": "Legal",
+    "tagline": "Your flight can save lives.",
     "forOrgs": "For Organizations",
     "becomePatron": "Become a flight sponsor",
     "contact": "Contact",
@@ -342,6 +345,7 @@
     "tabAnimals": "Animals",
     "tabRequests": "Transports",
     "tabInbox": "Requests",
+    "inboxLoading": "Loading requests…",
     "tabSettings": "Settings",
     "addLocation": "Add location",
     "addAnimal": "Add animal",

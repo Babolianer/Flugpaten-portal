@@ -142,6 +142,9 @@
     "ctaNowTitle": "Agir maintenant"
   },
   "footer": {
+    "mitmachen": "Participer",
+    "rechtliches": "Mentions légales",
+    "tagline": "Votre vol peut sauver des vies.",
     "forOrgs": "Pour les organisations",
     "becomePatron": "Devenir parrain de vol",
     "contact": "Contacts",
@@ -337,6 +340,7 @@
     "tabAnimals": "Animaux",
     "tabRequests": "Transports",
     "tabInbox": "Demandes",
+    "inboxLoading": "Chargement des demandes…",
     "tabSettings": "Paramètres",
     "addLocation": "Ajouter un lieu",
     "addAnimal": "Ajouter un animal",
