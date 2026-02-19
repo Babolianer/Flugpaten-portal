@@ -1,6 +1,6 @@
 import Fuse from 'fuse.js'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import airportsData from '../../data/airports.json'
+import translationsData from '../../data/airport-translations.json'
 
 export type Locale = 'de' | 'en' | 'es' | 'fr'
 
@@ -21,64 +21,19 @@ interface AirportWithAliases extends AirportGlobal {
   searchAliases: string
 }
 
-let airportsCache: AirportGlobal[] | null = null
-let translationsCache: AirportTranslations | null = null
+/* Zur Build-Zeit gebündelt – funktioniert auf Vercel und lokal (kein Storage/FS nötig) */
+const airportsCache: AirportGlobal[] = airportsData as AirportGlobal[]
+const translationsCache: AirportTranslations = translationsData as AirportTranslations
 
-/** Muss zuerst in Event-Handlern aufgerufen werden – lädt Daten aus Nitro Storage (Vercel) oder FS (lokal) */
-export async function ensureAirportsLoaded(): Promise<void> {
-  if (airportsCache) return
-  try {
-    const storage = useStorage('assets:data')
-    const [airportsRaw, translationsRaw] = await Promise.all([
-      storage.getItem('airports.json'),
-      storage.getItem('airport-translations.json'),
-    ])
-    const toStr = (v: unknown): string | null =>
-      typeof v === 'string' ? v : v instanceof Buffer ? v.toString('utf-8') : v instanceof Uint8Array ? new TextDecoder().decode(v) : null
-    const airportsStr = toStr(airportsRaw)
-    const translationsStr = toStr(translationsRaw)
-    if (airportsStr) {
-      airportsCache = JSON.parse(airportsStr)
-      translationsCache = translationsStr ? (JSON.parse(translationsStr) as AirportTranslations) : null
-      if (!airportsCache?.length) {
-        console.warn('[airports] Storage loaded but airports array is empty')
-      }
-      return
-    }
-    console.warn('[airports] Storage returned empty airports.json')
-  } catch (e) {
-    console.warn('[airports] Storage load failed:', e instanceof Error ? e.message : String(e))
-  }
-  try {
-    const airPath = join(process.cwd(), 'data', 'airports.json')
-    const trPath = join(process.cwd(), 'data', 'airport-translations.json')
-    airportsCache = JSON.parse(readFileSync(airPath, 'utf-8'))
-    try {
-      translationsCache = JSON.parse(readFileSync(trPath, 'utf-8')) as AirportTranslations
-    } catch {
-      translationsCache = null
-    }
-  } catch (e) {
-    console.error('[airports] FS fallback failed, airports empty:', e instanceof Error ? e.message : String(e))
-    airportsCache = []
-    translationsCache = null
-  }
-}
+/** No-Op, bleibt für API-Kompatibilität */
+export async function ensureAirportsLoaded(): Promise<void> {}
 
 function loadAirports(): AirportGlobal[] {
-  if (!airportsCache) {
-    try {
-      const path = join(process.cwd(), 'data', 'airports.json')
-      airportsCache = JSON.parse(readFileSync(path, 'utf-8'))
-    } catch {
-      airportsCache = []
-    }
-  }
-  return airportsCache ?? []
+  return airportsCache
 }
 
 function loadTranslations(): AirportTranslations | null {
-  return translationsCache ?? null
+  return translationsCache
 }
 
 function getSearchList(): AirportWithAliases[] {
