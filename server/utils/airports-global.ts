@@ -13,40 +13,67 @@ export interface AirportGlobal {
   lon: number
 }
 
-interface AirportWithAliases extends AirportGlobal {
-  searchAliases: string
-}
-
 interface AirportTranslations {
   airports: Record<string, { city: Record<Locale, string>; country: Record<Locale, string>; searchAliases: string[] }>
+}
+
+interface AirportWithAliases extends AirportGlobal {
+  searchAliases: string
 }
 
 let airportsCache: AirportGlobal[] | null = null
 let translationsCache: AirportTranslations | null = null
 
-function loadAirports(): AirportGlobal[] {
-  if (airportsCache) return airportsCache
+/** Muss zuerst in Event-Handlern aufgerufen werden – lädt Daten aus Nitro Storage (Vercel) oder FS (lokal) */
+export async function ensureAirportsLoaded(): Promise<void> {
+  if (airportsCache) return
   try {
-    const path = join(process.cwd(), 'data', 'airports.json')
-    const raw = readFileSync(path, 'utf-8')
-    airportsCache = JSON.parse(raw)
-    return airportsCache!
+    const storage = useStorage('assets:data')
+    const [airportsRaw, translationsRaw] = await Promise.all([
+      storage.getItem('airports.json'),
+      storage.getItem('airport-translations.json'),
+    ])
+    const toStr = (v: unknown): string | null =>
+      typeof v === 'string' ? v : v instanceof Buffer ? v.toString('utf-8') : v instanceof Uint8Array ? new TextDecoder().decode(v) : null
+    const airportsStr = toStr(airportsRaw)
+    const translationsStr = toStr(translationsRaw)
+    if (airportsStr) {
+      airportsCache = JSON.parse(airportsStr)
+      translationsCache = translationsStr ? (JSON.parse(translationsStr) as AirportTranslations) : null
+      return
+    }
+  } catch {
+    /* Storage fehlgeschlagen – Fallback zu Dateisystem (lokal) */
+  }
+  try {
+    const airPath = join(process.cwd(), 'data', 'airports.json')
+    const trPath = join(process.cwd(), 'data', 'airport-translations.json')
+    airportsCache = JSON.parse(readFileSync(airPath, 'utf-8'))
+    try {
+      translationsCache = JSON.parse(readFileSync(trPath, 'utf-8')) as AirportTranslations
+    } catch {
+      translationsCache = null
+    }
   } catch {
     airportsCache = []
-    return []
+    translationsCache = null
   }
 }
 
-function loadTranslations(): AirportTranslations | null {
-  if (translationsCache) return translationsCache
-  try {
-    const path = join(process.cwd(), 'data', 'airport-translations.json')
-    const raw = readFileSync(path, 'utf-8')
-    translationsCache = JSON.parse(raw) as AirportTranslations
-    return translationsCache
-  } catch {
-    return null
+function loadAirports(): AirportGlobal[] {
+  if (!airportsCache) {
+    try {
+      const path = join(process.cwd(), 'data', 'airports.json')
+      airportsCache = JSON.parse(readFileSync(path, 'utf-8'))
+    } catch {
+      airportsCache = []
+    }
   }
+  return airportsCache ?? []
+}
+
+function loadTranslations(): AirportTranslations | null {
+  return translationsCache ?? null
 }
 
 function getSearchList(): AirportWithAliases[] {

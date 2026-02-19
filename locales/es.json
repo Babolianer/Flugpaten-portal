@@ -1,4 +1,7 @@
 {
+  "common": {
+    "searching": "Buscando..."
+  },
   "app": {
     "name": "PawBridge",
     "tagline": "Padrinos de vuelo"

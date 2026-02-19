@@ -1,4 +1,7 @@
 {
+  "common": {
+    "searching": "Recherche..."
+  },
   "app": {
     "name": "PawBridge",
     "tagline": "Parrainage aérien"

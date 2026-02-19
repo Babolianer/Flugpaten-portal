@@ -1,5 +1,5 @@
 import { prisma } from '~~/server/utils/prisma'
-import { getAirportByIata } from '~~/server/utils/airports-global'
+import { ensureAirportsLoaded, getAirportByIata } from '~~/server/utils/airports-global'
 import { haversineKm } from '~~/server/utils/geo'
 
 export type MatchType = 'DIRECT' | 'RADIUS' | 'COUNTRY'
@@ -15,6 +15,7 @@ function getMatchScore(matchType: MatchType, distanceKm?: number): number {
 }
 
 export default defineEventHandler(async (event) => {
+  await ensureAirportsLoaded()
   const query = getQuery(event)
   const west = query.west ? parseFloat(String(query.west)) : null
   const south = query.south ? parseFloat(String(query.south)) : null

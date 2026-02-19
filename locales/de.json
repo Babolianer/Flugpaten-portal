@@ -1,4 +1,7 @@
 {
+  "common": {
+    "searching": "Suchen..."
+  },
   "app": {
     "name": "PawBridge",
     "tagline": "Flugpaten"

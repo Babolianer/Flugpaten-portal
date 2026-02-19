@@ -1,4 +1,7 @@
 {
+  "common": {
+    "searching": "Searching..."
+  },
   "app": {
     "name": "PawBridge",
     "tagline": "Flight sponsors"
