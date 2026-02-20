@@ -1,6 +1,7 @@
 /**
  * Wartungsmodus: Blockiert alle Seiten – nur die Wartungsseite, Login und Org-Pre-Registrierung sind erreichbar.
  * Eingeloggte Admins und Org-Benutzer haben Zugriff.
+ * Nutzer mit gültigem Bypass-Cookie (maintenance-login) haben vollen Zugriff inkl. /register.
  */
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname

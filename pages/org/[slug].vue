@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const route = useRoute()
+const { t } = useI18n()
 const slug = route.params.slug as string
 
 interface Org {
@@ -24,6 +25,9 @@ interface Org {
     latestDate: string
     animal?: { name: string; species: string } | null
   }[]
+  reviews?: Array<{ id: string; rating: number; comment: string | null; reviewerName: string; route: string | null }>
+  reviewsCount?: number
+  averageRating?: number | null
 }
 
 const { data, error } = await useFetch<{ organization: Org }>(`/api/org/${slug}`)
@@ -57,6 +61,13 @@ if (error.value) throw createError({ statusCode: 404, message: 'Organization not
         </div>
         <p v-if="org.description" class="text-base sm:text-lg text-slate-600">{{ org.description }}</p>
         <div
+          v-if="org.averageRating != null && org.reviewsCount != null"
+          class="flex items-center gap-2 text-amber-600 font-medium"
+        >
+          <span>{{ '★'.repeat(Math.round(org.averageRating)) }}{{ '☆'.repeat(5 - Math.round(org.averageRating)) }}</span>
+          <span>{{ org.averageRating.toFixed(1) }} ({{ t('orgPage.reviewsCount', { count: org.reviewsCount }) }})</span>
+        </div>
+        <div
           v-if="org.landingContent"
           class="prose prose-slate max-w-none text-slate-700"
           v-html="org.landingContent"
@@ -83,6 +94,25 @@ if (error.value) throw createError({ statusCode: 404, message: 'Organization not
             </ClientOnly>
           </div>
           <p v-else class="text-slate-600 text-sm">Keine Standorte hinterlegt.</p>
+        </div>
+
+        <!-- Bewertungen der Organisation -->
+        <div v-if="org.reviews && org.reviews.length" class="mt-6">
+          <h2 class="font-semibold text-slate-900 mb-3">{{ t('orgPage.reviewsTitle') }}</h2>
+          <div class="space-y-3">
+            <div
+              v-for="rev in org.reviews"
+              :key="rev.id"
+              class="p-4 rounded-xl bg-white border border-slate-200 shadow-sm"
+            >
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-amber-500">{{ '★'.repeat(rev.rating) }}{{ '☆'.repeat(5 - rev.rating) }}</span>
+                <span class="text-sm font-medium text-slate-700">{{ rev.reviewerName }}</span>
+                <span v-if="rev.route" class="text-xs text-slate-500">· {{ rev.route }}</span>
+              </div>
+              <p v-if="rev.comment" class="text-slate-600 text-sm">{{ rev.comment }}</p>
+            </div>
+          </div>
         </div>
       </div>
 

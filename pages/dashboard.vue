@@ -26,6 +26,7 @@ interface Application {
     destAirport: string
     earliestDate: string
     latestDate: string
+    orgId?: string | null
     orgName: string | null
     orgSlug: string | null
     animal: { name: string; species: string; imageUrl: string | null } | null
@@ -47,6 +48,11 @@ const { t, locale } = useI18n()
 const applications = ref<Application[]>([])
 const conversations = ref<Conversation[]>([])
 const requests = ref<Request[]>([])
+const profileSummary = ref<{
+  profile: { avatarUrl: string | null; city: string | null; countryCode: string | null } | null
+  stats: { completedFlightsCount: number; transportedAnimalsCount: number; averageRating: number | null; reviewsCount: number }
+  recentReviews: Array<{ id: string; rating: number; comment: string | null; reviewerName: string; route: string | null }>
+} | null>(null)
 const pollingInterval = ref<NodeJS.Timeout | null>(null)
 const isPageVisible = ref(true)
 const applicationFilter = ref<'all' | 'PENDING' | 'ACCEPTED' | 'REJECTED'>('all')
@@ -181,6 +187,8 @@ function onMapRequestClick(req: MapRequest) {
 }
 
 const acceptedTrips = computed(() => applications.value.filter((a) => a.status === 'ACCEPTED'))
+const completedTrips = computed(() => acceptedTrips.value.filter((a) => a.request?.status === 'COMPLETED'))
+const reviewOrgModal = ref<{ requestId: string; orgId: string; orgName: string } | null>(null)
 const pendingApplications = computed(() => applications.value.filter((a) => a.status === 'PENDING'))
 const rejectedApplications = computed(() => applications.value.filter((a) => a.status === 'REJECTED'))
 
@@ -248,20 +256,51 @@ const formatRelativeTime = (dateString: string) => {
   return formatDate(dateString)
 }
 
+async function openRateOrg(trip: Application) {
+  if (!trip.request?.orgId || trip.request.status !== 'COMPLETED') return
+  try {
+    const res = await $fetch<{ canRateOrg: boolean }>('/api/reviews/check', { query: { requestId: trip.requestId } })
+    if (res.canRateOrg) {
+      reviewOrgModal.value = {
+        requestId: trip.requestId,
+        orgId: trip.request.orgId,
+        orgName: trip.request.orgName || t('dashboard.organization'),
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function closeReviewOrgModal() {
+  reviewOrgModal.value = null
+}
+
+async function onReviewOrgSubmitted() {
+  await loadData()
+}
+
 async function loadData() {
   try {
-    const [requestsRes, applicationsRes, conversationsRes] = await Promise.all([
+    const [requestsRes, applicationsRes, conversationsRes, summaryRes] = await Promise.all([
       $fetch<{ requests: Request[] }>('/api/requests'),
       $fetch<{ applications: Application[] }>('/api/user/applications'),
       $fetch<{ conversations: Conversation[] }>('/api/user/conversations'),
+      $fetch<{ profile: unknown; stats: { completedFlightsCount: number; transportedAnimalsCount: number; averageRating: number | null; reviewsCount: number }; recentReviews: Array<{ id: string; rating: number; comment: string | null; reviewerName: string; route: string | null }> }>('/api/user/profile-summary'),
     ])
     requests.value = requestsRes.requests
     applications.value = applicationsRes.applications
     conversations.value = conversationsRes.conversations
+    profileSummary.value = {
+      profile: summaryRes.profile as { avatarUrl: string | null; city: string | null; countryCode: string | null } | null,
+      stats: summaryRes.stats,
+      recentReviews: summaryRes.recentReviews,
+    }
   } catch {
     requests.value = []
     applications.value = []
     conversations.value = []
+    profileSummary.value = null
   }
 }
 
@@ -309,16 +348,110 @@ onUnmounted(() => {
   stopPolling()
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
+
+function starDisplay(rating: number) {
+  const full = Math.floor(rating)
+  const half = rating % 1 >= 0.5 ? 1 : 0
+  const empty = 5 - full - half
+  return { full, half, empty }
+}
 </script>
 
 <template>
   <div class="container mx-auto w-4/5 max-w-full px-4 sm:px-6 py-6 sm:py-8 overflow-x-hidden">
-    <!-- Header -->
-    <div class="mb-6 sm:mb-8 border-b border-slate-200 pb-6">
-      <h1 class="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
-        {{ t('dashboard.greeting').replace('{name}', user?.displayName ?? 'User') }}
-      </h1>
-      <p class="text-slate-500 text-sm mt-1">{{ t('dashboard.greetingSubtitle') }}</p>
+    <!-- Profilsektion oben (nur für USER mit Profil/Stats) -->
+    <div
+      v-if="profileSummary && profileSummary.stats"
+      class="mb-8 rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-6 sm:p-8 shadow-sm"
+    >
+      <div class="flex flex-col sm:flex-row gap-6 sm:gap-8">
+        <div class="flex items-start gap-4 shrink-0">
+          <NuxtLink :to="user?.id ? `/user/${user.id}` : '/dashboard'" class="block shrink-0">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-slate-200 border-2 border-amber-200 shadow-inner">
+              <img
+                v-if="profileSummary.profile?.avatarUrl"
+                :src="profileSummary.profile.avatarUrl"
+                :alt="user?.displayName"
+                class="w-full h-full object-cover"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-3xl sm:text-4xl text-amber-600 font-bold">
+                {{ user?.displayName?.charAt(0).toUpperCase() ?? '?' }}
+              </div>
+            </div>
+          </NuxtLink>
+          <div class="min-w-0">
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">{{ t('profile.profileSectionTitle') }}</h2>
+            <p class="text-slate-600 text-sm mt-0.5">{{ profileSummary.profile?.city || profileSummary.profile?.countryCode ? [profileSummary.profile.city, profileSummary.profile.countryCode].filter(Boolean).join(', ') : user?.displayName }}</p>
+            <div class="flex flex-wrap gap-3 mt-3">
+              <span
+                v-if="profileSummary.stats.averageRating != null"
+                class="inline-flex items-center gap-1 text-amber-600 font-medium text-sm"
+              >
+                <span v-for="i in starDisplay(profileSummary.stats.averageRating).full" :key="'f'+i">★</span>
+                <span v-for="i in starDisplay(profileSummary.stats.averageRating).empty" :key="'e'+i" class="text-slate-300">★</span>
+                {{ profileSummary.stats.averageRating.toFixed(1) }} ({{ profileSummary.stats.reviewsCount }} {{ t('profile.reviews') }})
+              </span>
+              <span class="text-slate-600 text-sm">{{ profileSummary.stats.completedFlightsCount }} {{ t('profile.completedFlights') }}</span>
+              <span class="text-slate-600 text-sm">{{ profileSummary.stats.transportedAnimalsCount }} {{ t('profile.transportedAnimals') }}</span>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-3">
+              <NuxtLink
+                to="/profile-settings"
+                class="px-3 py-1.5 rounded-lg border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium hover:bg-amber-100 transition-colors inline-block"
+              >
+                {{ t('profile.editProfile') }}
+              </NuxtLink>
+              <NuxtLink
+                v-if="user?.id"
+                :to="`/user/${user.id}`"
+                class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+              >
+                {{ t('profile.viewFullProfile') }}
+              </NuxtLink>
+            </div>
+          </div>
+        </div>
+        <div v-if="profileSummary.recentReviews.length" class="flex-1 min-w-0">
+          <h3 class="text-sm font-semibold text-slate-700 mb-2">{{ t('profile.recentReviews') }}</h3>
+          <div class="space-y-2 max-h-32 overflow-y-auto pr-2">
+            <div
+              v-for="rev in profileSummary.recentReviews"
+              :key="rev.id"
+              class="p-3 rounded-lg bg-white/80 border border-slate-100 text-sm"
+            >
+              <div class="flex items-center gap-2">
+                <span class="text-amber-500">{{ '★'.repeat(rev.rating) }}{{ '☆'.repeat(5 - rev.rating) }}</span>
+                <span class="text-slate-600">{{ rev.reviewerName }}</span>
+                <span v-if="rev.route" class="text-xs text-slate-500 truncate">· {{ rev.route }}</span>
+              </div>
+              <p v-if="rev.comment" class="text-slate-600 mt-0.5 line-clamp-2">{{ rev.comment }}</p>
+            </div>
+          </div>
+        </div>
+        <div v-else class="flex-1 flex items-center text-slate-500 text-sm">
+          {{ t('profile.noReviewsYet') }}
+        </div>
+      </div>
+      <p class="text-xs text-slate-500 mt-4">{{ t('profile.profileSectionSubtitle') }}</p>
+    </div>
+
+    <!-- Header (kompakter) + immer Link zu Profil-Einstellungen -->
+    <div class="mb-6 border-b border-slate-200 pb-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+            {{ t('dashboard.greeting').replace('{name}', user?.displayName ?? 'User') }}
+          </h1>
+          <p class="text-slate-500 text-sm mt-1">{{ t('dashboard.greetingSubtitle') }}</p>
+        </div>
+        <NuxtLink
+          v-if="user?.id"
+          to="/profile-settings"
+          class="px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 shrink-0 inline-block"
+        >
+          {{ t('profile.editProfile') }}
+        </NuxtLink>
+      </div>
     </div>
 
     <!-- KPI-Zeile -->
@@ -389,6 +522,14 @@ onUnmounted(() => {
                   <div v-if="trip.request?.orgName" class="sm:col-span-2 text-slate-500">{{ trip.request.orgName }}</div>
                 </dl>
                 <div class="flex flex-wrap gap-2 mt-4">
+                  <button
+                    v-if="trip.request?.status === 'COMPLETED' && trip.request?.orgId"
+                    type="button"
+                    class="px-3 py-1.5 rounded border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium hover:bg-amber-100 transition-colors"
+                    @click.stop="openRateOrg(trip)"
+                  >
+                    {{ t('review.rateOrg') }}
+                  </button>
                   <NuxtLink
                     v-if="conversations.some(c => c.requestId === trip.requestId)"
                     :to="`/inbox/${conversations.find(c => c.requestId === trip.requestId)?.id}`"
@@ -638,5 +779,15 @@ onUnmounted(() => {
         </NuxtLink>
       </div>
     </div>
+
+    <ReviewModal
+      v-if="reviewOrgModal"
+      :show="!!reviewOrgModal"
+      :title="t('review.rateOrgTitle', { name: reviewOrgModal.orgName })"
+      :request-id="reviewOrgModal.requestId"
+      :reviewee-org-id="reviewOrgModal.orgId"
+      @close="closeReviewOrgModal"
+      @submitted="onReviewOrgSubmitted"
+    />
   </div>
 </template>

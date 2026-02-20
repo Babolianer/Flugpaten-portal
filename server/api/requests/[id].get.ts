@@ -1,6 +1,7 @@
 import { prisma } from '~~/server/utils/prisma'
 import { getRequestLocale } from '~~/server/utils/locale'
 import { translateStrings } from '~~/server/utils/translateContent'
+import { getUserFromEvent } from '~~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -69,6 +70,41 @@ export default defineEventHandler(async (event) => {
     orgLandingContent = translated[4] ?? request.organization?.landingContent
   }
 
+  // Bewertungen der Organisation (von Flugpaten nach abgeschlossenen Transporten)
+  const orgReviews =
+    request.organizationId
+      ? await prisma.review.findMany({
+          where: { revieweeOrgId: request.organizationId },
+          include: {
+            reviewer: { select: { displayName: true } },
+            request: { select: { title: true, originAirport: true, destAirport: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        })
+      : []
+  const orgReviewsFormatted = orgReviews.map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    orgResponse: r.orgResponse,
+    orgResponseAt: r.orgResponseAt?.toISOString() ?? null,
+    createdAt: r.createdAt.toISOString(),
+    reviewerName: r.reviewer.displayName,
+    route: r.request ? `${r.request.originAirport} → ${r.request.destAirport}` : null,
+  }))
+  let orgReviewsCount = 0
+  let orgReviewsAvg: number | null = null
+  if (request.organizationId) {
+    const agg = await prisma.review.aggregate({
+      where: { revieweeOrgId: request.organizationId },
+      _avg: { rating: true },
+      _count: true,
+    })
+    orgReviewsCount = agg._count
+    orgReviewsAvg = agg._avg.rating != null ? Math.round(agg._avg.rating * 10) / 10 : null
+  }
+
   const organization = request.organization
     ? {
         ...request.organization,
@@ -78,8 +114,35 @@ export default defineEventHandler(async (event) => {
         contactPhone,
         contactInstagram,
         contactFacebook,
+        reviews: orgReviewsFormatted,
+        reviewsCount: orgReviewsCount,
+        averageRating: orgReviewsAvg ? Math.round(orgReviewsAvg * 10) / 10 : null,
       }
     : undefined
+
+  // Für eingeloggte Flugpaten: Prüfen ob sie der zugewiesene Teilnehmer bei abgeschlossenem Transport sind
+  let participantInfo: { isCompletedParticipant: boolean; canRateOrg: boolean; orgId: string; orgName: string } | null = null
+  if (request.status === 'COMPLETED' && request.organizationId && organization) {
+    const user = await getUserFromEvent(event)
+    const acceptedApp = await prisma.requestApplication.findFirst({
+      where: { requestId: id!, status: 'ACCEPTED' },
+      select: { userId: true },
+    })
+    if (user?.role === 'USER' && acceptedApp && user.id === acceptedApp.userId) {
+      const userHasRatedOrg = await prisma.review.findFirst({
+        where: {
+          requestId: id!,
+          revieweeOrgId: request.organizationId,
+        },
+      })
+      participantInfo = {
+        isCompletedParticipant: true,
+        canRateOrg: !userHasRatedOrg,
+        orgId: request.organizationId,
+        orgName: organization.name,
+      }
+    }
+  }
 
   return {
     request: {
@@ -88,5 +151,6 @@ export default defineEventHandler(async (event) => {
       details: reqDetails,
       organization,
     },
+    participantInfo,
   }
 })

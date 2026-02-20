@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
       role: user.role,
       displayName: user.displayName,
       phone: user.phone,
+      emailVerified: (user as { emailVerified?: boolean }).emailVerified,
     },
     memberships: memberships || [],
   }

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 import { ensureOrgAccess } from '~~/server/utils/orgAccess'
+import { geocode } from '~~/server/utils/geocode'
 
 const schema = z.object({
   organizationId: z.string(),
@@ -9,8 +10,9 @@ const schema = z.object({
   countryCode: z.string().length(2),
   city: z.string().min(1),
   address: z.string().optional(),
-  lat: z.number(),
-  lng: z.number(),
+  postalCode: z.string().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -24,6 +26,22 @@ export default defineEventHandler(async (event) => {
 
   await ensureOrgAccess(event, parsed.data.organizationId)
 
+  let lat = parsed.data.lat
+  let lng = parsed.data.lng
+  if (lat == null || lng == null) {
+    const coords = await geocode({
+      address: parsed.data.address,
+      postalCode: parsed.data.postalCode,
+      city: parsed.data.city,
+      countryCode: parsed.data.countryCode,
+    })
+    if (!coords) {
+      throw createError({ statusCode: 400, message: 'Could not geocode address' })
+    }
+    lat = coords.lat
+    lng = coords.lng
+  }
+
   const location = await prisma.orgLocation.create({
     data: {
       organizationId: parsed.data.organizationId,
@@ -31,8 +49,9 @@ export default defineEventHandler(async (event) => {
       countryCode: parsed.data.countryCode,
       city: parsed.data.city,
       address: parsed.data.address || null,
-      lat: parsed.data.lat,
-      lng: parsed.data.lng,
+      postalCode: parsed.data.postalCode || null,
+      lat,
+      lng,
     },
   })
 

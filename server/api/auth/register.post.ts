@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { prisma } from '~~/server/utils/prisma'
-import { hashPassword } from '~~/server/utils/auth'
+import { hashPassword, signJwt } from '~~/server/utils/auth'
 
 const schema = z.object({
   email: z.string().email(),
@@ -8,6 +8,8 @@ const schema = z.object({
   role: z.enum(['USER', 'ORG_USER']),
   displayName: z.string().min(1),
   phone: z.string().optional(),
+  termsAccepted: z.boolean().optional(),
+  privacyAccepted: z.boolean().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -17,7 +19,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid input', data: parsed.error.flatten() })
   }
 
-  const { email, password, role, displayName, phone } = parsed.data
+  const { email, password, role, displayName, phone, termsAccepted, privacyAccepted } = parsed.data
+
+  if (role === 'USER') {
+    if (termsAccepted !== true || privacyAccepted !== true) {
+      throw createError({ statusCode: 400, message: 'Bitte akzeptiere die Nutzungsbedingungen und die Datenschutzerklärung.' })
+    }
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
@@ -25,6 +33,39 @@ export default defineEventHandler(async (event) => {
   }
 
   const passwordHash = await hashPassword(password)
+
+  if (role === 'USER') {
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        role,
+        displayName,
+        phone,
+        emailVerified: false,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        displayName: true,
+      },
+    })
+
+    const config = useRuntimeConfig()
+    const cookieName = config.cookieName || 'tierschutz_session'
+    const token = await signJwt({ sub: user.id, role: user.role })
+    setCookie(event, cookieName, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    })
+
+    return { user }
+  }
+
   const user = await prisma.user.create({
     data: { email, passwordHash, role, displayName, phone },
     select: {

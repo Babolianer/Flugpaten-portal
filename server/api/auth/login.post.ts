@@ -38,6 +38,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  })
+
   const token = await signJwt({ sub: user.id, role: user.role })
   const config = useRuntimeConfig()
   const cookieName = config.cookieName || 'tierschutz_session'

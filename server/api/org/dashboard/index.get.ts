@@ -14,6 +14,7 @@ const orgSelect = {
   createdAt: true,
   updatedAt: true,
   locations: true,
+  _count: { select: { reviews: true } },
   animals: { where: { isActive: true }, select: { id: true, name: true, species: true, sex: true, sizeClass: true, notes: true, imageUrl: true } },
   requests: {
     select: {
@@ -31,6 +32,11 @@ const orgSelect = {
       destLng: true,
       animalId: true,
       animal: { select: { id: true, name: true, species: true } },
+      applications: {
+        where: { status: 'ACCEPTED' },
+        select: { userId: true, user: { select: { id: true, displayName: true } } },
+        take: 1,
+      },
     },
   },
 } as const

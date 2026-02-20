@@ -11,22 +11,21 @@ const { t } = useI18n()
       </p>
       <section>
         <h2 class="text-xl font-semibold text-slate-900 mt-6 mb-2">{{ t('impressum.provider') }}</h2>
-        <p>
-          [Name des Betreibers]<br>
-          [Straße und Hausnummer]<br>
-          [PLZ und Ort]
-        </p>
+        <p class="whitespace-pre-line">{{ t('impressum.providerContent') }}</p>
       </section>
       <section>
         <h2 class="text-xl font-semibold text-slate-900 mt-6 mb-2">{{ t('impressum.contact') }}</h2>
-        <p>
-          E-Mail: [Kontakt-E-Mail]<br>
-          Telefon: [optional]
-        </p>
+        <p class="whitespace-pre-line">{{ t('impressum.contactContent') }}</p>
       </section>
       <section>
         <h2 class="text-xl font-semibold text-slate-900 mt-6 mb-2">{{ t('impressum.responsible') }}</h2>
-        <p>[Name und Anschrift wie oben]</p>
+        <p class="whitespace-pre-line">{{ t('impressum.responsibleContent') }}</p>
+      </section>
+      <section>
+        <h2 class="text-xl font-semibold text-slate-900 mt-6 mb-2">{{ t('impressum.orgContent') }}</h2>
+        <p>
+          {{ t('impressum.orgContentText') }}
+        </p>
       </section>
       <section>
         <h2 class="text-xl font-semibold text-slate-900 mt-6 mb-2">{{ t('impressum.liability') }}</h2>

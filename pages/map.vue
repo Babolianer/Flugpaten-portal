@@ -53,7 +53,14 @@ const pins = ref<Pin[]>([])
 const requests = ref<Request[]>([])
 const selectedId = ref<string | null>(null)
 const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void } | null>(null)
+const overlayMapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void } | null>(null)
+const mapExpanded = ref(false)
 const loading = ref(false)
+const isMobile = ref(false)
+
+function getActiveMapRef() {
+  return mapExpanded.value ? overlayMapRef.value : mapRef.value
+}
 
 const selectedRoute = computed(() => {
   if (!selectedId.value) return null
@@ -115,7 +122,7 @@ async function loadData() {
     const res = await $fetch<{ pins: Pin[]; requests: Request[] }>('/api/map/pins?' + params.toString())
     pins.value = res.pins
     requests.value = res.requests
-    nextTick(() => mapRef.value?.fitToPins())
+    nextTick(() => getActiveMapRef()?.fitToPins())
   } finally {
     loading.value = false
   }
@@ -130,8 +137,8 @@ function onPinClick(pin: Pin) {
   selectedId.value = pin.requestId ?? pin.id
   const req = pin.requestId ? requests.value.find((x) => x.id === pin.requestId) : null
   if (req && req.originLat != null && req.originLng != null && req.destLat != null && req.destLng != null) {
-  } else if (pin && mapRef.value) {
-    mapRef.value.flyTo(pin.lng, pin.lat)
+  } else if (pin) {
+    getActiveMapRef()?.flyTo(pin.lng, pin.lat)
   }
 }
 
@@ -140,7 +147,7 @@ function onRequestClick(req: Request) {
   if (req.originLat != null && req.originLng != null && req.destLat != null && req.destLng != null) {
   } else {
     const pin = pins.value.find((p) => p.requestId === req.id)
-    if (pin && mapRef.value) mapRef.value.flyTo(pin.lng, pin.lat)
+    if (pin) getActiveMapRef()?.flyTo(pin.lng, pin.lat)
   }
 }
 
@@ -152,7 +159,16 @@ const hasActiveFilters = computed(
       filters.value.species !== 'all')
 )
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  const mq = window.matchMedia('(max-width: 767px)')
+  isMobile.value = mq.matches
+  mq.addEventListener('change', (e) => { isMobile.value = e.matches })
+})
+
+watch(mapExpanded, (expanded) => {
+  if (expanded) nextTick(() => overlayMapRef.value?.fitToPins())
+})
 </script>
 
 <template>
@@ -194,23 +210,68 @@ onMounted(loadData)
     <MapFilterBar v-model="filters" class="mb-4 sm:mb-6" @filter="onFilter" />
 
     <!-- Mobile-first: Karte oben volle Breite, Liste unten; ab lg: 2/3 Karte, 1/3 Liste -->
+    <!-- NUR AM HANDY: Karte als kleines Banner mit Expand-Button -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-      <div class="lg:col-span-2 rounded-xl overflow-hidden shadow-lg order-1 min-w-0">
+      <div class="lg:col-span-2 rounded-xl overflow-hidden shadow-lg order-1 min-w-0 relative">
         <ClientOnly>
           <MapView
             ref="mapRef"
             :pins="pins"
             :selected-id="selectedId"
             :selected-route="selectedRoute"
-            class="h-[280px] sm:h-[380px] lg:h-[500px] w-full"
+            :compact="isMobile && !mapExpanded"
+            class="h-[140px] md:h-[380px] lg:h-[500px] w-full"
             @pin-click="onPinClick"
           />
           <template #fallback>
-            <div class="h-[280px] sm:h-[380px] lg:h-[500px] bg-slate-200 flex items-center justify-center">
+            <div class="h-[140px] md:h-[380px] lg:h-[500px] bg-slate-200 flex items-center justify-center">
               Karte wird geladen...
             </div>
           </template>
         </ClientOnly>
+        <!-- Expand-Button nur auf Mobile (max-md) -->
+        <button
+          type="button"
+          class="md:hidden absolute bottom-2 right-2 z-20 p-2 rounded-full bg-white/95 shadow-lg hover:bg-white border border-slate-200 text-slate-700 transition-colors"
+          :aria-label="t('map.expandMap')"
+          @click="mapExpanded = true"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+        </button>
+
+        <!-- Fullscreen-Overlay nur auf Mobile beim Expand -->
+        <Teleport to="body">
+          <div
+            v-if="mapExpanded"
+            class="md:hidden fixed inset-0 z-50 bg-white flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="t('map.expandMap')"
+          >
+            <div class="flex-1 min-h-0 relative">
+              <MapView
+                ref="overlayMapRef"
+                :pins="pins"
+                :selected-id="selectedId"
+                :selected-route="selectedRoute"
+                class="absolute inset-0 w-full h-full"
+                @pin-click="onPinClick"
+              />
+            </div>
+            <button
+              type="button"
+              class="absolute top-3 right-3 z-20 p-2 rounded-full bg-white/95 shadow-lg hover:bg-white border border-slate-200 text-slate-700"
+              :aria-label="t('map.closeMap')"
+              @click="mapExpanded = false"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </Teleport>
         <p class="mt-3 text-xs sm:text-sm text-slate-600 bg-slate-50 rounded-b-xl px-3 sm:px-4 py-2 sm:py-3 border border-t-0 border-slate-200">
           <strong class="text-slate-700">{{ t('map.transparencyTitle') }}</strong><br />
           {{ t('map.transparencyText') }}

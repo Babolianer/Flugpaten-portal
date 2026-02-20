@@ -55,3 +55,44 @@ export async function uploadAnimalImage(
   const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
   return urlData.publicUrl
 }
+
+const AVATARS_BUCKET = 'avatars'
+
+/**
+ * Lädt ein Profilbild (Avatar) in Supabase Storage hoch und liefert die öffentliche URL.
+ */
+export async function uploadProfileImage(
+  userId: string,
+  filename: string,
+  data: Buffer,
+  mimeType: string
+): Promise<string> {
+  if (data.length > MAX_IMAGE_SIZE) {
+    throw createError({ statusCode: 400, message: 'Bild zu groß (max. 5 MB)' })
+  }
+  const mime = mimeType?.toLowerCase()
+  if (mime && !ALLOWED_IMAGE_TYPES.includes(mime)) {
+    throw createError({ statusCode: 400, message: 'Nur Bilder erlaubt (JPG, PNG, WebP, GIF)' })
+  }
+
+  const supabase = getSupabase()
+  const ext = filename?.match(/\.(jpe?g|png|webp|gif)$/i)?.[1]?.toLowerCase() || 'jpg'
+  const safeExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext) ? ext : 'jpg'
+  const path = `${userId}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${safeExt}`
+
+  const { error } = await supabase.storage.from(AVATARS_BUCKET).upload(path, data, {
+    contentType: mime || `image/${safeExt}`,
+    upsert: false,
+  })
+
+  if (error) {
+    console.error('[supabase-storage]', error)
+    throw createError({
+      statusCode: 500,
+      message: 'Fehler beim Hochladen des Bildes: ' + (error.message || 'Unbekannter Fehler'),
+    })
+  }
+
+  const { data: urlData } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path)
+  return urlData.publicUrl
+}

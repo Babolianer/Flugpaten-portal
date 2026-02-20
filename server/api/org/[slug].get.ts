@@ -69,6 +69,30 @@ export default defineEventHandler(async (event) => {
     title: locale === 'de' ? req.title : (requestTitles[idx] ?? req.title),
   }))
 
+  // Bewertungen der Organisation
+  const reviews = await prisma.review.findMany({
+    where: { revieweeOrgId: org.id },
+    include: {
+      reviewer: { select: { displayName: true } },
+      request: { select: { title: true, originAirport: true, destAirport: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 15,
+  })
+  const reviewsFormatted = reviews.map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    orgResponse: r.orgResponse,
+    orgResponseAt: r.orgResponseAt?.toISOString() ?? null,
+    createdAt: r.createdAt.toISOString(),
+    reviewerName: r.reviewer.displayName,
+    route: r.request ? `${r.request.originAirport} → ${r.request.destAirport}` : null,
+  }))
+  const reviewsCount = await prisma.review.count({ where: { revieweeOrgId: org.id } })
+  const averageRating =
+    reviewsCount > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviewsCount : null
+
   return {
     organization: {
       id: org.id,
@@ -84,6 +108,9 @@ export default defineEventHandler(async (event) => {
       logoUrl: org.logoUrl,
       locations,
       requests,
+      reviews: reviewsFormatted,
+      reviewsCount,
+      averageRating: averageRating ? Math.round(averageRating * 10) / 10 : null,
     },
   }
 })

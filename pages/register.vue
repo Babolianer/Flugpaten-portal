@@ -5,6 +5,8 @@ const email = ref('')
 const password = ref('')
 const displayName = ref('')
 const role = ref<'USER' | 'ORG_USER'>('USER')
+const termsAccepted = ref(false)
+const privacyAccepted = ref(false)
 const redirectTo = computed(() => (route.query.redirect as string) || '/dashboard')
 const orgDescription = ref('')
 const orgWebsite = ref('')
@@ -32,14 +34,17 @@ async function submit() {
     } else {
       await $fetch('/api/auth/register', {
         method: 'POST',
+        credentials: 'include',
         body: {
           email: email.value,
           password: password.value,
           role: 'USER',
           displayName: displayName.value,
+          termsAccepted: termsAccepted.value,
+          privacyAccepted: privacyAccepted.value,
         },
       })
-      await navigateTo('/login?redirect=' + encodeURIComponent(redirectTo.value))
+      await navigateTo(redirectTo.value)
     }
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } }
@@ -103,6 +108,18 @@ async function submit() {
             class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           />
         </div>
+        <template v-if="role === 'USER'">
+          <div class="mb-4 space-y-3">
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input v-model="termsAccepted" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300" />
+              <span class="text-sm text-slate-700">{{ t('register.termsCheckbox') }}</span>
+            </label>
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input v-model="privacyAccepted" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300" />
+              <span class="text-sm text-slate-700">{{ t('register.privacyCheckbox') }}</span>
+            </label>
+          </div>
+        </template>
         <template v-if="role === 'ORG_USER'">
           <div class="mb-4">
             <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.description') }}</label>

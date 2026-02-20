@@ -64,7 +64,7 @@ async function submitBypass() {
     })
     showBypassModal.value = false
     bypassPassword.value = ''
-    await navigateTo('/')
+    await navigateTo('/register')
   } catch (e: unknown) {
     bypassError.value = (e as { data?: { message?: string } })?.data?.message || t('maintenance.bypassError')
   } finally {

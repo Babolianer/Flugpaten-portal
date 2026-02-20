@@ -2,12 +2,14 @@ import { z } from 'zod'
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 import { ensureOrgAccess } from '~~/server/utils/orgAccess'
+import { geocode } from '~~/server/utils/geocode'
 
 const schema = z.object({
   title: z.string().min(1).optional(),
   countryCode: z.string().length(2).optional(),
   city: z.string().min(1).optional(),
   address: z.string().optional().nullable(),
+  postalCode: z.string().optional().nullable(),
   lat: z.number().optional(),
   lng: z.number().optional(),
 })
@@ -31,6 +33,26 @@ export default defineEventHandler(async (event) => {
 
   await ensureOrgAccess(event, loc.organizationId)
 
+  let lat = parsed.data.lat
+  let lng = parsed.data.lng
+  if (lat == null || lng == null) {
+    const address = parsed.data.address ?? loc.address ?? ''
+    const postalCode = parsed.data.postalCode ?? loc.postalCode ?? ''
+    const city = parsed.data.city ?? loc.city
+    const countryCode = parsed.data.countryCode ?? loc.countryCode
+    const coords = await geocode({
+      address: address || undefined,
+      postalCode: postalCode || undefined,
+      city,
+      countryCode,
+    })
+    if (!coords) {
+      throw createError({ statusCode: 400, message: 'Could not geocode address' })
+    }
+    lat = coords.lat
+    lng = coords.lng
+  }
+
   const updated = await prisma.orgLocation.update({
     where: { id },
     data: {
@@ -38,8 +60,9 @@ export default defineEventHandler(async (event) => {
       ...(parsed.data.countryCode != null && { countryCode: parsed.data.countryCode }),
       ...(parsed.data.city != null && { city: parsed.data.city }),
       ...(parsed.data.address !== undefined && { address: parsed.data.address }),
-      ...(parsed.data.lat != null && { lat: parsed.data.lat }),
-      ...(parsed.data.lng != null && { lng: parsed.data.lng }),
+      ...(parsed.data.postalCode !== undefined && { postalCode: parsed.data.postalCode }),
+      lat,
+      lng,
     },
   })
   return { location: updated }

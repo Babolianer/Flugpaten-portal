@@ -34,6 +34,8 @@ const props = withDefaults(
     selectedId?: string | null
     center?: [number, number]
     zoom?: number
+    /** Bei true: min-height deaktiviert (für Banner-Ansicht auf Mobile) */
+    compact?: boolean
   }>(),
   {
     connections: () => [],
@@ -41,6 +43,7 @@ const props = withDefaults(
     selectedId: null,
     center: () => [10.4515, 51.1657] as [number, number],
     zoom: 4,
+    compact: false,
   }
 )
 
@@ -281,5 +284,9 @@ defineExpose({ flyTo, fitToPins })
 </script>
 
 <template>
-  <div ref="mapContainer" class="w-full h-full min-h-[400px] rounded-lg overflow-hidden" />
+  <div
+    ref="mapContainer"
+    class="w-full h-full rounded-lg overflow-hidden"
+    :class="compact ? 'min-h-0' : 'min-h-[400px]'"
+  />
 </template>

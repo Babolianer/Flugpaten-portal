@@ -1,6 +1,6 @@
 import type { User } from '@prisma/client'
 
-const protectedPaths = ['/dashboard', '/org/dashboard', '/org/register', '/admin']
+const protectedPaths = ['/dashboard', '/profile-settings', '/org/dashboard', '/org/register', '/admin']
 
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname

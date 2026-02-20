@@ -40,6 +40,7 @@ export default defineEventHandler(async (event) => {
             destAirport: a.request.destAirport,
             earliestDate: a.request.earliestDate.toISOString(),
             latestDate: a.request.latestDate.toISOString(),
+            orgId: a.request.organization?.id,
             orgName: a.request.organization?.name,
             orgSlug: a.request.organization?.slug,
             animal: a.request.animal,

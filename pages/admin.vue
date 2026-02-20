@@ -78,7 +78,7 @@ const loadingBlocked = ref(true)
 const loadingRequests = ref(true)
 const loadingAcquise = ref(true)
 const message = ref('')
-const activeTab = ref<'overview' | 'requests' | 'acquise'>('overview')
+const activeTab = ref<'overview' | 'requests' | 'acquise' | 'reviews'>('overview')
 const savingId = ref<string | null>(null)
 const sendingMail = ref(false)
 const mailResult = ref<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -111,6 +111,47 @@ const mailSettingsSaved = ref(false)
 const maintenanceMode = ref(false)
 const loadingMaintenance = ref(false)
 const savingMaintenance = ref(false)
+const acquiseSubTab = ref<'contacts' | 'users'>('contacts')
+
+interface AdminUserRow {
+  id: string
+  email: string
+  displayName: string
+  emailVerified: boolean
+  createdAt: string
+  lastLoginAt: string | null
+  adminNotes: string | null
+  profileComplete: boolean
+  completedFlightsCount: number
+}
+const adminUsers = ref<AdminUserRow[]>([])
+const adminUsersPage = ref(1)
+const adminUsersTotal = ref(0)
+const adminUsersTotalPages = ref(0)
+const loadingAdminUsers = ref(false)
+const adminUsersFilterNew = ref(false)
+const adminUsersFilterUnverified = ref(false)
+const adminUsersFilterActive = ref(false)
+const savingUserNotesId = ref<string | null>(null)
+const verifyingUserId = ref<string | null>(null)
+
+interface ReportedReviewRow {
+  id: string
+  rating: number
+  comment: string | null
+  orgResponse: string | null
+  createdAt: string
+  reviewerName: string
+  reviewerEmail: string
+  orgName: string | null
+  orgSlug: string | null
+  requestTitle: string
+  reportsCount: number
+  reportReasons: string[]
+}
+const adminReviews = ref<ReportedReviewRow[]>([])
+const loadingAdminReviews = ref(false)
+const deletingReviewId = ref<string | null>(null)
 
 const { getRequestStatusLabel } = useRequestStatus()
 
@@ -251,6 +292,68 @@ async function loadAcquise(page = 1) {
 function goToAcquisePage(p: number) {
   if (p < 1 || p > acquiseTotalPages.value) return
   loadAcquise(p)
+}
+
+async function loadAdminUsers(page = 1) {
+  loadingAdminUsers.value = true
+  try {
+    const params = new URLSearchParams()
+    params.set('page', String(page))
+    params.set('pageSize', '50')
+    if (adminUsersFilterNew.value) params.set('filterNew', 'true')
+    if (adminUsersFilterUnverified.value) params.set('filterUnverified', 'true')
+    if (adminUsersFilterActive.value) params.set('filterActive', 'true')
+    const res = await $fetch<{
+      users: AdminUserRow[]
+      total: number
+      page: number
+      pageSize: number
+      totalPages: number
+    }>('/api/admin/users?' + params.toString())
+    adminUsers.value = res.users
+    adminUsersPage.value = res.page
+    adminUsersTotal.value = res.total
+    adminUsersTotalPages.value = res.totalPages
+  } catch {
+    message.value = 'Fehler beim Laden der Nutzer'
+  } finally {
+    loadingAdminUsers.value = false
+  }
+}
+
+function goToAdminUsersPage(p: number) {
+  if (p < 1 || p > adminUsersTotalPages.value) return
+  loadAdminUsers(p)
+}
+
+async function saveUserNotes(u: AdminUserRow, notes: string) {
+  savingUserNotesId.value = u.id
+  try {
+    await $fetch(`/api/admin/users/${u.id}`, {
+      method: 'PATCH',
+      body: { adminNotes: notes || null },
+    })
+    u.adminNotes = notes || null
+  } catch {
+    message.value = 'Notiz konnte nicht gespeichert werden'
+  } finally {
+    savingUserNotesId.value = null
+  }
+}
+
+async function verifyUser(u: AdminUserRow) {
+  if (u.emailVerified) return
+  verifyingUserId.value = u.id
+  message.value = ''
+  try {
+    await $fetch(`/api/admin/users/${u.id}/verify`, { method: 'PATCH' })
+    u.emailVerified = true
+    message.value = t('admin.acquise.verifySuccess')
+  } catch {
+    message.value = t('admin.acquise.verifyError')
+  } finally {
+    verifyingUserId.value = null
+  }
 }
 
 function shortenUrl(url: string | null): string {
@@ -474,6 +577,41 @@ async function sendTestMail() {
   }
 }
 
+async function loadAdminReviews() {
+  loadingAdminReviews.value = true
+  try {
+    const res = await $fetch<{ reviews: ReportedReviewRow[] }>('/api/admin/reviews')
+    adminReviews.value = res.reviews
+  } catch {
+    adminReviews.value = []
+  } finally {
+    loadingAdminReviews.value = false
+  }
+}
+
+async function deleteReview(id: string) {
+  if (!confirm(t('admin.reviews.confirmDelete'))) return
+  deletingReviewId.value = id
+  try {
+    await $fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' })
+    adminReviews.value = adminReviews.value.filter((r) => r.id !== id)
+    message.value = ''
+  } catch {
+    message.value = t('admin.reviews.deleteError')
+  } finally {
+    deletingReviewId.value = null
+  }
+}
+
+watch([activeTab, acquiseSubTab], ([tab, sub]) => {
+  if (tab === 'acquise' && sub === 'users') loadAdminUsers()
+  if (tab === 'reviews') loadAdminReviews()
+})
+
+watch([adminUsersFilterNew, adminUsersFilterUnverified, adminUsersFilterActive], () => {
+  if (activeTab.value === 'acquise' && acquiseSubTab.value === 'users') loadAdminUsers(1)
+})
+
 onMounted(() => {
   load()
   loadMaintenance()
@@ -512,6 +650,14 @@ onMounted(() => {
         @click="activeTab = 'acquise'"
       >
         {{ t('admin.tabAcquise') }}
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
+        :class="activeTab === 'reviews' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+        @click="activeTab = 'reviews'; loadAdminReviews()"
+      >
+        {{ t('admin.tabReviews') }}
       </button>
     </nav>
 
@@ -724,6 +870,27 @@ onMounted(() => {
 
     <!-- Tab: Acquise -->
     <div v-show="activeTab === 'acquise'" class="space-y-6">
+      <div class="flex gap-2 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          :class="acquiseSubTab === 'contacts' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          @click="acquiseSubTab = 'contacts'"
+        >
+          {{ t('admin.acquise.tabContacts') }}
+        </button>
+        <button
+          type="button"
+          :class="acquiseSubTab === 'users' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          @click="acquiseSubTab = 'users'; loadAdminUsers()"
+        >
+          {{ t('admin.acquise.tabUsers') }}
+        </button>
+      </div>
+
+      <!-- Sub-Tab: Kontakte -->
+      <template v-if="acquiseSubTab === 'contacts'">
       <!-- E-Mail-Versand -->
       <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
         <h2 class="text-lg font-semibold text-slate-800 mb-1">{{ t('admin.acquise.mailTitle') }}</h2>
@@ -943,6 +1110,153 @@ onMounted(() => {
               {{ t('admin.acquise.nextPage') }}
             </button>
           </nav>
+        </div>
+      </section>
+      </template>
+
+      <!-- Sub-Tab: Nutzer -->
+      <template v-else-if="acquiseSubTab === 'users'">
+        <section>
+          <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.acquise.usersTitle') }}</h2>
+          <p class="text-slate-600 text-sm mb-4">{{ t('admin.acquise.usersDescription') }}</p>
+          <div class="flex flex-wrap gap-4 mb-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input v-model="adminUsersFilterNew" type="checkbox" class="rounded border-slate-300" />
+              <span class="text-sm text-slate-700">{{ t('admin.acquise.filterNew') }}</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input v-model="adminUsersFilterUnverified" type="checkbox" class="rounded border-slate-300" />
+              <span class="text-sm text-slate-700">{{ t('admin.acquise.filterUnverified') }}</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input v-model="adminUsersFilterActive" type="checkbox" class="rounded border-slate-300" />
+              <span class="text-sm text-slate-700">{{ t('admin.acquise.filterActive') }}</span>
+            </label>
+          </div>
+          <div v-if="loadingAdminUsers" class="text-slate-600 text-sm py-4">{{ t('admin.acquise.loading') }}</div>
+          <div v-else-if="adminUsers.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
+            {{ t('admin.acquise.usersEmpty') }}
+          </div>
+          <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[800px] text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userName') }}</th>
+                  <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.email') }}</th>
+                  <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userEmailVerified') }}</th>
+                  <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userProfileComplete') }}</th>
+                  <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userFlights') }}</th>
+                  <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userCreated') }}</th>
+                  <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userLastLogin') }}</th>
+                  <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userNotes') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="u in adminUsers" :key="u.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                  <td class="py-3 px-3">
+                    <NuxtLink :to="`/user/${u.id}`" class="text-amber-600 hover:underline font-medium">{{ u.displayName }}</NuxtLink>
+                  </td>
+                  <td class="py-3 px-3 text-slate-600">{{ u.email }}</td>
+                  <td class="py-3 px-3 text-center">
+                    <span v-if="u.emailVerified" class="inline-flex px-2 py-0.5 rounded text-xs bg-green-100 text-green-800">✓</span>
+                    <button
+                      v-else
+                      type="button"
+                      :disabled="verifyingUserId === u.id"
+                      class="inline-flex px-2 py-1 rounded text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium disabled:opacity-50"
+                      @click="verifyUser(u)"
+                    >
+                      {{ verifyingUserId === u.id ? '…' : t('admin.acquise.verifyButton') }}
+                    </button>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span v-if="u.profileComplete" class="text-green-600">✓</span>
+                    <span v-else class="text-slate-400">–</span>
+                  </td>
+                  <td class="py-3 px-3 text-center text-slate-600">{{ u.completedFlightsCount }}</td>
+                  <td class="py-3 px-3 text-slate-600">{{ new Date(u.createdAt).toLocaleDateString(locale) }}</td>
+                  <td class="py-3 px-3 text-slate-600">{{ u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString(locale) : '–' }}</td>
+                  <td class="py-3 px-3">
+                    <input
+                      type="text"
+                      :value="u.adminNotes ?? ''"
+                      :disabled="savingUserNotesId === u.id"
+                      class="w-full max-w-[200px] py-1.5 px-2 rounded border border-slate-300 text-slate-800 text-xs"
+                      :placeholder="t('admin.acquise.userNotesPlaceholder')"
+                      @blur="saveUserNotes(u, ($event.target as HTMLInputElement).value)"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-if="adminUsersTotalPages > 1" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <p class="text-sm text-slate-600">
+              {{ t('admin.acquise.pageInfo', { from: (adminUsersPage - 1) * 50 + 1, to: Math.min(adminUsersPage * 50, adminUsersTotal), total: adminUsersTotal }) }}
+            </p>
+            <nav class="flex items-center gap-2">
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50" :disabled="adminUsersPage <= 1" @click="goToAdminUsersPage(adminUsersPage - 1)">
+                {{ t('admin.acquise.prevPage') }}
+              </button>
+              <span class="text-sm text-slate-600">{{ t('admin.acquise.pageOf', { page: adminUsersPage, total: adminUsersTotalPages }) }}</span>
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50" :disabled="adminUsersPage >= adminUsersTotalPages" @click="goToAdminUsersPage(adminUsersPage + 1)">
+                {{ t('admin.acquise.nextPage') }}
+              </button>
+            </nav>
+          </div>
+        </section>
+      </template>
+    </div>
+
+    <!-- Tab: Bewertungen -->
+    <div v-show="activeTab === 'reviews'" class="space-y-6">
+      <section>
+        <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.reviews.title') }}</h2>
+        <p class="text-slate-600 text-sm mb-4">{{ t('admin.reviews.description') }}</p>
+        <div v-if="loadingAdminReviews" class="text-slate-600 text-sm py-4">{{ t('admin.loading') }}</div>
+        <div v-else-if="adminReviews.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
+          {{ t('admin.reviews.empty') }}
+        </div>
+        <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <table class="w-full min-w-[700px] text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.reviews.tableReview') }}</th>
+                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.reviews.tableOrg') }}</th>
+                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.reviews.tableReports') }}</th>
+                <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in adminReviews" :key="r.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-1">
+                    <span v-for="i in 5" :key="i" class="text-amber-500">{{ i <= r.rating ? '★' : '☆' }}</span>
+                  </div>
+                  <p v-if="r.comment" class="text-slate-700 mt-1 max-w-xs truncate" :title="r.comment">{{ r.comment }}</p>
+                  <p class="text-xs text-slate-500 mt-0.5">{{ r.reviewerName }} · {{ r.requestTitle }}</p>
+                </td>
+                <td class="py-3 px-4 text-slate-600">
+                  <NuxtLink v-if="r.orgSlug" :to="`/org/${r.orgSlug}`" class="text-amber-600 hover:underline">{{ r.orgName }}</NuxtLink>
+                  <span v-else>{{ r.orgName ?? '–' }}</span>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{{ r.reportsCount }} {{ t('admin.reviews.reports') }}</span>
+                  <p v-if="r.reportReasons.length" class="text-xs text-slate-600 mt-1 max-w-xs truncate" :title="r.reportReasons.join('; ')">{{ r.reportReasons[0] }}</p>
+                </td>
+                <td class="py-3 px-4 text-right">
+                  <button
+                    type="button"
+                    :disabled="deletingReviewId === r.id"
+                    class="inline-flex px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-sm transition-colors disabled:opacity-50"
+                    @click="deleteReview(r.id)"
+                  >
+                    {{ deletingReviewId === r.id ? '…' : t('admin.reviews.delete') }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
     </div>

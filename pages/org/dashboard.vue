@@ -15,6 +15,7 @@ interface Location {
   city: string
   countryCode: string
   address: string | null
+  postalCode?: string | null
   lat: number
   lng: number
 }
@@ -43,6 +44,7 @@ interface Request {
   destLat: number | null
   destLng: number | null
   animal: { id: string; name: string; species: string } | null
+  applications?: Array<{ userId: string; user: { id: string; displayName: string } }>
 }
 
 interface Org {
@@ -58,12 +60,24 @@ interface Org {
   locations: Location[]
   animals: Animal[]
   requests: Request[]
+  _count?: { reviews: number }
+}
+
+interface OrgReview {
+  id: string
+  rating: number
+  comment: string | null
+  orgResponse: string | null
+  orgResponseAt: string | null
+  createdAt: string
+  reviewerName: string
+  requestTitle: string
 }
 
 const orgs = ref<Org[]>([])
 const loading = ref(true)
 const message = ref('')
-const activeTab = ref<'locations' | 'animals' | 'requests' | 'inbox' | 'settings'>('locations')
+const activeTab = ref<'locations' | 'animals' | 'requests' | 'inbox' | 'reviews' | 'settings'>('locations')
 const selectedOrgId = ref('')
 const sortBy = ref<'title' | 'date'>('title')
 
@@ -72,16 +86,25 @@ const modalMode = ref<'location' | 'animal' | 'request'>('location')
 const editingId = ref<string | null>(null)
 
 const inbox = ref<{ id: string; requestId: string | null; requestTitle: string | null; userDisplayName: string | null; lastMessage: { body: string; createdAt: string } | null }[]>([])
+const orgReviews = ref<OrgReview[]>([])
+const orgReviewsLoading = ref(false)
+const editingReviewId = ref<string | null>(null)
+const orgResponseDraft = ref('')
+const reportingReviewId = ref<string | null>(null)
+const reportReason = ref('')
 const inboxLoading = ref(false)
 const inboxPollingInterval = ref<NodeJS.Timeout | null>(null)
 const isPageVisible = ref(true)
 const copiedRequestId = ref<string | null>(null)
+const reviewModalRequest = ref<{ requestId: string; patronId: string; patronName: string } | null>(null)
+const reviewStatusCache = ref<Record<string, { canRatePatron: boolean }>>({})
 
 const formLocation = reactive({
   title: '',
   countryCode: 'DE',
   city: '',
   address: '',
+  postalCode: '',
   lat: 0,
   lng: 0,
 })
@@ -89,6 +112,7 @@ const formLocation = reactive({
 const formAnimal = reactive({
   name: '',
   species: 'cat',
+  speciesOtherText: '',
   sex: '',
   sizeClass: '',
   notes: '',
@@ -133,7 +157,7 @@ const selectedOrg = computed(() => orgs.value.find((o) => o.id === selectedOrgId
 
 /** Bei PENDING-Organisationen keine Tabs – nur Hinweis „Wartet auf Freigabe“. Kein Zugriff auf Standorte, Tiere, Transporte, Einstellungen. */
 const allowedTabs = computed(() => {
-  const all: Array<'locations' | 'animals' | 'requests' | 'inbox' | 'settings'> = ['locations', 'animals', 'requests', 'inbox', 'settings']
+  const all: Array<'locations' | 'animals' | 'requests' | 'inbox' | 'reviews' | 'settings'> = ['locations', 'animals', 'requests', 'inbox', 'reviews', 'settings']
   if (selectedOrg.value?.status === 'PENDING') return []
   return all
 })
@@ -156,6 +180,33 @@ const sortedRequests = computed(() => {
       : a.title.localeCompare(b.title)
   )
 })
+
+const kpiLocations = computed(() => selectedOrg.value?.locations?.length ?? 0)
+const kpiAnimals = computed(() => selectedOrg.value?.animals?.length ?? 0)
+const kpiActiveTransports = computed(() => {
+  const reqs = selectedOrg.value?.requests ?? []
+  return reqs.filter((r) => r.status === 'OPEN' || r.status === 'MATCHED').length
+})
+const kpiReviews = computed(() => selectedOrg.value?._count?.reviews ?? 0)
+
+const speciesOptions = [
+  { value: 'dog', labelKey: 'orgDashboard.speciesDog' },
+  { value: 'cat', labelKey: 'orgDashboard.speciesCat' },
+  { value: 'rabbit', labelKey: 'orgDashboard.speciesRabbit' },
+  { value: 'guinea_pig', labelKey: 'orgDashboard.speciesGuineaPig' },
+  { value: 'bird', labelKey: 'orgDashboard.speciesBird' },
+  { value: 'reptile', labelKey: 'orgDashboard.speciesReptile' },
+  { value: 'ferret', labelKey: 'orgDashboard.speciesFerret' },
+  { value: 'other', labelKey: 'orgDashboard.speciesOther' },
+] as const
+
+function getSpeciesLabel(species: string) {
+  if (species === 'other') return t('orgDashboard.speciesOther')
+  const opt = speciesOptions.find((o) => o.value === species)
+  return opt ? t(opt.labelKey) : species
+}
+
+const locationGeocodeError = ref(false)
 
 async function load() {
   try {
@@ -189,8 +240,8 @@ async function load() {
   }
 }
 
-async function loadInbox() {
-  inboxLoading.value = true
+async function loadInbox(opts?: { silent?: boolean }) {
+  if (!opts?.silent) inboxLoading.value = true
   try {
     const query = isAdminViewAsOrg.value && selectedOrgId.value ? { orgId: selectedOrgId.value } : {}
     const res = await $fetch<{ conversations: { id: string; requestId: string | null; requestTitle: string | null; userDisplayName: string | null; lastMessage: { body: string; createdAt: string } | null }[] }>('/api/org/dashboard/conversations', { query })
@@ -198,18 +249,19 @@ async function loadInbox() {
   } catch {
     inbox.value = []
   } finally {
-    inboxLoading.value = false
+    if (!opts?.silent) inboxLoading.value = false
   }
 }
 
 function openCreate(mode: 'location' | 'animal' | 'request') {
   modalMode.value = mode
   editingId.value = null
+  locationGeocodeError.value = false
   if (mode === 'location') {
-    Object.assign(formLocation, { title: '', city: '', address: '', lat: 0, lng: 0, countryCode: 'DE' })
+    Object.assign(formLocation, { title: '', city: '', address: '', postalCode: '', lat: 0, lng: 0, countryCode: 'DE' })
   }
   if (mode === 'animal') {
-    Object.assign(formAnimal, { name: '', species: 'cat', sex: '', sizeClass: '', notes: '', imageUrl: '' })
+    Object.assign(formAnimal, { name: '', species: 'cat', speciesOtherText: '', sex: '', sizeClass: '', notes: '', imageUrl: '' })
     if (animalImagePreviewUrl.value && typeof URL !== 'undefined' && URL.revokeObjectURL) {
       URL.revokeObjectURL(animalImagePreviewUrl.value)
     }
@@ -238,11 +290,13 @@ function openCreate(mode: 'location' | 'animal' | 'request') {
 function openEditLocation(loc: Location) {
   modalMode.value = 'location'
   editingId.value = loc.id
+  locationGeocodeError.value = false
   Object.assign(formLocation, {
     title: loc.title,
     city: loc.city,
     countryCode: loc.countryCode,
     address: loc.address ?? '',
+    postalCode: (loc as { postalCode?: string }).postalCode ?? '',
     lat: loc.lat,
     lng: loc.lng,
   })
@@ -264,9 +318,11 @@ function onAnimalImageChange(e: Event) {
 function openEditAnimal(a: Animal) {
   modalMode.value = 'animal'
   editingId.value = a.id
+  const isOther = !speciesOptions.some((o) => o.value === a.species)
   Object.assign(formAnimal, {
     name: a.name,
-    species: a.species,
+    species: isOther ? 'other' : a.species,
+    speciesOtherText: isOther ? a.species : '',
     sex: a.sex ?? '',
     sizeClass: a.sizeClass ?? '',
     notes: a.notes ?? '',
@@ -332,34 +388,52 @@ async function loadSettingsForTab() {
 
 async function saveLocation() {
   if (!selectedOrgId.value || !formLocation.title || !formLocation.city) return
+  locationGeocodeError.value = false
+  const body = {
+    title: formLocation.title,
+    countryCode: formLocation.countryCode,
+    city: formLocation.city,
+    address: formLocation.address || undefined,
+    postalCode: formLocation.postalCode || undefined,
+    ...(formLocation.lat && formLocation.lng ? { lat: formLocation.lat, lng: formLocation.lng } : {}),
+  }
   try {
     if (editingId.value) {
       await $fetch(`/api/org/dashboard/locations/${editingId.value}`, {
         method: 'PATCH',
-        body: formLocation,
+        body,
       })
     } else {
       await $fetch('/api/org/dashboard/locations', {
         method: 'POST',
-        body: { organizationId: selectedOrgId.value, ...formLocation },
+        body: { organizationId: selectedOrgId.value, ...body },
       })
     }
     message.value = ''
+    locationGeocodeError.value = false
     showModal.value = false
     await load()
-  } catch {
-    message.value = t('orgDashboard.errorSave')
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    const msg = err?.data?.message ?? ''
+    if (msg.includes('geocode') || msg.includes('Could not geocode')) {
+      locationGeocodeError.value = true
+      message.value = t('orgDashboard.geocodeError')
+    } else {
+      message.value = t('orgDashboard.errorSave')
+    }
   }
 }
 
 async function saveAnimal() {
-  if (!selectedOrgId.value || !formAnimal.name || !formAnimal.species) return
+  const effectiveSpecies = formAnimal.species === 'other' ? (formAnimal.speciesOtherText?.trim() || 'other') : formAnimal.species
+  if (!selectedOrgId.value || !formAnimal.name || !effectiveSpecies) return
   try {
     if (editingId.value) {
       if (animalImageFile.value) {
         const body = new FormData()
         body.append('name', formAnimal.name)
-        body.append('species', formAnimal.species)
+        body.append('species', effectiveSpecies)
         body.append('sex', formAnimal.sex)
         body.append('sizeClass', formAnimal.sizeClass)
         body.append('notes', formAnimal.notes)
@@ -373,7 +447,7 @@ async function saveAnimal() {
           method: 'PATCH',
           body: {
             name: formAnimal.name,
-            species: formAnimal.species,
+            species: effectiveSpecies,
             sex: formAnimal.sex || null,
             sizeClass: formAnimal.sizeClass || null,
             notes: formAnimal.notes || null,
@@ -385,7 +459,7 @@ async function saveAnimal() {
         const body = new FormData()
         body.append('organizationId', selectedOrgId.value)
         body.append('name', formAnimal.name)
-        body.append('species', formAnimal.species)
+        body.append('species', effectiveSpecies)
         body.append('sex', formAnimal.sex)
         body.append('sizeClass', formAnimal.sizeClass)
         body.append('notes', formAnimal.notes)
@@ -397,7 +471,7 @@ async function saveAnimal() {
       } else {
         await $fetch('/api/org/dashboard/animals', {
           method: 'POST',
-          body: { organizationId: selectedOrgId.value, ...formAnimal },
+          body: { organizationId: selectedOrgId.value, ...formAnimal, species: effectiveSpecies },
         })
       }
     }
@@ -488,6 +562,29 @@ async function deleteRequest(id: string) {
   }
 }
 
+async function openRatePatron(r: Request) {
+  const app = r.applications?.[0]
+  if (!app || r.status !== 'COMPLETED') return
+  try {
+    const res = await $fetch<{ canRatePatron: boolean; patronId: string | null; patronName: string }>('/api/reviews/check', { query: { requestId: r.id } })
+    if (res.canRatePatron && res.patronId) {
+      reviewModalRequest.value = { requestId: r.id, patronId: res.patronId, patronName: res.patronName || app.user.displayName }
+    } else {
+      message.value = t('review.alreadyRated')
+    }
+  } catch {
+    message.value = t('review.checkError')
+  }
+}
+
+function closeReviewModal() {
+  reviewModalRequest.value = null
+}
+
+async function onReviewSubmitted() {
+  await load()
+}
+
 async function copyRequestLink(r: Request) {
   if (import.meta.client && typeof navigator !== 'undefined' && navigator.clipboard) {
     const origin = window.location.origin
@@ -525,11 +622,11 @@ function startInboxPolling() {
   if (inboxPollingInterval.value) return
   
   inboxPollingInterval.value = setInterval(async () => {
-    // Only poll if page is visible and inbox tab is active
+    // Only poll if page is visible and inbox tab is active – silent: no loading indicator, no flicker
     if (isPageVisible.value && activeTab.value === 'inbox') {
-      await loadInbox()
+      await loadInbox({ silent: true })
     }
-  }, 5000) // Poll every 5 seconds
+  }, 30000) // Poll every 30 seconds – new applications appear without full page reload
 }
 
 function stopInboxPolling() {
@@ -547,10 +644,84 @@ function handleVisibilityChange() {
   }
 }
 
+async function loadOrgReviews() {
+  if (!selectedOrgId.value) return
+  orgReviewsLoading.value = true
+  try {
+    const res = await $fetch<{ reviews: OrgReview[] }>('/api/org/dashboard/reviews', {
+      query: { organizationId: selectedOrgId.value },
+    })
+    orgReviews.value = res.reviews
+  } catch {
+    orgReviews.value = []
+  } finally {
+    orgReviewsLoading.value = false
+  }
+}
+
+function openEditReview(r: OrgReview) {
+  editingReviewId.value = r.id
+  orgResponseDraft.value = r.orgResponse ?? ''
+}
+
+function cancelEditReview() {
+  editingReviewId.value = null
+  orgResponseDraft.value = ''
+}
+
+async function saveOrgResponse() {
+  if (!editingReviewId.value) return
+  try {
+    await $fetch(`/api/org/dashboard/reviews/${editingReviewId.value}`, {
+      method: 'PATCH',
+      body: { orgResponse: orgResponseDraft.value.trim() },
+    })
+    const idx = orgReviews.value.findIndex((r) => r.id === editingReviewId.value)
+    if (idx !== -1) {
+      orgReviews.value[idx].orgResponse = orgResponseDraft.value.trim()
+      orgReviews.value[idx].orgResponseAt = new Date().toISOString()
+    }
+    editingReviewId.value = null
+    orgResponseDraft.value = ''
+    await load()
+  } catch {
+    message.value = t('orgDashboard.reviews.responseError')
+  }
+}
+
+function openReportReview(r: OrgReview) {
+  reportingReviewId.value = r.id
+  reportReason.value = ''
+}
+
+function cancelReportReview() {
+  reportingReviewId.value = null
+  reportReason.value = ''
+}
+
+async function submitReportReview() {
+  if (!reportingReviewId.value || !selectedOrgId.value) return
+  try {
+    await $fetch(`/api/reviews/${reportingReviewId.value}/report`, {
+      method: 'POST',
+      body: { organizationId: selectedOrgId.value, reason: reportReason.value.trim() || null },
+    })
+    message.value = t('orgDashboard.reviews.reportSuccess')
+    reportingReviewId.value = null
+    reportReason.value = ''
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    message.value = err?.data?.message ?? t('orgDashboard.reviews.reportError')
+  }
+}
+
 watch(activeTab, (tab) => {
   if (tab === 'inbox') {
     loadInbox()
     startInboxPolling()
+  } else if (tab === 'reviews') {
+    loadOrgReviews()
+    stopInboxPolling()
   } else {
     stopInboxPolling()
   }
@@ -599,6 +770,50 @@ onUnmounted(() => {
       <h1 class="text-xl font-semibold text-slate-900 tracking-tight">{{ t('nav.dashboard') }}</h1>
       <p class="text-slate-500 text-sm mt-1">{{ t('orgDashboard.manageTitle') }}</p>
     </div>
+
+    <!-- Hero + KPI (nur bei genehmigten Org) -->
+    <div
+      v-if="!loading && orgs.length > 0 && selectedOrg?.status !== 'PENDING' && allowedTabs.length > 0"
+      class="mb-8 rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-6 sm:p-8 shadow-sm"
+    >
+      <div class="flex items-start gap-4">
+        <span class="text-4xl sm:text-5xl" aria-hidden="true">🐾</span>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{{ t('orgDashboard.heroTitle') }}</h2>
+          <p class="mt-2 text-slate-600 text-sm sm:text-base leading-relaxed">{{ t('orgDashboard.heroSubtext') }}</p>
+          <div class="mt-6 flex flex-wrap gap-4">
+            <div class="flex items-center gap-3 rounded-xl bg-white/80 border border-slate-200 px-4 py-3 shadow-sm">
+              <span class="text-2xl">📍</span>
+              <div>
+                <p class="text-2xl font-bold text-slate-900">{{ kpiLocations }}</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">{{ t('orgDashboard.kpiLocations') }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 rounded-xl bg-white/80 border border-slate-200 px-4 py-3 shadow-sm">
+              <span class="text-2xl">🐕</span>
+              <div>
+                <p class="text-2xl font-bold text-slate-900">{{ kpiAnimals }}</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">{{ t('orgDashboard.kpiAnimals') }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 rounded-xl bg-white/80 border border-slate-200 px-4 py-3 shadow-sm">
+              <span class="text-2xl">✈️</span>
+              <div>
+                <p class="text-2xl font-bold text-slate-900">{{ kpiActiveTransports }}</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">{{ t('orgDashboard.kpiActiveTransports') }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 rounded-xl bg-white/80 border border-slate-200 px-4 py-3 shadow-sm">
+              <span class="text-2xl">⭐</span>
+              <div>
+                <p class="text-2xl font-bold text-slate-900">{{ kpiReviews }}</p>
+                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">{{ t('orgDashboard.kpiReviews') }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div v-if="message" class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
       {{ message }}
     </div>
@@ -644,7 +859,7 @@ onUnmounted(() => {
           :class="['px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap min-h-[44px]', activeTab === tab ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200']"
           @click="activeTab = tab"
         >
-          {{ tab === 'locations' ? t('orgDashboard.tabLocations') : tab === 'animals' ? t('orgDashboard.tabAnimals') : tab === 'requests' ? t('orgDashboard.tabRequests') : tab === 'inbox' ? t('orgDashboard.tabInbox') : t('orgDashboard.tabSettings') }}
+          {{ tab === 'locations' ? t('orgDashboard.tabLocations') : tab === 'animals' ? t('orgDashboard.tabAnimals') : tab === 'requests' ? t('orgDashboard.tabRequests') : tab === 'inbox' ? t('orgDashboard.tabInbox') : tab === 'reviews' ? t('orgDashboard.tabReviews') : t('orgDashboard.tabSettings') }}
         </button>
       </div>
 
@@ -659,74 +874,93 @@ onUnmounted(() => {
       <template v-else>
       <!-- Locations -->
       <div v-if="activeTab === 'locations'" class="space-y-4">
-        <div class="flex justify-between items-center">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">{{ t('orgDashboard.tabLocations') }}</h2>
-          <button type="button" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors" @click="openCreate('location')">
-            {{ t('orgDashboard.addLocation') }}
-          </button>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+            <h2 class="text-base font-semibold text-slate-900">{{ t('orgDashboard.tabLocations') }}</h2>
+            <button type="button" class="px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors min-h-[44px]" @click="openCreate('location')">
+              {{ t('orgDashboard.addLocation') }}
+            </button>
+          </div>
+          <ul v-if="sortedLocations.length" class="space-y-2">
+            <li v-for="loc in sortedLocations" :key="loc.id" class="p-4 rounded-lg bg-slate-50/80 border border-slate-100 flex justify-between items-center gap-3">
+              <span class="text-sm text-slate-900">{{ loc.title }} – {{ loc.city }}{{ loc.address ? ', ' + loc.address : '' }}</span>
+              <div class="flex gap-2 shrink-0">
+                <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors" @click="openEditLocation(loc)">{{ t('orgDashboard.edit') }}</button>
+                <button type="button" class="px-3 py-1.5 rounded-lg border border-red-200 text-red-700 text-sm font-medium hover:bg-red-50 transition-colors" @click="deleteLocation(loc.id)">{{ t('orgDashboard.delete') }}</button>
+              </div>
+            </li>
+          </ul>
+          <div v-else class="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <span class="text-5xl mb-3" aria-hidden="true">📍</span>
+            <h3 class="text-base font-semibold text-slate-900">{{ t('orgDashboard.emptyLocationsTitle') }}</h3>
+            <p class="mt-1 text-sm text-slate-500 max-w-sm">{{ t('orgDashboard.emptyLocationsText') }}</p>
+            <button type="button" class="mt-4 px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors" @click="openCreate('location')">
+              {{ t('orgDashboard.addFirstLocation') }}
+            </button>
+          </div>
         </div>
-        <ul v-if="sortedLocations.length" class="space-y-2">
-          <li v-for="loc in sortedLocations" :key="loc.id" class="p-3 rounded-lg bg-white border border-slate-200 flex justify-between items-center">
-            <span class="text-sm text-slate-900">{{ loc.title }} – {{ loc.city }}</span>
-            <div class="flex gap-3 shrink-0">
-              <button type="button" class="text-slate-600 hover:text-slate-900 text-sm font-medium" @click="openEditLocation(loc)">{{ t('orgDashboard.edit') }}</button>
-              <button type="button" class="text-red-600 hover:text-red-700 text-sm font-medium" @click="deleteLocation(loc.id)">{{ t('orgDashboard.delete') }}</button>
-            </div>
-          </li>
-        </ul>
-        <p v-else class="text-sm text-slate-500 py-4">{{ t('orgDashboard.noLocations') }}</p>
       </div>
 
       <!-- Animals -->
       <div v-if="activeTab === 'animals'" class="space-y-4">
-        <div class="flex justify-between items-center">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">{{ t('orgDashboard.tabAnimals') }}</h2>
-          <button type="button" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors" @click="openCreate('animal')">
-            {{ t('orgDashboard.addAnimal') }}
-          </button>
-        </div>
-        <ul v-if="sortedAnimals.length" class="space-y-2">
-          <li v-for="a in sortedAnimals" :key="a.id" class="p-3 rounded-lg bg-white border border-slate-200 flex justify-between items-center gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-                <img v-if="a.imageUrl" :src="a.imageUrl" :alt="a.name" class="w-full h-full object-cover" @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')" />
-                <div v-else class="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium uppercase">{{ a.species === 'dog' ? t('orgDashboard.speciesDog') : t('orgDashboard.speciesCat') }}</div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+            <h2 class="text-base font-semibold text-slate-900">{{ t('orgDashboard.tabAnimals') }}</h2>
+            <button type="button" class="px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors min-h-[44px]" @click="openCreate('animal')">
+              {{ t('orgDashboard.addAnimal') }}
+            </button>
+          </div>
+          <ul v-if="sortedAnimals.length" class="space-y-2">
+            <li v-for="a in sortedAnimals" :key="a.id" class="p-4 rounded-lg bg-slate-50/80 border border-slate-100 flex justify-between items-center gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                  <img v-if="a.imageUrl" :src="a.imageUrl" :alt="a.name" class="w-full h-full object-cover" @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')" />
+                  <div v-else class="w-full h-full flex items-center justify-center text-slate-400 text-lg">🐾</div>
+                </div>
+                <span class="text-sm text-slate-900">{{ a.name }} ({{ getSpeciesLabel(a.species) }})</span>
               </div>
-              <span class="text-sm text-slate-900">{{ a.name }} ({{ a.species === 'dog' ? t('orgDashboard.speciesDog') : t('orgDashboard.speciesCat') }})</span>
-            </div>
-            <div class="flex gap-3 shrink-0">
-              <button type="button" class="text-slate-600 hover:text-slate-900 text-sm font-medium" @click="openEditAnimal(a)">{{ t('orgDashboard.edit') }}</button>
-              <button type="button" class="text-red-600 hover:text-red-700 text-sm font-medium" @click="deleteAnimal(a.id)">{{ t('orgDashboard.delete') }}</button>
-            </div>
-          </li>
-        </ul>
-        <p v-else class="text-sm text-slate-500 py-4">{{ t('orgDashboard.noAnimals') }}</p>
+              <div class="flex gap-2 shrink-0">
+                <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors" @click="openEditAnimal(a)">{{ t('orgDashboard.edit') }}</button>
+                <button type="button" class="px-3 py-1.5 rounded-lg border border-red-200 text-red-700 text-sm font-medium hover:bg-red-50 transition-colors" @click="deleteAnimal(a.id)">{{ t('orgDashboard.delete') }}</button>
+              </div>
+            </li>
+          </ul>
+          <div v-else class="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <span class="text-5xl mb-3" aria-hidden="true">🐕</span>
+            <h3 class="text-base font-semibold text-slate-900">{{ t('orgDashboard.emptyAnimalsTitle') }}</h3>
+            <p class="mt-1 text-sm text-slate-500 max-w-sm">{{ t('orgDashboard.emptyAnimalsText') }}</p>
+            <button type="button" class="mt-4 px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors" @click="openCreate('animal')">
+              {{ t('orgDashboard.addFirstAnimal') }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Requests -->
       <div v-if="activeTab === 'requests'" class="space-y-4">
-        <div class="flex justify-between items-center flex-wrap gap-2">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">{{ t('orgDashboard.tabRequests') }}</h2>
-          <div class="flex gap-2 items-center">
-            <select v-model="sortBy" class="border border-slate-300 rounded-lg px-2 py-1.5 text-sm text-slate-700 bg-white">
-              <option value="title">{{ t('orgDashboard.sortTitle') }}</option>
-              <option value="date">{{ t('orgDashboard.sortDate') }}</option>
-            </select>
-            <button type="button" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors" @click="openCreate('request')">
-              {{ t('orgDashboard.createRequest') }}
-            </button>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+          <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+            <h2 class="text-base font-semibold text-slate-900">{{ t('orgDashboard.tabRequests') }}</h2>
+            <div class="flex gap-2 items-center flex-wrap">
+              <select v-model="sortBy" class="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white min-h-[44px]">
+                <option value="title">{{ t('orgDashboard.sortTitle') }}</option>
+                <option value="date">{{ t('orgDashboard.sortDate') }}</option>
+              </select>
+              <button type="button" class="px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors min-h-[44px]" @click="openCreate('request')">
+                {{ t('orgDashboard.createRequest') }}
+              </button>
+            </div>
           </div>
-        </div>
-        <div v-if="sortedRequests.length" class="space-y-2">
+          <div v-if="sortedRequests.length" class="space-y-3">
           <div
             v-for="r in sortedRequests"
             :key="r.id"
-            class="p-4 rounded-lg bg-white border border-slate-200"
+            class="p-4 rounded-lg bg-slate-50/80 border border-slate-100"
           >
             <div class="flex justify-between items-start gap-4">
               <div class="min-w-0">
                 <h3 class="font-medium text-slate-900 text-sm">{{ r.title }}</h3>
-                <p v-if="r.animal" class="text-sm text-slate-500 mt-0.5">{{ t('orgDashboard.animalLabel') }}: {{ r.animal.name }} ({{ r.animal.species === 'dog' ? t('orgDashboard.speciesDog') : t('orgDashboard.speciesCat') }})</p>
+                <p v-if="r.animal" class="text-sm text-slate-500 mt-0.5">{{ t('orgDashboard.animalLabel') }}: {{ r.animal.name }} ({{ getSpeciesLabel(r.animal.species) }})</p>
                 <p class="text-sm text-slate-500 mt-0.5">{{ r.originAirport }} → {{ r.destAirport }}</p>
                 <p class="text-xs text-slate-400 mt-1">
                   {{ new Date(r.earliestDate).toLocaleDateString(locale) }} – {{ new Date(r.latestDate).toLocaleDateString(locale) }}
@@ -748,16 +982,74 @@ onUnmounted(() => {
                   <span v-if="copiedRequestId === r.id" class="text-emerald-600">{{ t('orgDashboard.linkCopied') }}</span>
                   <span v-else>{{ t('orgDashboard.copyLink') }}</span>
                 </button>
+                <button v-if="r.status === 'COMPLETED' && r.applications?.[0]" type="button" class="text-amber-600 hover:text-amber-700 text-sm font-medium" @click="openRatePatron(r)">{{ t('review.ratePatron') }}</button>
                 <button type="button" class="text-slate-600 hover:text-slate-900 text-sm font-medium" @click="openEditRequest(r)">{{ t('orgDashboard.edit') }}</button>
                 <button type="button" class="text-red-600 hover:text-red-700 text-sm font-medium" @click="deleteRequest(r.id)">{{ t('orgDashboard.delete') }}</button>
               </div>
             </div>
           </div>
+          </div>
+          <div v-else class="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <span class="text-5xl mb-3" aria-hidden="true">✈️</span>
+            <h3 class="text-base font-semibold text-slate-900">{{ t('orgDashboard.emptyRequestsTitle') }}</h3>
+            <p class="mt-1 text-sm text-slate-500 max-w-sm">{{ t('orgDashboard.emptyRequestsText') }}</p>
+            <button type="button" class="mt-4 px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors" @click="openCreate('request')">
+              {{ t('orgDashboard.createFirstRequest') }}
+            </button>
+          </div>
         </div>
-        <p v-else class="text-sm text-slate-500 py-4">{{ t('orgDashboard.noRequests') }}</p>
       </div>
 
-      <!-- Anfragen / Inbox -->
+      <!-- Bewertungen -->
+      <div v-if="activeTab === 'reviews'" class="space-y-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">{{ t('orgDashboard.tabReviews') }}</h2>
+        <p v-if="orgReviewsLoading" class="text-sm text-slate-500 py-4">{{ t('orgDashboard.reviews.loading') }}</p>
+        <p v-else-if="!orgReviews.length" class="text-sm text-slate-500 py-4">{{ t('orgDashboard.reviews.empty') }}</p>
+        <div v-else class="space-y-4">
+          <div
+            v-for="r in orgReviews"
+            :key="r.id"
+            class="p-4 rounded-xl bg-white border border-slate-200"
+          >
+            <div class="flex justify-between items-start gap-4">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-amber-500" v-for="i in 5" :key="i">{{ i <= r.rating ? '★' : '☆' }}</span>
+                  <span class="text-sm text-slate-600">{{ r.reviewerName }}</span>
+                  <span class="text-xs text-slate-400">· {{ r.requestTitle }}</span>
+                </div>
+                <p v-if="r.comment" class="mt-2 text-sm text-slate-700">{{ r.comment }}</p>
+                <p class="text-xs text-slate-400 mt-1">{{ new Date(r.createdAt).toLocaleDateString(locale) }}</p>
+              </div>
+              <div class="flex gap-2 shrink-0">
+                <button v-if="editingReviewId !== r.id" type="button" class="text-amber-600 hover:text-amber-700 text-sm font-medium" @click="openEditReview(r)">
+                  {{ r.orgResponse ? t('orgDashboard.reviews.editResponse') : t('orgDashboard.reviews.respond') }}
+                </button>
+                <button v-if="editingReviewId !== r.id" type="button" class="text-red-600 hover:text-red-700 text-sm font-medium" @click="openReportReview(r)">
+                  {{ t('orgDashboard.reviews.report') }}
+                </button>
+              </div>
+            </div>
+            <div v-if="r.orgResponse" class="mt-3 pl-4 border-l-2 border-amber-200">
+              <p class="text-sm text-slate-600">{{ r.orgResponse }}</p>
+              <p class="text-xs text-slate-400 mt-1">{{ t('orgDashboard.reviews.orgResponse') }} · {{ r.orgResponseAt ? new Date(r.orgResponseAt).toLocaleDateString(locale) : '' }}</p>
+            </div>
+            <div v-if="editingReviewId === r.id" class="mt-4">
+              <textarea v-model="orgResponseDraft" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" :placeholder="t('orgDashboard.reviews.responsePlaceholder')" />
+              <div class="flex gap-2 mt-2">
+                <button type="button" class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600" @click="saveOrgResponse">
+                  {{ t('orgDashboard.save') }}
+                </button>
+                <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-sm hover:bg-slate-50" @click="cancelEditReview">
+                  {{ t('orgDashboard.cancel') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bewerbungen / Inbox -->
       <div v-if="activeTab === 'inbox'" class="space-y-4">
         <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">{{ t('orgDashboard.inboxChat') }}</h2>
         <p v-if="inboxLoading" class="text-sm text-slate-500 py-4">{{ t('orgDashboard.inboxLoading') }}</p>
@@ -836,45 +1128,43 @@ onUnmounted(() => {
           </h3>
 
           <form v-if="modalMode === 'location'" class="space-y-4" @submit.prevent="saveLocation">
+            <p class="text-xs text-slate-500">{{ t('orgDashboard.locationAddressHint') }}</p>
+            <div v-if="locationGeocodeError" class="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+              {{ t('orgDashboard.geocodeError') }}
+            </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.requestTitle') }}</label>
-              <input v-model="formLocation.title" type="text" required class="border rounded px-3 py-2 w-full" />
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.requestTitle') }}</label>
+              <input v-model="formLocation.title" type="text" required :placeholder="t('orgDashboard.locationNamePlaceholder')" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.street') }}</label>
+              <input v-model="formLocation.address" type="text" :placeholder="t('orgDashboard.streetPlaceholder')" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" />
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.city') }}</label>
-                <input v-model="formLocation.city" type="text" required class="border rounded px-3 py-2 w-full" />
+                <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.postalCode') }}</label>
+                <input v-model="formLocation.postalCode" type="text" :placeholder="t('orgDashboard.postalCodePlaceholder')" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" />
               </div>
               <div>
-                <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.countryCode') }}</label>
-                <input v-model="formLocation.countryCode" type="text" maxlength="2" class="border rounded px-3 py-2 w-full" />
+                <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.city') }}</label>
+                <input v-model="formLocation.city" type="text" required class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" />
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.address') }}</label>
-              <input v-model="formLocation.address" type="text" class="border rounded px-3 py-2 w-full" />
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium mb-1">Lat</label>
-                <input v-model.number="formLocation.lat" type="number" step="any" class="border rounded px-3 py-2 w-full" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Lng</label>
-                <input v-model.number="formLocation.lng" type="number" step="any" class="border rounded px-3 py-2 w-full" />
-              </div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.countryCode') }}</label>
+              <input v-model="formLocation.countryCode" type="text" maxlength="2" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" />
             </div>
             <div class="flex gap-2 pt-2">
-              <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium">{{ t('orgDashboard.save') }}</button>
-              <button type="button" class="px-4 py-2 rounded-lg bg-slate-200" @click="showModal = false">{{ t('orgDashboard.cancel') }}</button>
+              <button type="submit" class="px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors">{{ t('orgDashboard.save') }}</button>
+              <button type="button" class="px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 transition-colors" @click="showModal = false">{{ t('orgDashboard.cancel') }}</button>
             </div>
           </form>
 
           <form v-if="modalMode === 'animal'" class="space-y-4" @submit.prevent="saveAnimal">
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.image') }}</label>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.image') }}</label>
               <div class="flex items-start gap-4">
-                <div class="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+                <div class="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
                   <img
                     v-if="animalImagePreviewUrl"
                     :src="animalImagePreviewUrl"
@@ -893,7 +1183,7 @@ onUnmounted(() => {
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
-                    class="border rounded px-3 py-2 w-full text-sm"
+                    class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm"
                     @change="onAnimalImageChange"
                   />
                   <p class="text-xs text-slate-500 mt-1">{{ t('orgDashboard.imageHint') }}</p>
@@ -901,23 +1191,39 @@ onUnmounted(() => {
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.name') }}</label>
-              <input v-model="formAnimal.name" type="text" required class="border rounded px-3 py-2 w-full" />
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.name') }}</label>
+              <input v-model="formAnimal.name" type="text" required class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.species') }}</label>
-              <select v-model="formAnimal.species" class="border rounded px-3 py-2 w-full">
-                <option value="cat">{{ t('orgDashboard.speciesCat') }}</option>
-                <option value="dog">{{ t('orgDashboard.speciesDog') }}</option>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.species') }}</label>
+              <select v-model="formAnimal.species" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm">
+                <option v-for="opt in speciesOptions" :key="opt.value" :value="opt.value">{{ t(opt.labelKey) }}</option>
+              </select>
+              <input
+                v-if="formAnimal.species === 'other'"
+                v-model="formAnimal.speciesOtherText"
+                type="text"
+                :placeholder="t('orgDashboard.speciesOtherPlaceholder')"
+                class="mt-2 border border-slate-300 rounded-lg px-3 py-2 w-full text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.size') }}</label>
+              <select v-model="formAnimal.sizeClass" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm">
+                <option value="">– {{ t('orgDashboard.noAnimal') }} –</option>
+                <option value="S">{{ t('orgDashboard.sizeS') }}</option>
+                <option value="M">{{ t('orgDashboard.sizeM') }}</option>
+                <option value="L">{{ t('orgDashboard.sizeL') }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.notes') }}</label>
-              <textarea v-model="formAnimal.notes" class="border rounded px-3 py-2 w-full" rows="2" />
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.specialNeeds') }}</label>
+              <textarea v-model="formAnimal.notes" :placeholder="t('orgDashboard.specialNeedsPlaceholder')" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" rows="2" />
             </div>
             <div class="flex gap-2 pt-2">
-              <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium">{{ t('orgDashboard.save') }}</button>
-              <button type="button" class="px-4 py-2 rounded-lg bg-slate-200" @click="showModal = false">{{ t('orgDashboard.cancel') }}</button>
+              <button type="submit" class="px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors">{{ t('orgDashboard.save') }}</button>
+              <button type="button" class="px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 transition-colors" @click="showModal = false">{{ t('orgDashboard.cancel') }}</button>
             </div>
           </form>
 
@@ -931,10 +1237,10 @@ onUnmounted(() => {
               <textarea v-model="formRequest.details" class="border rounded px-3 py-2 w-full" rows="2" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.assignAnimal') }}</label>
-              <select v-model="formRequest.animalId" class="border rounded px-3 py-2 w-full">
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.assignAnimal') }}</label>
+              <select v-model="formRequest.animalId" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm">
                 <option value="">– {{ t('orgDashboard.noAnimal') }} –</option>
-                <option v-for="a in selectedOrg?.animals" :key="a.id" :value="a.id">{{ a.name }} ({{ a.species === 'dog' ? t('orgDashboard.speciesDog') : t('orgDashboard.speciesCat') }})</option>
+                <option v-for="a in selectedOrg?.animals" :key="a.id" :value="a.id">{{ a.name }} ({{ getSpeciesLabel(a.species) }})</option>
               </select>
             </div>
             <div v-if="editingId" class="grid grid-cols-1 gap-4">
@@ -954,30 +1260,22 @@ onUnmounted(() => {
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.originAirport') }}</label>
-              <select v-model="formRequest.originAirport" required class="border rounded px-3 py-2 w-full">
-                <optgroup v-for="reg in airportRegions" :key="reg.id" :label="reg.label">
-                  <option v-for="aid in reg.airportIds" :key="'o-' + aid" :value="airports.find(a => a.id === aid)?.code ?? aid">
-                    {{ airports.find(a => a.id === aid)?.name ?? aid }} ({{ airports.find(a => a.id === aid)?.code ?? aid }})
-                  </option>
-                </optgroup>
-                <optgroup :label="t('orgDashboard.moreAirports')">
-                  <option v-for="a in airports" :key="'o-' + a.id" :value="a.code">{{ a.name }} ({{ a.code }})</option>
-                </optgroup>
-              </select>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.originAirport') }}</label>
+              <AirportAutocomplete
+                :model-value="formRequest.originAirport"
+                :placeholder="t('map.filterOriginPlaceholder', 'Abflughafen suchen…')"
+                @update:model-value="(v) => { formRequest.originAirport = v; if (!v) { formRequest.originLat = null; formRequest.originLng = null } }"
+                @select="(a) => { formRequest.originLat = a.lat; formRequest.originLng = a.lon }"
+              />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">{{ t('orgDashboard.destAirport') }}</label>
-              <select v-model="formRequest.destAirport" required class="border rounded px-3 py-2 w-full">
-                <optgroup v-for="reg in airportRegions" :key="reg.id" :label="reg.label">
-                  <option v-for="aid in reg.airportIds" :key="'d-' + aid" :value="airports.find(a => a.id === aid)?.code ?? aid">
-                    {{ airports.find(a => a.id === aid)?.name ?? aid }} ({{ airports.find(a => a.id === aid)?.code ?? aid }})
-                  </option>
-                </optgroup>
-                <optgroup :label="t('orgDashboard.moreAirports')">
-                  <option v-for="a in airports" :key="'d-' + a.id" :value="a.code">{{ a.name }} ({{ a.code }})</option>
-                </optgroup>
-              </select>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.destAirport') }}</label>
+              <AirportAutocomplete
+                :model-value="formRequest.destAirport"
+                :placeholder="t('map.filterDestPlaceholder', 'Zielflughafen suchen…')"
+                @update:model-value="(v) => { formRequest.destAirport = v; if (!v) { formRequest.destLat = null; formRequest.destLng = null } }"
+                @select="(a) => { formRequest.destLat = a.lat; formRequest.destLng = a.lon }"
+              />
             </div>
             <div class="flex gap-2 pt-2">
               <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium">{{ t('orgDashboard.save') }}</button>
@@ -988,5 +1286,32 @@ onUnmounted(() => {
         </div>
       </div>
     </Teleport>
+
+    <Teleport to="body">
+      <div v-if="reportingReviewId" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="cancelReportReview">
+        <div class="w-full max-w-md rounded-xl bg-white shadow-xl p-6">
+          <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ t('orgDashboard.reviews.reportTitle') }}</h3>
+          <textarea v-model="reportReason" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mb-4" :placeholder="t('orgDashboard.reviews.reportPlaceholder')" />
+          <div class="flex gap-2">
+            <button type="button" class="px-4 py-2 rounded-lg bg-red-600 text-white font-medium text-sm hover:bg-red-500" @click="submitReportReview">
+              {{ t('orgDashboard.reviews.reportSubmit') }}
+            </button>
+            <button type="button" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm hover:bg-slate-50" @click="cancelReportReview">
+              {{ t('orgDashboard.cancel') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <ReviewModal
+      v-if="reviewModalRequest"
+      :show="!!reviewModalRequest"
+      :title="t('review.ratePatronTitle', { name: reviewModalRequest.patronName })"
+      :request-id="reviewModalRequest.requestId"
+      :reviewee-user-id="reviewModalRequest.patronId"
+      @close="closeReviewModal"
+      @submitted="onReviewSubmitted"
+    />
   </div>
 </template>

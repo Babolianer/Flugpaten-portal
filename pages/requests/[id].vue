@@ -39,12 +39,19 @@ interface Request {
     contactPhone?: string | null
     contactInstagram?: string | null
     contactFacebook?: string | null
+    reviews?: Array<{ id: string; rating: number; comment: string | null; reviewerName: string; route: string | null }>
+    reviewsCount?: number
+    averageRating?: number | null
   }
   animal?: { name: string; species: string } | null
 }
 
-const { data, error, refresh: refreshRequest } = await useFetch<{ request: Request }>(`/api/requests/${id}`)
+const { data, error, refresh: refreshRequest } = await useFetch<{
+  request: Request
+  participantInfo?: { isCompletedParticipant: boolean; canRateOrg: boolean; orgId: string; orgName: string } | null
+}>(`/api/requests/${id}`)
 const request = computed(() => data.value?.request)
+const participantInfo = computed(() => data.value?.participantInfo ?? null)
 
 const hasRouteCoords = computed(
   () =>
@@ -147,7 +154,13 @@ const { data: applicationsData, execute: fetchApplications } = useFetch<{
     applicationData: Record<string, unknown> | null
     attachmentPath: string | null
     createdAt: string
-    user: { id: string; displayName: string; email: string } | null
+    user: {
+      id: string
+      displayName: string
+      email: string
+      profile?: { avatarUrl: string | null; city: string | null; countryCode: string | null; aboutMe: string | null; languages: string[]; frequentAirports: string[] } | null
+      stats?: { averageRating: number | null; reviewsCount: number; completedFlightsCount: number }
+    } | null
   }[]
 }>(`/api/requests/${id}/applications`, { immediate: false })
 watch([isOrg, request], ([org, req]) => {
@@ -190,6 +203,14 @@ const APPLICATION_FIELD_LABELS = computed(() => ({
   telefon: t('request.telefon'),
   handy: t('request.handy'),
 }))
+
+const reviewOrgModal = ref<{ requestId: string; orgId: string; orgName: string } | null>(null)
+function openRateOrg() {
+  if (participantInfo.value?.canRateOrg && request.value?.organization)
+    reviewOrgModal.value = { requestId: id, orgId: participantInfo.value.orgId, orgName: participantInfo.value.orgName }
+}
+function closeReviewOrgModal() { reviewOrgModal.value = null }
+async function onReviewOrgSubmitted() { await refreshRequest() }
 
 if (error.value) throw createError({ statusCode: 404, message: 'Request not found' })
 </script>
@@ -288,14 +309,60 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
                 :key="app.id"
                 class="p-6 md:p-8 space-y-5"
               >
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p class="font-semibold text-slate-900 text-lg">{{ app.user?.displayName ?? t('request.unknown') }}</p>
+                <!-- Bewerber-Profilkarte mit Avatar, Bewertung, abgeschlossene Flüge -->
+                <div class="flex flex-wrap items-start gap-4">
+                  <NuxtLink
+                    v-if="app.user?.id"
+                    :to="`/user/${app.user.id}`"
+                    class="shrink-0 block"
+                  >
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-slate-200 border-2 border-slate-200 hover:border-amber-400 transition-colors">
+                      <img
+                        v-if="app.user?.profile?.avatarUrl"
+                        :src="app.user.profile.avatarUrl"
+                        :alt="app.user.displayName"
+                        class="w-full h-full object-cover"
+                      />
+                      <div v-else class="w-full h-full flex items-center justify-center text-2xl text-slate-500 font-bold">
+                        {{ app.user.displayName?.charAt(0).toUpperCase() ?? '?' }}
+                      </div>
+                    </div>
+                  </NuxtLink>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <NuxtLink
+                        v-if="app.user?.id"
+                        :to="`/user/${app.user.id}`"
+                        class="font-semibold text-slate-900 text-lg hover:text-amber-600"
+                      >
+                        {{ app.user.displayName ?? t('request.unknown') }}
+                      </NuxtLink>
+                      <span v-else class="font-semibold text-slate-900 text-lg">{{ t('request.unknown') }}</span>
+                      <span class="text-sm text-slate-500">
+                        {{ new Date(app.createdAt).toLocaleString('de-DE') }}
+                      </span>
+                    </div>
                     <p v-if="app.user?.email" class="text-sm text-slate-600">{{ app.user.email }}</p>
+                    <div v-if="app.user?.stats" class="flex flex-wrap gap-3 mt-2">
+                      <span
+                        v-if="app.user.stats.averageRating != null"
+                        class="inline-flex items-center gap-1 text-amber-600 text-sm font-medium"
+                      >
+                        {{ '★'.repeat(Math.round(app.user.stats.averageRating)) }}{{ '☆'.repeat(5 - Math.round(app.user.stats.averageRating)) }}
+                        {{ app.user.stats.averageRating.toFixed(1) }} ({{ app.user.stats.reviewsCount }} {{ t('profile.reviews') }})
+                      </span>
+                      <span class="text-slate-600 text-sm">
+                        {{ app.user.stats.completedFlightsCount }} {{ t('profile.completedFlights') }}
+                      </span>
+                    </div>
+                    <NuxtLink
+                      v-if="app.user?.id"
+                      :to="`/user/${app.user.id}`"
+                      class="inline-block mt-2 text-sm text-amber-600 hover:text-amber-700 font-medium"
+                    >
+                      {{ t('profile.viewFullProfile') }} →
+                    </NuxtLink>
                   </div>
-                  <span class="text-sm text-slate-500">
-                    {{ new Date(app.createdAt).toLocaleString('de-DE') }}
-                  </span>
                 </div>
                 <div v-if="app.message" class="rounded-lg bg-amber-50/80 border border-amber-100 p-4">
                   <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">{{ t('request.message') }}</p>
@@ -342,7 +409,33 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
 
           <!-- Nicht-Organisation: Bewerbungsformular bzw. Hinweise -->
           <template v-else>
-          <div v-if="!isOpen" class="sticky top-6 rounded-xl bg-amber-50 border border-amber-200 shadow-sm p-6">
+          <!-- Abgeschlossen + du warst der zugewiesene Teilnehmer: Erfolg + Bewerten -->
+          <div
+            v-if="!isOpen && participantInfo?.isCompletedParticipant"
+            class="sticky top-6 rounded-xl bg-emerald-50 border border-emerald-200 shadow-sm p-6"
+          >
+            <h2 class="font-semibold text-slate-900 text-lg">{{ t('request.completedAsParticipantTitle') }}</h2>
+            <p class="text-slate-600 mt-2">{{ t('request.completedAsParticipantText') }}</p>
+            <div class="flex flex-wrap gap-3 mt-4">
+              <button
+                v-if="participantInfo.canRateOrg"
+                type="button"
+                class="px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium hover:bg-amber-400 transition-colors"
+                @click="openRateOrg"
+              >
+                {{ t('review.rateOrg') }}
+              </button>
+              <NuxtLink
+                v-if="request.organization"
+                :to="`/org/${request.organization.slug}`"
+                class="inline-flex px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50"
+              >
+                {{ t('request.toOrgPageButton') }}
+              </NuxtLink>
+            </div>
+          </div>
+          <!-- Abgeschlossen / Geschlossen: Keine Bewerbung mehr möglich -->
+          <div v-else-if="!isOpen" class="sticky top-6 rounded-xl bg-amber-50 border border-amber-200 shadow-sm p-6">
             <h2 class="font-semibold text-slate-900 text-lg">{{ t('request.applyNotPossible') }}</h2>
             <p class="text-slate-600 mt-2">
               {{ t('request.applyNotPossibleReason', { status: getRequestStatusLabel(request.status) }) }}
@@ -504,7 +597,7 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
             </div>
           </section>
 
-          <!-- Infos zum Verein -->
+          <!-- Infos zum Verein + Bewertungen -->
           <section v-if="request.organization" class="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between flex-wrap gap-2">
               <h2 class="text-lg font-semibold text-slate-900">{{ request.organization.name }}</h2>
@@ -516,6 +609,10 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
               </NuxtLink>
             </div>
             <div class="p-6 space-y-4">
+              <div v-if="request.organization.averageRating != null && request.organization.reviewsCount != null" class="flex items-center gap-2 text-amber-600 font-medium">
+                <span>{{ '★'.repeat(Math.round(request.organization.averageRating)) }}{{ '☆'.repeat(5 - Math.round(request.organization.averageRating)) }}</span>
+                <span>{{ request.organization.averageRating.toFixed(1) }} ({{ request.organization.reviewsCount }} {{ t('profile.reviews') }})</span>
+              </div>
               <p v-if="request.organization.description" class="text-slate-600">
                 {{ request.organization.description }}
               </p>
@@ -524,10 +621,38 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
                 class="prose prose-slate max-w-none text-slate-700 text-sm"
                 v-html="request.organization.landingContent"
               />
+              <!-- Bewertungen der Organisation -->
+              <div v-if="request.organization.reviews && request.organization.reviews.length" class="pt-4 border-t border-slate-100">
+                <h3 class="text-sm font-semibold text-slate-700 mb-2">{{ t('profile.reviewsSection') }}</h3>
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                  <div
+                    v-for="rev in request.organization.reviews"
+                    :key="rev.id"
+                    class="p-3 rounded-lg bg-slate-50 border border-slate-100 text-sm"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="text-amber-500">{{ '★'.repeat(rev.rating) }}{{ '☆'.repeat(5 - rev.rating) }}</span>
+                      <span class="text-slate-600">{{ rev.reviewerName }}</span>
+                      <span v-if="rev.route" class="text-xs text-slate-500">· {{ rev.route }}</span>
+                    </div>
+                    <p v-if="rev.comment" class="text-slate-600 mt-0.5 text-xs">{{ rev.comment }}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
       </div>
     </div>
+
+    <ReviewModal
+      v-if="reviewOrgModal"
+      :show="!!reviewOrgModal"
+      :title="t('review.rateOrgTitle', { name: reviewOrgModal.orgName })"
+      :request-id="reviewOrgModal.requestId"
+      :reviewee-org-id="reviewOrgModal.orgId"
+      @close="closeReviewOrgModal"
+      @submitted="onReviewOrgSubmitted"
+    />
   </div>
 </template>

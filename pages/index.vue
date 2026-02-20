@@ -137,13 +137,15 @@ useHead({
       </div>
     </section>
 
-    <!-- SECTION 4 – Mobile-first: 1 Karte, dann sm/md 3 -->
+    <!-- SECTION 4 – Mobile-first: 1 Karte, dann sm/md 3.
+         ClientOnly verhindert Hydration-Mismatch: Server und Client können unterschiedliche API-Daten haben. -->
     <section class="bg-white py-12 sm:py-16 md:py-20 lg:py-28 px-4 sm:px-6" aria-labelledby="section4-title">
       <div class="container mx-auto max-w-5xl">
         <h2 id="section4-title" class="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 text-center mb-8 sm:mb-12">
           {{ t('home.section4Title') }}
         </h2>
-        <div v-if="latestRequests.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+        <ClientOnly>
+          <div v-if="latestRequests.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           <NuxtLink
             v-for="r in latestRequests"
             :key="r.id"
@@ -203,6 +205,12 @@ useHead({
             Alle Transporte auf der Karte anzeigen
           </NuxtLink>
         </div>
+          <template #fallback>
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-12 text-center">
+              <p class="text-slate-600 mb-4">{{ t('common.searching') }}</p>
+            </div>
+          </template>
+        </ClientOnly>
       </div>
     </section>
 
