@@ -1,6 +1,10 @@
 import { prisma } from '~~/server/utils/prisma'
 import { requireAuth } from '~~/server/utils/auth'
 
+/**
+ * Markiert alle Nachrichten, die der aktuelle User als Empfänger hat, als gelesen.
+ * Wird beim Öffnen des Chats aufgerufen.
+ */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   const conversationId = getRouterParam(event, 'id')
@@ -21,23 +25,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Kein Zugriff auf diese Konversation' })
   }
 
-  const messages = await prisma.message.findMany({
-    where: { conversationId },
-    orderBy: { createdAt: 'asc' },
-    include: {
-      sender: { select: { id: true, displayName: true } },
+  await prisma.message.updateMany({
+    where: {
+      conversationId,
+      senderUserId: { not: user.id },
+      readAt: null,
     },
+    data: { readAt: new Date() },
   })
 
-  return {
-    messages: messages.map((m) => ({
-      id: m.id,
-      body: m.body,
-      createdAt: m.createdAt.toISOString(),
-      senderUserId: m.senderUserId,
-      senderDisplayName: m.sender?.displayName ?? null,
-      isOwn: m.senderUserId === user.id,
-      readAt: m.readAt?.toISOString() ?? null,
-    })),
-  }
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { updatedAt: new Date() },
+  })
+
+  return { ok: true }
 })

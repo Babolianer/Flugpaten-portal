@@ -1,5 +1,9 @@
 -- Supabase Storage: Bucket für Profilbilder
--- In Supabase SQL Editor ausführen: https://supabase.com/dashboard → SQL Editor → New query
+-- In Supabase SQL Editor ausführen: https://supabase.com/dashboard → Project → SQL Editor → New query
+--
+-- Vorher in .env setzen (Dashboard → Settings → API):
+--   SUPABASE_URL=https://<PROJECT_REF>.supabase.co
+--   SUPABASE_SERVICE_ROLE_KEY=... („service_role“ Key, NICHT anon)
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (

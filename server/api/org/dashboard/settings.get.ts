@@ -18,6 +18,9 @@ export default defineEventHandler(async (event) => {
       contactEmail: true,
       status: true,
       logoUrl: true,
+      automatedMessageTemplate1: true,
+      automatedMessageTemplate2: true,
+      automatedMessageTemplate3: true,
     },
   })
   let landingContent: string | null = null
@@ -54,5 +57,8 @@ export default defineEventHandler(async (event) => {
     contactInstagram,
     contactFacebook,
     logoUrl: org.logoUrl ?? null,
+    automatedMessageTemplate1: org.automatedMessageTemplate1 ?? null,
+    automatedMessageTemplate2: org.automatedMessageTemplate2 ?? null,
+    automatedMessageTemplate3: org.automatedMessageTemplate3 ?? null,
   }
 })

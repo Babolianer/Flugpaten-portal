@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     const pins: Pin[] = []
 
     for (const org of orgs) {
-      const locs = org.locations.filter((loc) => loc.lat !== 0 || loc.lng !== 0)
+      const locs = org.locations.filter((loc) => loc.lat != null && loc.lng != null)
       if (locs.length === 0) continue
 
       organizations.push({

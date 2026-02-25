@@ -7,7 +7,7 @@ interface Conversation {
   requestTitle: string | null
   orgName: string | null
   orgSlug: string | null
-  lastMessage: { body: string; createdAt: string; senderUserId: string } | null
+  lastMessage: { body: string; createdAt: string; senderUserId: string; readAt: string | null } | null
   updatedAt: string
 }
 
@@ -20,7 +20,12 @@ const isPageVisible = ref(true)
 
 const unreadConversations = computed(() => {
   if (!user.value) return []
-  return conversations.value.filter((c) => c.lastMessage && c.lastMessage.senderUserId !== user.value!.id)
+  return conversations.value.filter(
+    (c) =>
+      c.lastMessage &&
+      c.lastMessage.senderUserId !== user.value!.id &&
+      !c.lastMessage.readAt
+  )
 })
 
 const formatRelativeTime = (dateString: string) => {
@@ -44,8 +49,23 @@ const formatRelativeTime = (dateString: string) => {
 
 async function loadConversations() {
   try {
-    const res = await $fetch<{ conversations: Conversation[] }>('/api/user/conversations')
-    conversations.value = res.conversations
+    let res: { conversations: Array<Record<string, unknown>> }
+    if (user.value?.role === 'ORG_USER') {
+      res = await $fetch<{ conversations: Array<Record<string, unknown>> }>('/api/org/dashboard/conversations')
+      // Normalize: org API returns userDisplayName, map to orgName for display
+      conversations.value = (res.conversations || []).map((c) => ({
+        id: c.id,
+        requestId: c.requestId,
+        requestTitle: c.requestTitle,
+        orgName: c.userDisplayName ?? c.orgName ?? null,
+        orgSlug: null,
+        lastMessage: c.lastMessage as Conversation['lastMessage'],
+        updatedAt: c.updatedAt,
+      })) as Conversation[]
+    } else {
+      res = await $fetch<{ conversations: Conversation[] }>('/api/user/conversations')
+      conversations.value = res.conversations ?? []
+    }
   } catch {
     conversations.value = []
   }
@@ -54,10 +74,10 @@ async function loadConversations() {
 function startPolling() {
   if (pollingInterval.value) return
   pollingInterval.value = setInterval(async () => {
-    if (isPageVisible.value && user.value?.role === 'USER') {
+    if (isPageVisible.value && (user.value?.role === 'USER' || user.value?.role === 'ORG_USER')) {
       await loadConversations()
     }
-  }, 5000)
+  }, 2500) // Poll alle 2,5 s für Echtzeit-Updates der Chatliste
 }
 
 function stopPolling() {
@@ -80,10 +100,6 @@ onMounted(async () => {
     await navigateTo('/login')
     return
   }
-  if (user.value.role === 'ORG_USER') {
-    await navigateTo('/org/dashboard')
-    return
-  }
   loading.value = true
   await loadConversations()
   loading.value = false
@@ -100,7 +116,7 @@ onUnmounted(() => {
 <template>
   <div class="container mx-auto w-4/5 max-w-full px-4 sm:px-6 py-6 sm:py-8 overflow-x-hidden">
     <div class="max-w-4xl mx-auto">
-      <NuxtLink to="/dashboard" class="inline-flex items-center gap-1 text-amber-600 hover:underline text-sm mb-6">
+      <NuxtLink :to="user?.role === 'ORG_USER' ? '/org/dashboard' : '/dashboard'" class="inline-flex items-center gap-1 text-amber-600 hover:underline text-sm mb-6">
         {{ t('inbox.backToDashboard') }}
       </NuxtLink>
 
@@ -117,7 +133,7 @@ onUnmounted(() => {
         <h2 class="text-xl font-bold text-slate-900 mb-2">{{ t('inbox.emptyTitle') }}</h2>
         <p class="text-slate-600 mb-6">{{ t('inbox.emptyText') }}</p>
         <NuxtLink
-          to="/map"
+          :to="user?.role === 'ORG_USER' ? '/org/dashboard' : '/map'"
           class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold transition-colors"
         >
           {{ t('inbox.emptyCta') }}
@@ -131,7 +147,7 @@ onUnmounted(() => {
           :to="`/inbox/${conv.id}`"
           class="block p-5 rounded-xl bg-white border-2 transition-all cursor-pointer group"
           :class="
-            conv.lastMessage && conv.lastMessage.senderUserId !== user?.id
+            conv.lastMessage && conv.lastMessage.senderUserId !== user?.id && !conv.lastMessage.readAt
               ? 'border-blue-300 shadow-lg hover:shadow-xl'
               : 'border-slate-200 hover:border-amber-300 hover:shadow-md'
           "
@@ -140,10 +156,10 @@ onUnmounted(() => {
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-2">
                 <h3 class="font-semibold text-slate-900 group-hover:text-amber-600 transition-colors">
-                  {{ conv.requestTitle ?? t('dashboard.request') }} – {{ conv.orgName ?? t('dashboard.organization') }}
+                  {{ conv.requestTitle ?? t('dashboard.request') }} – {{ conv.orgName ?? (user?.role === 'ORG_USER' ? t('chat.user') : t('dashboard.organization')) }}
                 </h3>
                 <span
-                  v-if="conv.lastMessage && conv.lastMessage.senderUserId !== user?.id"
+                  v-if="conv.lastMessage && conv.lastMessage.senderUserId !== user?.id && !conv.lastMessage.readAt"
                   class="shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500"
                 ></span>
               </div>

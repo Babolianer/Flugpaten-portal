@@ -215,8 +215,14 @@ watch(
             @change="update({ species: ($event.target as HTMLSelectElement).value })"
           >
             <option value="all">{{ t('map.filterAll') }}</option>
-            <option value="cat">{{ t('map.speciesCat') }}</option>
             <option value="dog">{{ t('map.speciesDog') }}</option>
+            <option value="cat">{{ t('map.speciesCat') }}</option>
+            <option value="rabbit">{{ t('map.speciesRabbit') }}</option>
+            <option value="guinea_pig">{{ t('map.speciesGuineaPig') }}</option>
+            <option value="bird">{{ t('map.speciesBird') }}</option>
+            <option value="reptile">{{ t('map.speciesReptile') }}</option>
+            <option value="ferret">{{ t('map.speciesFerret') }}</option>
+            <option value="other">{{ t('map.speciesOther') }}</option>
           </select>
         </div>
       </div>

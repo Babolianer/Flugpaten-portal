@@ -17,6 +17,9 @@ const schema = z.object({
   contactInstagram: z.string().optional().nullable().transform((v) => v === '' ? null : v),
   contactFacebook: z.string().optional().nullable().transform((v) => v === '' ? null : v),
   logoUrl: z.union([z.string().url(), z.literal('')]).optional().nullable().transform((v) => v === '' ? null : v),
+  automatedMessageTemplate1: z.string().max(2000).optional().nullable().transform((v) => (v === '' ? null : v)),
+  automatedMessageTemplate2: z.string().max(2000).optional().nullable().transform((v) => (v === '' ? null : v)),
+  automatedMessageTemplate3: z.string().max(2000).optional().nullable().transform((v) => (v === '' ? null : v)),
 })
 
 export default defineEventHandler(async (event) => {
@@ -46,6 +49,9 @@ export default defineEventHandler(async (event) => {
   if (parsed.data.contactInstagram !== undefined) data.contactInstagram = parsed.data.contactInstagram ?? null
   if (parsed.data.contactFacebook !== undefined) data.contactFacebook = parsed.data.contactFacebook ?? null
   if (parsed.data.logoUrl !== undefined) data.logoUrl = parsed.data.logoUrl ?? null
+  if (parsed.data.automatedMessageTemplate1 !== undefined) data.automatedMessageTemplate1 = parsed.data.automatedMessageTemplate1 ?? null
+  if (parsed.data.automatedMessageTemplate2 !== undefined) data.automatedMessageTemplate2 = parsed.data.automatedMessageTemplate2 ?? null
+  if (parsed.data.automatedMessageTemplate3 !== undefined) data.automatedMessageTemplate3 = parsed.data.automatedMessageTemplate3 ?? null
 
   const id = parsed.data.organizationId
   const hasLandingContent = parsed.data.landingContent !== undefined

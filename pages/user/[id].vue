@@ -3,6 +3,7 @@ definePageMeta({ layout: 'default' })
 
 const route = useRoute()
 const userId = route.params.id as string
+const { user } = useAuth()
 const { t } = useI18n()
 
 interface ProfileData {
@@ -39,7 +40,8 @@ interface ProfileData {
 }
 
 const { data, error } = await useFetch<ProfileData>(`/api/user/${userId}/profile`)
-const profileData = computed(() => data.value)
+const profileData = computed(() => data.value as ProfileData | undefined)
+const isOwnProfile = computed(() => Boolean(user.value?.id && profileData.value?.user?.id && user.value.id === profileData.value.user.id))
 
 if (error.value) throw createError({ statusCode: 404 })
 
@@ -67,7 +69,20 @@ function starDisplay(rating: number) {
           </div>
         </div>
         <div class="flex-1 min-w-0">
-          <h1 class="text-2xl font-bold text-slate-900">{{ profileData.user.displayName }}</h1>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-slate-900">{{ profileData.user.displayName }}</h1>
+            <NuxtLink
+              v-if="isOwnProfile"
+              to="/profile-settings"
+              class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              :title="t('profile.editProfile')"
+              :aria-label="t('profile.editProfile')"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </NuxtLink>
+          </div>
           <p
             v-if="profileData.user.profile?.city || profileData.user.profile?.countryCode"
             class="text-slate-600 mt-1"

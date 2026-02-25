@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
       senderUserId: message.senderUserId,
       senderDisplayName: message.sender?.displayName ?? null,
       isOwn: true,
+      readAt: null,
     },
   }
 })

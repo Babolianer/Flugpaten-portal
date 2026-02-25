@@ -2,6 +2,7 @@
 import hintergrundImg from '~/assets/images/hintergrund.png'
 
 const { t } = useI18n()
+const { getSpeciesLabel } = useSpeciesLabel()
 
 const { data: latestData } = await useFetch<{
   requests: {
@@ -161,7 +162,7 @@ useHead({
                 @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
               />
               <span v-else class="text-5xl opacity-80" aria-hidden="true">
-                {{ r.animal?.species === 'dog' ? '🐕' : '🐈' }}
+                {{ r.animal?.species === 'dog' ? '🐕' : r.animal?.species === 'cat' ? '🐈' : '🐾' }}
               </span>
             </div>
             <div class="p-4 md:p-5 flex flex-col flex-1">
@@ -172,7 +173,7 @@ useHead({
                 {{ formatDateRange(r.earliestDate, r.latestDate) }}
               </p>
               <p v-if="r.animal" class="text-sm text-slate-600 mb-3">
-                {{ r.animal.name }} · {{ r.animal.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }}
+                {{ r.animal.name }} · {{ getSpeciesLabel(r.animal.species) }}
               </p>
               <p class="text-sm font-bold text-amber-600 mb-4">
                 {{ t('home.exampleCost') }}

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "OrgLocation" ALTER COLUMN "lat" DROP NOT NULL;
+ALTER TABLE "OrgLocation" ALTER COLUMN "lng" DROP NOT NULL;

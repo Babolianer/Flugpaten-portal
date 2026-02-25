@@ -117,6 +117,27 @@ export default defineEventHandler(async (event) => {
       },
     })
 
+    // Automatische Antwort der Organisation an den Nutzer (wenn Vorlage 1 gesetzt ist)
+    const org = await prisma.organization.findUnique({
+      where: { id: request.organizationId },
+      select: { automatedMessageTemplate1: true, createdByUserId: true, name: true },
+    })
+    if (org?.automatedMessageTemplate1?.trim()) {
+      const autoBody = org.automatedMessageTemplate1
+        .replace(/\{\{orgName\}\}/g, org.name)
+        .replace(/\{\{organisation\}\}/g, org.name)
+        .trim()
+      if (autoBody) {
+        await prisma.message.create({
+          data: {
+            conversationId: conversation.id,
+            senderUserId: org.createdByUserId,
+            body: autoBody,
+          },
+        })
+      }
+    }
+
     return { application, conversation }
   } catch (dbErr: unknown) {
     const msg = dbErr instanceof Error ? dbErr.message : String(dbErr)
@@ -145,6 +166,25 @@ export default defineEventHandler(async (event) => {
           body: message,
         },
       })
+      const org = await prisma.organization.findUnique({
+        where: { id: request.organizationId },
+        select: { automatedMessageTemplate1: true, createdByUserId: true, name: true },
+      })
+      if (org?.automatedMessageTemplate1?.trim()) {
+        const autoBody = org.automatedMessageTemplate1
+          .replace(/\{\{orgName\}\}/g, org.name)
+          .replace(/\{\{organisation\}\}/g, org.name)
+          .trim()
+        if (autoBody) {
+          await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              senderUserId: org.createdByUserId,
+              body: autoBody,
+            },
+          })
+        }
+      }
       return { application, conversation }
     }
     throw dbErr

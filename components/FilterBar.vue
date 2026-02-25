@@ -162,8 +162,14 @@ onMounted(async () => {
             class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           >
             <option value="all">{{ t('map.filterAll') }}</option>
-            <option value="cat">{{ t('map.speciesCat') }}</option>
             <option value="dog">{{ t('map.speciesDog') }}</option>
+            <option value="cat">{{ t('map.speciesCat') }}</option>
+            <option value="rabbit">{{ t('map.speciesRabbit') }}</option>
+            <option value="guinea_pig">{{ t('map.speciesGuineaPig') }}</option>
+            <option value="bird">{{ t('map.speciesBird') }}</option>
+            <option value="reptile">{{ t('map.speciesReptile') }}</option>
+            <option value="ferret">{{ t('map.speciesFerret') }}</option>
+            <option value="other">{{ t('map.speciesOther') }}</option>
           </select>
         </div>
       </div>

@@ -16,8 +16,8 @@ interface Location {
   countryCode: string
   address: string | null
   postalCode?: string | null
-  lat: number
-  lng: number
+  lat: number | null
+  lng: number | null
 }
 
 interface Animal {
@@ -108,6 +108,7 @@ const formLocation = reactive({
   lat: 0,
   lng: 0,
 })
+const mapsLinkInput = ref('')
 
 const formAnimal = reactive({
   name: '',
@@ -148,7 +149,23 @@ const formSettings = reactive({
   contactInstagram: '',
   contactFacebook: '',
   logoUrl: '' as string,
+  automatedMessageTemplate1: '',
+  automatedMessageTemplate2: '',
+  automatedMessageTemplate3: '',
 })
+
+/** Vorlagen für die automatische Nachricht (nur zum Befüllen der Textarea) */
+const AUTOMATED_MESSAGE_PRESETS: Record<string, string> = {
+  short_ack: 'Vielen Dank für Ihre Bewerbung. Wir haben sie erhalten und werden uns zeitnah bei Ihnen melden.',
+  accepted: 'Ihre Bewerbung wurde angenommen. Wir freuen uns auf die Zusammenarbeit und melden uns mit den nächsten Schritten.',
+  individual: '',
+}
+const automatedMessagePresetKey = ref<string>('')
+
+function onAutomatedMessagePresetChange(key: string) {
+  const text = AUTOMATED_MESSAGE_PRESETS[key] ?? ''
+  formSettings.automatedMessageTemplate1 = text
+}
 
 const airports = ref<{ id: string; name: string; code: string; lat: number; lng: number }[]>([])
 const airportRegions = ref<{ id: string; label: string; airportIds: string[] }[]>([])
@@ -207,6 +224,7 @@ function getSpeciesLabel(species: string) {
 }
 
 const locationGeocodeError = ref(false)
+const locationFromLinkLoading = ref(false)
 
 async function load() {
   try {
@@ -230,6 +248,9 @@ async function load() {
         formSettings.website = o.website ?? ''
         formSettings.contactEmail = o.contactEmail ?? ''
         formSettings.logoUrl = o.logoUrl ?? ''
+        formSettings.automatedMessageTemplate1 = (o as { automatedMessageTemplate1?: string | null }).automatedMessageTemplate1 ?? ''
+        formSettings.automatedMessageTemplate2 = (o as { automatedMessageTemplate2?: string | null }).automatedMessageTemplate2 ?? ''
+        formSettings.automatedMessageTemplate3 = (o as { automatedMessageTemplate3?: string | null }).automatedMessageTemplate3 ?? ''
       }
     }
   } catch (e: unknown) {
@@ -259,6 +280,8 @@ function openCreate(mode: 'location' | 'animal' | 'request') {
   locationGeocodeError.value = false
   if (mode === 'location') {
     Object.assign(formLocation, { title: '', city: '', address: '', postalCode: '', lat: 0, lng: 0, countryCode: 'DE' })
+    locationFromLinkLoading.value = false
+    mapsLinkInput.value = ''
   }
   if (mode === 'animal') {
     Object.assign(formAnimal, { name: '', species: 'cat', speciesOtherText: '', sex: '', sizeClass: '', notes: '', imageUrl: '' })
@@ -291,14 +314,15 @@ function openEditLocation(loc: Location) {
   modalMode.value = 'location'
   editingId.value = loc.id
   locationGeocodeError.value = false
+  mapsLinkInput.value = ''
   Object.assign(formLocation, {
     title: loc.title,
     city: loc.city,
     countryCode: loc.countryCode,
     address: loc.address ?? '',
     postalCode: (loc as { postalCode?: string }).postalCode ?? '',
-    lat: loc.lat,
-    lng: loc.lng,
+    lat: loc.lat ?? 0,
+    lng: loc.lng ?? 0,
   })
   showModal.value = true
 }
@@ -359,10 +383,19 @@ function openEditRequest(r: Request) {
 async function loadSettingsForTab() {
   if (!selectedOrgId.value) return
   try {
-    const res = await $fetch<{ description: string | null; landingContent: string | null; website: string | null; contactEmail: string; contactPhone: string | null; contactInstagram: string | null; contactFacebook: string | null; logoUrl: string | null }>(
-      '/api/org/dashboard/settings',
-      { query: { organizationId: selectedOrgId.value } }
-    )
+    const res = await $fetch<{
+      description: string | null
+      landingContent: string | null
+      website: string | null
+      contactEmail: string
+      contactPhone: string | null
+      contactInstagram: string | null
+      contactFacebook: string | null
+      logoUrl: string | null
+      automatedMessageTemplate1: string | null
+      automatedMessageTemplate2: string | null
+      automatedMessageTemplate3: string | null
+    }>('/api/org/dashboard/settings', { query: { organizationId: selectedOrgId.value } })
     formSettings.description = res.description ?? ''
     formSettings.landingContent = res.landingContent ?? ''
     formSettings.website = res.website ?? ''
@@ -371,6 +404,9 @@ async function loadSettingsForTab() {
     formSettings.contactInstagram = res.contactInstagram ?? ''
     formSettings.contactFacebook = res.contactFacebook ?? ''
     formSettings.logoUrl = res.logoUrl ?? ''
+    formSettings.automatedMessageTemplate1 = res.automatedMessageTemplate1 ?? ''
+    formSettings.automatedMessageTemplate2 = res.automatedMessageTemplate2 ?? ''
+    formSettings.automatedMessageTemplate3 = res.automatedMessageTemplate3 ?? ''
   } catch {
     const o = selectedOrg.value
     if (o) {
@@ -382,8 +418,172 @@ async function loadSettingsForTab() {
       formSettings.contactInstagram = (o as { contactInstagram?: string }).contactInstagram ?? ''
       formSettings.contactFacebook = (o as { contactFacebook?: string }).contactFacebook ?? ''
       formSettings.logoUrl = o.logoUrl ?? ''
+      formSettings.automatedMessageTemplate1 = (o as { automatedMessageTemplate1?: string | null }).automatedMessageTemplate1 ?? ''
+      formSettings.automatedMessageTemplate2 = (o as { automatedMessageTemplate2?: string | null }).automatedMessageTemplate2 ?? ''
+      formSettings.automatedMessageTemplate3 = (o as { automatedMessageTemplate3?: string | null }).automatedMessageTemplate3 ?? ''
     }
   }
+}
+
+function hasValidLocationCoords(): boolean {
+  const { lat, lng } = formLocation
+  return Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)
+}
+
+/**
+ * Platzname aus Google-Maps-Pfad decodieren (z. B. /place/Baumwipfelpfad+Schwarzwald/ → "Baumwipfelpfad Schwarzwald").
+ */
+function parsePlaceNameFromPath(path: string): string | undefined {
+  const match = path.match(/\/place\/([^/]+)/)
+  if (!match || !match[1]) return undefined
+  try {
+    const raw = match[1]
+    const decoded = decodeURIComponent(raw.replace(/\+/g, ' '))
+    return decoded.trim() || undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Aus dem Link Koordinaten und ggf. Titel extrahieren (Place-Name aus Pfad oder q-Parameter).
+ */
+function parseMapsLink(raw: string): { lat: number; lng: number; titleFromQuery?: string; titleFromPath?: string } | null {
+  const trimmed = (raw || '').trim()
+  if (!trimmed) return null
+  let lat: number | null = null
+  let lng: number | null = null
+  let titleFromQuery: string | undefined
+  let titleFromPath: string | undefined
+  try {
+    const url = new URL(trimmed)
+    const path = url.pathname + url.hash
+    const q = url.searchParams.get('q')
+
+    titleFromPath = parsePlaceNameFromPath(path)
+
+    if (q) {
+      const parts = q.split(',')
+      if (parts.length >= 2) {
+        const a = parseFloat(parts[0].trim())
+        const b = parseFloat(parts[1].trim())
+        if (Number.isFinite(a) && Number.isFinite(b) && Math.abs(a) <= 90 && Math.abs(b) <= 180) {
+          lat = a
+          lng = b
+        }
+      }
+      if (lat == null && q.trim().length > 0) {
+        titleFromQuery = q.trim()
+      }
+    }
+    if (lat == null && /@(-?\d+\.?\d*),(-?\d+\.?\d*)/.test(path)) {
+      const match = path.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/)
+      if (match) {
+        lat = parseFloat(match[1])
+        lng = parseFloat(match[2])
+      }
+      if (q && q.trim().length > 0 && !/^-?\d+\.?\d*\s*,\s*-?\d+\.?\d*$/.test(q.trim())) {
+        titleFromQuery = q.trim()
+      }
+    }
+    if (lat == null && url.searchParams.has('mlat') && url.searchParams.has('mlon')) {
+      lat = parseFloat(url.searchParams.get('mlat')!)
+      lng = parseFloat(url.searchParams.get('mlon')!)
+    }
+    if (lat == null && /#map=\d+\/(-?\d+\.?\d*)\/(-?\d+\.?\d*)/.test(path)) {
+      const match = path.match(/#map=\d+\/(-?\d+\.?\d*)\/(-?\d+\.?\d*)/)
+      if (match) {
+        lat = parseFloat(match[1])
+        lng = parseFloat(match[2])
+      }
+    }
+    if (lat == null) {
+      const ll = url.searchParams.get('ll')
+      if (ll) {
+        const [a, b] = ll.split(',').map((x) => parseFloat(x.trim()))
+        if (Number.isFinite(a) && Number.isFinite(b)) {
+          lat = a
+          lng = b
+        }
+      }
+    }
+    // Google Maps Daten-Format: …!3dLAT!4dLNG (z. B. in /data=!…!8m2!3d34.97!4d33.69…)
+    if (lat == null && /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/.test(path)) {
+      const match3d4d = path.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/)
+      if (match3d4d) {
+        const a = parseFloat(match3d4d[1])
+        const b = parseFloat(match3d4d[2])
+        if (Number.isFinite(a) && Number.isFinite(b) && Math.abs(a) <= 90 && Math.abs(b) <= 180) {
+          lat = a
+          lng = b
+        }
+      }
+    }
+  } catch {
+    /* URL ungültig */
+  }
+  if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng, titleFromQuery, titleFromPath }
+  }
+  return null
+}
+
+/** Link parsen, Reverse-Geocode aufrufen und alle Felder (Titel, Straße, PLZ, Stadt, Land, Koordinaten) befüllen. */
+async function applyAddressFromMapsLink() {
+  const raw = (mapsLinkInput.value || '').trim()
+  if (!raw) return
+  locationGeocodeError.value = false
+  const parsed = parseMapsLink(raw)
+  if (!parsed) {
+    locationGeocodeError.value = true
+    message.value = t('orgDashboard.mapsLinkParseError')
+    return
+  }
+  locationFromLinkLoading.value = true
+  try {
+    const config = useRuntimeConfig()
+    const baseURL = config.public?.appUrl || (import.meta.client ? window.location.origin : '')
+    const url = `${baseURL}/api/geocode/reverse?lat=${parsed.lat}&lng=${parsed.lng}`
+    const res = await fetch(url)
+    if (!res.ok) {
+      applyCoordsFallback(parsed)
+      locationGeocodeError.value = true
+      message.value = t('orgDashboard.mapsLinkReverseError')
+      return
+    }
+    const data = (await res.json()) as {
+      lat: number
+      lng: number
+      address: string
+      postalCode: string
+      city: string
+      countryCode: string
+      state?: string
+      displayName: string
+    }
+    formLocation.lat = data.lat
+    formLocation.lng = data.lng
+    formLocation.address = data.address ?? ''
+    formLocation.postalCode = data.postalCode ?? ''
+    formLocation.city = data.city ?? ''
+    formLocation.countryCode = (data.countryCode ?? 'DE').toUpperCase().slice(0, 2)
+    const titleFromDisplay = data.displayName ? data.displayName.split(',')[0].trim() : ''
+    formLocation.title = titleFromDisplay || parsed.titleFromPath || parsed.titleFromQuery || formLocation.title
+    message.value = ''
+  } catch {
+    applyCoordsFallback(parsed)
+    locationGeocodeError.value = true
+    message.value = t('orgDashboard.mapsLinkReverseError')
+  } finally {
+    locationFromLinkLoading.value = false
+  }
+}
+
+function applyCoordsFallback(parsed: { lat: number; lng: number; titleFromQuery?: string; titleFromPath?: string }) {
+  formLocation.lat = parsed.lat
+  formLocation.lng = parsed.lng
+  const title = parsed.titleFromPath || parsed.titleFromQuery
+  if (title) formLocation.title = title
 }
 
 async function saveLocation() {
@@ -391,11 +591,11 @@ async function saveLocation() {
   locationGeocodeError.value = false
   const body = {
     title: formLocation.title,
-    countryCode: formLocation.countryCode,
-    city: formLocation.city,
-    address: formLocation.address || undefined,
-    postalCode: formLocation.postalCode || undefined,
-    ...(formLocation.lat && formLocation.lng ? { lat: formLocation.lat, lng: formLocation.lng } : {}),
+    countryCode: formLocation.countryCode.trim().toUpperCase().slice(0, 2),
+    city: formLocation.city.trim(),
+    address: formLocation.address?.trim() || undefined,
+    postalCode: formLocation.postalCode?.trim() || undefined,
+    ...(hasValidLocationCoords() ? { lat: formLocation.lat, lng: formLocation.lng } : {}),
   }
   try {
     if (editingId.value) {
@@ -414,13 +614,13 @@ async function saveLocation() {
     showModal.value = false
     await load()
   } catch (e: unknown) {
-    const err = e as { data?: { message?: string } }
-    const msg = err?.data?.message ?? ''
-    if (msg.includes('geocode') || msg.includes('Could not geocode')) {
+    const err = e as { data?: { message?: string }; message?: string }
+    const msg = err?.data?.message ?? err?.message ?? ''
+    if (msg.toLowerCase().includes('geocode') || msg.includes('Could not geocode') || msg.includes('Address not found')) {
       locationGeocodeError.value = true
       message.value = t('orgDashboard.geocodeError')
     } else {
-      message.value = t('orgDashboard.errorSave')
+      message.value = msg || t('orgDashboard.errorSave')
     }
   }
 }
@@ -727,7 +927,16 @@ watch(activeTab, (tab) => {
   }
 })
 
-onMounted(() => {
+function syncTabFromRoute() {
+  const tab = route.query.tab as string
+  if (tab && allowedTabs.value.includes(tab as typeof activeTab.value)) {
+    activeTab.value = tab as typeof activeTab.value
+  }
+}
+
+watch(() => route.query.tab, syncTabFromRoute)
+
+onMounted(async () => {
   if (user.value?.role === 'ADMIN' && !route.query.asOrg) {
     navigateTo('/admin')
     return
@@ -738,7 +947,8 @@ onMounted(() => {
     delete q.registered
     router.replace({ path: route.path, query: q })
   }
-  load()
+  await load()
+  syncTabFromRoute()
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
@@ -1073,6 +1283,29 @@ onUnmounted(() => {
           {{ t('orgDashboard.settingsHint') }}
         </div>
         <form class="space-y-4 rounded-lg border border-slate-200 bg-white p-4 sm:p-6" @submit.prevent="saveSettings">
+          <!-- Automatische Nachricht (oben, vereinfacht) -->
+          <div class="pb-6 border-b border-slate-200">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">{{ t('orgDashboard.automatedMessageTitle') }}</h3>
+            <div class="space-y-3">
+              <select
+                :value="automatedMessagePresetKey"
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-900"
+                @input="(e) => { automatedMessagePresetKey = (e.target as HTMLSelectElement).value; onAutomatedMessagePresetChange((e.target as HTMLSelectElement).value) }"
+              >
+                <option value="" disabled>{{ t('orgDashboard.automatedMessagePresetChoose') }}</option>
+                <option value="short_ack">{{ t('orgDashboard.automatedMessagePresetShortAck') }}</option>
+                <option value="accepted">{{ t('orgDashboard.automatedMessagePresetAccepted') }}</option>
+                <option value="individual">{{ t('orgDashboard.automatedMessagePresetIndividual') }}</option>
+              </select>
+              <textarea
+                v-model="formSettings.automatedMessageTemplate1"
+                class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm min-h-[140px]"
+                :placeholder="t('orgDashboard.automatedMessagePlaceholder')"
+                rows="6"
+              />
+            </div>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.logo') }}</label>
             <div class="flex flex-wrap items-start gap-3">
@@ -1110,6 +1343,7 @@ onUnmounted(() => {
             <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.contactFacebook') }}</label>
             <input v-model="formSettings.contactFacebook" type="text" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" placeholder="z.B. Seitenname oder URL" />
           </div>
+
           <div class="flex gap-2 pt-2">
             <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors">{{ t('orgDashboard.save') }}</button>
           </div>
@@ -1128,10 +1362,34 @@ onUnmounted(() => {
           </h3>
 
           <form v-if="modalMode === 'location'" class="space-y-4" @submit.prevent="saveLocation">
-            <p class="text-xs text-slate-500">{{ t('orgDashboard.locationAddressHint') }}</p>
-            <div v-if="locationGeocodeError" class="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-              {{ t('orgDashboard.geocodeError') }}
+            <!-- Google-Maps-Link: eigenständiger Bereich ganz oben -->
+            <div class="rounded-xl border-2 border-slate-200 bg-slate-50/80 p-4 space-y-3">
+              <p class="text-sm font-medium text-slate-800">{{ t('orgDashboard.mapsLinkLabel') }}</p>
+              <p class="text-xs text-slate-500">{{ t('orgDashboard.mapsLinkHint') }}</p>
+              <div v-if="locationGeocodeError" class="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                {{ message || t('orgDashboard.geocodeError') }}
+              </div>
+              <div class="flex gap-2">
+                <input
+                  v-model="mapsLinkInput"
+                  type="url"
+                  class="flex-1 min-w-0 border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-500"
+                  :placeholder="t('orgDashboard.mapsLinkPlaceholder')"
+                  :disabled="locationFromLinkLoading"
+                  @keydown.enter.prevent="applyAddressFromMapsLink()"
+                />
+                <button
+                  type="button"
+                  :disabled="locationFromLinkLoading"
+                  class="shrink-0 px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 text-sm font-medium hover:bg-amber-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  @click="applyAddressFromMapsLink()"
+                >
+                  {{ locationFromLinkLoading ? t('orgDashboard.geocoding') : t('orgDashboard.mapsLinkApply') }}
+                </button>
+              </div>
             </div>
+
+            <p class="text-xs text-slate-500">{{ t('orgDashboard.locationAddressHintFromLink') }}</p>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.requestTitle') }}</label>
               <input v-model="formLocation.title" type="text" required :placeholder="t('orgDashboard.locationNamePlaceholder')" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" />
@@ -1152,10 +1410,16 @@ onUnmounted(() => {
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.countryCode') }}</label>
-              <input v-model="formLocation.countryCode" type="text" maxlength="2" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" />
+              <input v-model="formLocation.countryCode" type="text" maxlength="2" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" placeholder="DE" />
             </div>
             <div class="flex gap-2 pt-2">
-              <button type="submit" class="px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 transition-colors">{{ t('orgDashboard.save') }}</button>
+              <button
+                type="submit"
+                :disabled="!hasValidLocationCoords()"
+                class="px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium text-sm hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ t('orgDashboard.save') }}
+              </button>
               <button type="button" class="px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 transition-colors" @click="showModal = false">{{ t('orgDashboard.cancel') }}</button>
             </div>
           </form>

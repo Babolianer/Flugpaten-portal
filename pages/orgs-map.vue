@@ -4,6 +4,7 @@ import type { OrgListItem, OrgLocation, OrgsMapPin } from '~/types/orgs-map'
 definePageMeta({ layout: 'default' })
 
 const { t } = useI18n()
+const { getCountryLabel, filterCountries } = useCountries()
 
 const filters = ref({
   countryCode: '',
@@ -17,13 +18,49 @@ const loadError = ref('')
 const selectedPinId = ref<string | null>(null)
 const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void } | null>(null)
 
-const countryCodes = ['', 'DE', 'AT', 'CH', 'ES', 'IT', 'GR', 'PT', 'PL', 'RO', 'HU', 'NL', 'BE', 'FR', 'CZ', 'HR', 'BG', 'TR', 'MA', 'EG'] as const
-const countryOptions = computed(() =>
-  countryCodes.map((code) => ({
-    value: code,
-    label: code ? t(`orgsMap.countries.${code}`) : t('orgsMap.countries.all'),
-  }))
+// Autocomplete: Anzeige im Input (Name oder „Alle Länder“)
+const countryInput = ref('')
+const countryDropdownOpen = ref(false)
+
+const countrySuggestions = computed(() => filterCountries(countryInput.value, 50))
+
+// Wenn Filter gesetzt ist, Input-Label anzeigen
+watch(
+  () => filters.value.countryCode,
+  (code) => {
+    if (!code) countryInput.value = ''
+    else countryInput.value = getCountryLabel(code)
+  },
+  { immediate: true }
 )
+
+function selectCountry(code: string, name: string) {
+  filters.value.countryCode = code
+  countryInput.value = name
+  countryDropdownOpen.value = false
+}
+
+function clearCountry() {
+  filters.value.countryCode = ''
+  countryInput.value = ''
+  countryDropdownOpen.value = false
+  loadData()
+}
+
+function onCountryInputFocus() {
+  countryDropdownOpen.value = true
+}
+
+let blurTimer: ReturnType<typeof setTimeout> | null = null
+function onCountryInputBlur() {
+  blurTimer = setTimeout(() => {
+    countryDropdownOpen.value = false
+    blurTimer = null
+  }, 150)
+}
+onBeforeUnmount(() => {
+  if (blurTimer) clearTimeout(blurTimer)
+})
 
 async function loadData() {
   loading.value = true
@@ -90,17 +127,50 @@ onMounted(loadData)
         {{ t('orgsMap.filter') }}
       </h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-        <div>
+        <div class="relative">
           <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgsMap.country') }}</label>
-          <select
-            v-model="filters.countryCode"
+          <input
+            v-model="countryInput"
+            type="text"
+            autocomplete="off"
             class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 min-h-[44px]"
+            :placeholder="t('orgsMap.countryPlaceholder')"
             :aria-label="t('orgsMap.countryFilterAria')"
+            @focus="onCountryInputFocus"
+            @blur="onCountryInputBlur"
+            @input="countryDropdownOpen = true"
+          />
+          <button
+            v-if="filters.countryCode"
+            type="button"
+            class="absolute right-2 top-9 w-6 h-6 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center"
+            :aria-label="t('orgsMap.countryClear')"
+            @click="clearCountry"
           >
-            <option v-for="opt in countryOptions" :key="opt.value || 'all'" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
+            ×
+          </button>
+          <div
+            v-show="countryDropdownOpen"
+            class="absolute z-20 left-0 right-0 mt-1 max-h-[240px] overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg py-1"
+          >
+            <button
+              type="button"
+              class="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-amber-50 focus:bg-amber-50 focus:outline-none"
+              @mousedown.prevent="clearCountry(); countryDropdownOpen = false"
+            >
+              {{ t('orgsMap.countries.all') }}
+            </button>
+            <button
+              v-for="c in countrySuggestions"
+              :key="c.code"
+              type="button"
+              class="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-amber-50 focus:bg-amber-50 focus:outline-none flex justify-between"
+              @mousedown.prevent="selectCountry(c.code, getCountryLabel(c.code)); countryDropdownOpen = false"
+            >
+              <span>{{ getCountryLabel(c.code) }}</span>
+              <span class="text-slate-400 text-xs">{{ c.code }}</span>
+            </button>
+          </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgsMap.searchLabel') }}</label>

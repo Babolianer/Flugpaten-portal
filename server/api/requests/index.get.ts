@@ -21,9 +21,7 @@ export default defineEventHandler(async (event) => {
   if (originAirport) where.originAirport = { contains: originAirport, mode: 'insensitive' }
   if (destAirport) where.destAirport = { contains: destAirport, mode: 'insensitive' }
   if (species && species !== 'all') {
-    if (species === 'cat' || species === 'dog') {
-      where.animal = { species }
-    }
+    where.animal = { species }
   }
 
   const requests = await prisma.transportRequest.findMany({

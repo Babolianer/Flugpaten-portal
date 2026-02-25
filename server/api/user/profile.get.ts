@@ -11,12 +11,19 @@ export default defineEventHandler(async (event) => {
     prisma.userProfile.findUnique({ where: { userId: user.id } }),
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { displayName: true },
+      select: { displayName: true, firstName: true, lastName: true, phone: true },
     }),
   ])
 
   return {
-    profile: profile || null,
+    profile: profile
+      ? {
+          ...profile,
+          firstName: dbUser?.firstName ?? null,
+          lastName: dbUser?.lastName ?? null,
+        }
+      : { firstName: dbUser?.firstName ?? null, lastName: dbUser?.lastName ?? null },
     displayName: dbUser?.displayName ?? user.displayName,
+    phone: dbUser?.phone ?? (user as { phone?: string | null }).phone ?? null,
   }
 })

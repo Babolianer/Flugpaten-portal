@@ -79,12 +79,7 @@ export default defineEventHandler(async (event) => {
     }
   }
   if (species && species !== 'all') {
-    requestsWhere.animal = species === 'cat' || species === 'dog'
-      ? { species }
-      : undefined
-    if (species !== 'cat' && species !== 'dog') {
-      delete requestsWhere.animal
-    }
+    requestsWhere.animal = { species }
   }
 
   const requests = await prisma.transportRequest.findMany({

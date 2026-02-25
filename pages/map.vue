@@ -54,6 +54,7 @@ const requests = ref<Request[]>([])
 const selectedId = ref<string | null>(null)
 const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void } | null>(null)
 const overlayMapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void } | null>(null)
+const requestListRef = ref<HTMLElement | null>(null)
 const mapExpanded = ref(false)
 const loading = ref(false)
 const isMobile = ref(false)
@@ -70,6 +71,11 @@ const selectedRoute = computed(() => {
     from: [req.originLng, req.originLat] as [number, number],
     to: [req.destLng, req.destLat] as [number, number],
   }
+})
+
+const selectedRequest = computed(() => {
+  if (!selectedId.value) return null
+  return requests.value.find((r) => r.id === selectedId.value) ?? null
 })
 
 const groupedRequests = computed(() => {
@@ -140,6 +146,13 @@ function onPinClick(pin: Pin) {
   } else if (pin) {
     getActiveMapRef()?.flyTo(pin.lng, pin.lat)
   }
+  // Scroll the right-side list so the selected request card is visible (only when selecting via map pin)
+  nextTick(() => {
+    const id = selectedId.value
+    if (!id || !requestListRef.value) return
+    const el = requestListRef.value.querySelector(`[data-request-id="${id}"]`)
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  })
 }
 
 function onRequestClick(req: Request) {
@@ -302,19 +315,19 @@ watch(mapExpanded, (expanded) => {
             </button>
           </div>
 
-          <div class="space-y-4 sm:space-y-6 lg:max-h-[520px] lg:overflow-y-auto overflow-x-hidden">
+          <div ref="requestListRef" class="space-y-4 sm:space-y-6 lg:max-h-[520px] lg:overflow-y-auto overflow-x-hidden">
             <section v-if="groupedRequests.direct.length" class="space-y-2">
               <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">
                 {{ t('map.groupDirect') }}
               </h3>
               <div class="space-y-3">
-                <RequestCard
-                  v-for="req in groupedRequests.direct"
-                  :key="req.id"
-                  :request="req"
-                  :selected="selectedId === req.id"
-                  @click="onRequestClick(req)"
-                />
+                <div v-for="req in groupedRequests.direct" :key="req.id" :data-request-id="req.id">
+                  <RequestCard
+                    :request="req"
+                    :selected="selectedId === req.id"
+                    @click="onRequestClick(req)"
+                  />
+                </div>
               </div>
             </section>
             <section v-if="groupedRequests.radius.length" class="space-y-2">
@@ -322,13 +335,13 @@ watch(mapExpanded, (expanded) => {
                 {{ t('map.groupRadius') }}
               </h3>
               <div class="space-y-3">
-                <RequestCard
-                  v-for="req in groupedRequests.radius"
-                  :key="req.id"
-                  :request="req"
-                  :selected="selectedId === req.id"
-                  @click="onRequestClick(req)"
-                />
+                <div v-for="req in groupedRequests.radius" :key="req.id" :data-request-id="req.id">
+                  <RequestCard
+                    :request="req"
+                    :selected="selectedId === req.id"
+                    @click="onRequestClick(req)"
+                  />
+                </div>
               </div>
             </section>
             <section v-if="groupedRequests.country.length" class="space-y-2">
@@ -336,24 +349,24 @@ watch(mapExpanded, (expanded) => {
                 {{ t('map.groupCountry') }}
               </h3>
               <div class="space-y-3">
-                <RequestCard
-                  v-for="req in groupedRequests.country"
-                  :key="req.id"
-                  :request="req"
-                  :selected="selectedId === req.id"
-                  @click="onRequestClick(req)"
-                />
+                <div v-for="req in groupedRequests.country" :key="req.id" :data-request-id="req.id">
+                  <RequestCard
+                    :request="req"
+                    :selected="selectedId === req.id"
+                    @click="onRequestClick(req)"
+                  />
+                </div>
               </div>
             </section>
             <section v-if="groupedRequests.other.length" class="space-y-2">
               <div class="space-y-3">
-                <RequestCard
-                  v-for="req in groupedRequests.other"
-                  :key="req.id"
-                  :request="req"
-                  :selected="selectedId === req.id"
-                  @click="onRequestClick(req)"
-                />
+                <div v-for="req in groupedRequests.other" :key="req.id" :data-request-id="req.id">
+                  <RequestCard
+                    :request="req"
+                    :selected="selectedId === req.id"
+                    @click="onRequestClick(req)"
+                  />
+                </div>
               </div>
             </section>
           </div>

@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
       messages: {
         orderBy: { createdAt: 'desc' },
         take: 1,
-        select: { body: true, createdAt: true, senderUserId: true },
+        select: { body: true, createdAt: true, senderUserId: true, readAt: true },
       },
     },
     orderBy: { updatedAt: 'desc' },
@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
             body: c.messages[0].body,
             createdAt: c.messages[0].createdAt.toISOString(),
             senderUserId: c.messages[0].senderUserId,
+            readAt: c.messages[0].readAt?.toISOString() ?? null,
           }
         : null,
       updatedAt: c.updatedAt.toISOString(),

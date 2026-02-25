@@ -33,8 +33,8 @@ export default defineEventHandler(async (event) => {
 
   await ensureOrgAccess(event, loc.organizationId)
 
-  let lat = parsed.data.lat
-  let lng = parsed.data.lng
+  let lat: number | null = parsed.data.lat ?? null
+  let lng: number | null = parsed.data.lng ?? null
   if (lat == null || lng == null) {
     const address = parsed.data.address ?? loc.address ?? ''
     const postalCode = parsed.data.postalCode ?? loc.postalCode ?? ''
@@ -46,11 +46,13 @@ export default defineEventHandler(async (event) => {
       city,
       countryCode,
     })
-    if (!coords) {
-      throw createError({ statusCode: 400, message: 'Could not geocode address' })
+    if (coords) {
+      lat = coords.lat
+      lng = coords.lng
+    } else {
+      lat = null
+      lng = null
     }
-    lat = coords.lat
-    lng = coords.lng
   }
 
   const updated = await prisma.orgLocation.update({

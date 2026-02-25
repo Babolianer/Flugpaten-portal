@@ -8,6 +8,7 @@ interface Message {
   senderUserId: string
   senderDisplayName: string | null
   isOwn: boolean
+  readAt: string | null
 }
 
 interface ConversationInfo {
@@ -40,7 +41,7 @@ async function loadConversation() {
     conversation.value = await $fetch<ConversationInfo>(`/api/conversations/${conversationId.value}`)
   } catch (e: unknown) {
     if ((e as { statusCode?: number })?.statusCode === 403) await navigateTo('/login')
-    if ((e as { statusCode?: number })?.statusCode === 404) await navigateTo('/dashboard')
+    if ((e as { statusCode?: number })?.statusCode === 404) await navigateTo('/inbox')
     conversation.value = null
   }
 }
@@ -61,10 +62,11 @@ async function loadMessages(onlyNew = false) {
       lastMessageId.value = res.messages[res.messages.length - 1].id
     }
     
-    // Auto-scroll only if new messages arrived and user was at bottom
-    if (res.messages.length > previousLength && wasAtBottom) {
+    // Auto-scroll: beim ersten Laden immer unten; bei Updates nur wenn User schon unten war
+    const shouldScroll = !onlyNew || (res.messages.length > previousLength && wasAtBottom)
+    if (shouldScroll) {
       nextTick(() => {
-        messagesContainer.value?.scrollTo({ top: messagesContainer.value.scrollHeight, behavior: 'smooth' })
+        messagesContainer.value?.scrollTo({ top: messagesContainer.value!.scrollHeight, behavior: onlyNew ? 'smooth' : 'auto' })
       })
     }
   } catch {
@@ -106,7 +108,7 @@ function startPolling() {
     if (isPageVisible.value && conversationId.value) {
       await loadMessages(true)
     }
-  }, 2000) // Poll every 2 seconds
+  }, 1500) // Poll alle 1,5 s für Echtzeit-Updates
 }
 
 function stopPolling() {
@@ -122,6 +124,16 @@ function handleVisibilityChange() {
     // Immediately load messages when page becomes visible
     loadMessages(true)
   }
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
+    })
+  })
 }
 
 const chatTitle = computed(() => {
@@ -142,8 +154,18 @@ onMounted(async () => {
   await loadConversation()
   await loadMessages()
   loading.value = false
+  // Nach dem Wechsel von Loading zu Chat: zum Ende scrollen
+  scrollToBottom()
+
+  // Beim Öffnen alle ungelesenen Nachrichten als gelesen markieren
+  try {
+    await $fetch(`/api/conversations/${conversationId.value}/messages/read`, { method: 'PATCH' })
+    await loadMessages(true)
+  } catch {
+    // ignore
+  }
   
-  // Start polling for new messages
+  // Start polling for new messages (Echtzeit-Updates)
   startPolling()
   
   // Listen for page visibility changes
@@ -160,6 +182,13 @@ watch(conversationId, async () => {
   if (conversationId.value) {
     await loadConversation()
     await loadMessages()
+    scrollToBottom()
+    try {
+      await $fetch(`/api/conversations/${conversationId.value}/messages/read`, { method: 'PATCH' })
+      await loadMessages(true)
+    } catch {
+      // ignore
+    }
     startPolling()
   }
 })
@@ -168,8 +197,8 @@ watch(conversationId, async () => {
 <template>
   <div class="container mx-auto w-4/5 max-w-full px-4 sm:px-6 py-6 sm:py-8 overflow-x-hidden">
     <div class="max-w-2xl mx-auto">
-      <NuxtLink :to="user?.role === 'ORG_USER' ? '/org/dashboard' : '/dashboard'" class="inline-flex items-center gap-1 text-amber-600 hover:underline text-sm mb-4">
-        {{ t('chat.backToDashboard') }}
+      <NuxtLink to="/inbox" class="inline-flex items-center gap-1 text-amber-600 hover:underline text-sm mb-4">
+        {{ t('chat.back') }}
       </NuxtLink>
       <NuxtLink v-if="conversation?.requestId" :to="`/requests/${conversation.requestId}`" class="inline-flex items-center gap-1 text-slate-500 hover:underline text-sm ml-4">
         {{ t('chat.toRequest') }}
@@ -199,7 +228,12 @@ watch(conversationId, async () => {
             >
               <p v-if="!m.isOwn && m.senderDisplayName" class="text-xs font-medium text-slate-500 mb-0.5">{{ m.senderDisplayName }}</p>
               <p class="whitespace-pre-wrap">{{ m.body }}</p>
-              <p class="text-xs opacity-70 mt-1">{{ new Date(m.createdAt).toLocaleString(locale.value === 'de' ? 'de-DE' : 'en-US') }}</p>
+              <p class="text-xs opacity-70 mt-1 flex items-center gap-2 flex-wrap">
+                <span>{{ new Date(m.createdAt).toLocaleString(locale.value === 'de' ? 'de-DE' : 'en-US') }}</span>
+                <span v-if="m.isOwn" :class="m.readAt ? 'text-emerald-600' : 'text-slate-500'">
+                  {{ m.readAt ? t('chat.statusRead') : t('chat.statusSent') }}
+                </span>
+              </p>
             </div>
           </div>
         </div>

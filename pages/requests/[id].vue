@@ -1,20 +1,8 @@
 <script setup lang="ts">
 const route = useRoute()
 const { t, locale } = useI18n()
+const { getSpeciesLabel } = useSpeciesLabel()
 const id = route.params.id as string
-
-const REISEZIEL_OPTIONS = [
-  'Mallorca',
-  'Ibiza',
-  'Menorca',
-  'Gran Canaria',
-  'Fuerteventura',
-  'Lanzarote',
-  'Teneriffa',
-  'La Palma',
-  'Spanien (sonstige)',
-  'Anderes Land',
-]
 
 interface Request {
   id: string
@@ -86,8 +74,6 @@ const form = reactive({
   vorname: '',
   nachname: '',
   anzahlPersonen: 1,
-  reiseziel: '',
-  reisezielAnderes: '',
   abflughafen: '',
   ankunftsflughafen: '',
   fluggesellschaft: '',
@@ -108,7 +94,6 @@ async function apply() {
       vorname: form.vorname,
       nachname: form.nachname,
       anzahlPersonen: form.anzahlPersonen,
-      reiseziel: form.reiseziel === 'Anderes Land' ? form.reisezielAnderes : form.reiseziel,
       abflughafen: form.abflughafen,
       ankunftsflughafen: form.ankunftsflughafen,
       fluggesellschaft: form.fluggesellschaft,
@@ -136,15 +121,43 @@ async function apply() {
   }
 }
 
-const canSubmit = computed(() => message.value.trim().length > 0 && form.datenschutz && form.vorname && form.nachname && form.email)
+const canSubmit = computed(() =>
+  message.value.trim().length > 0 &&
+  form.datenschutz &&
+  form.vorname &&
+  form.nachname &&
+  form.email &&
+  form.abflughafen?.trim() &&
+  form.ankunftsflughafen?.trim() &&
+  form.fluggesellschaft?.trim() &&
+  form.reiseVon &&
+  form.reiseBis
+)
 
 const { getRequestStatusLabel } = useRequestStatus()
 const isOpen = computed(() => request.value?.status === 'OPEN')
 
 // Als Organisation: Bewerbungen laden und anzeigen
-const { data: me } = await useFetch<{ user: { id: string; role: string }; memberships: { organizationId: string }[] }>('/api/auth/me')
+const { data: me } = await useFetch<{ user: { id: string; role: string; email?: string; phone?: string | null }; memberships: { organizationId: string }[] }>('/api/auth/me')
 const isOrg = computed(() => !!me.value?.user && ['ORG_USER', 'ADMIN'].includes(me.value.user.role))
 const isLoggedInAsPatron = computed(() => !!me.value?.user && ['USER', 'ADMIN'].includes(me.value.user.role))
+
+// Profil-Daten für Prefill des Bewerbungsformulars (Vorname, Nachname, Telefon, E-Mail)
+const { data: profileForApply, execute: fetchProfileForApply } = useFetch<{
+  profile: { firstName?: string | null; lastName?: string | null } | null
+  phone?: string | null
+}>('/api/user/profile', { immediate: false })
+watch([me, isLoggedInAsPatron], ([m, patron]) => {
+  if (patron && m?.user) fetchProfileForApply()
+}, { immediate: true })
+watch(profileForApply, (data) => {
+  if (!data || !isLoggedInAsPatron.value) return
+  if (data.profile?.firstName != null) form.vorname = data.profile.firstName
+  if (data.profile?.lastName != null) form.nachname = data.profile.lastName
+  if (data.phone != null) form.telefon = data.phone
+  if (me.value?.user?.email) form.email = me.value.user.email
+}, { immediate: true })
+
 const loginRedirectUrl = computed(() => `/requests/${id}`)
 const { data: applicationsData, execute: fetchApplications } = useFetch<{
   applications: {
@@ -489,42 +502,28 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
                 <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.travelersCount') }}</label>
                 <input v-model.number="form.anzahlPersonen" type="number" min="1" class="w-full border border-slate-300 rounded-lg px-3 py-2 w-24 focus:ring-2 focus:ring-amber-500" />
               </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.travelDestination') }}</label>
-                <select v-model="form.reiseziel" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500">
-                  <option value="">{{ t('request.pleaseSelect') }}</option>
-                  <option v-for="opt in REISEZIEL_OPTIONS" :key="opt" :value="opt">{{ opt }}</option>
-                </select>
-                <input
-                  v-if="form.reiseziel === 'Anderes Land'"
-                  v-model="form.reisezielAnderes"
-                  type="text"
-                  :placeholder="t('request.enterCountry')"
-                  class="mt-2 w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.originAirport') }}</label>
-                  <input v-model="form.abflughafen" type="text" :placeholder="t('request.originPlaceholder')" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
+                  <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.originAirport') }} *</label>
+                  <input v-model="form.abflughafen" type="text" required :placeholder="t('request.originPlaceholder')" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.destAirport') }}</label>
-                  <input v-model="form.ankunftsflughafen" type="text" :placeholder="t('request.destPlaceholder')" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
+                  <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.destAirport') }} *</label>
+                  <input v-model="form.ankunftsflughafen" type="text" required :placeholder="t('request.destPlaceholder')" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
                 </div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.airline') }}</label>
-                <input v-model="form.fluggesellschaft" type="text" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
+                <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.airline') }} *</label>
+                <input v-model="form.fluggesellschaft" type="text" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.travelFrom') }}</label>
-                  <input v-model="form.reiseVon" type="date" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
+                  <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.travelFrom') }} *</label>
+                  <input v-model="form.reiseVon" type="date" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.travelTo') }}</label>
-                  <input v-model="form.reiseBis" type="date" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
+                  <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.travelTo') }} *</label>
+                  <input v-model="form.reiseBis" type="date" required class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500" />
                 </div>
               </div>
               <div>

@@ -39,12 +39,13 @@ interface Conversation {
   requestTitle: string | null
   orgName: string | null
   orgSlug: string | null
-  lastMessage: { body: string; createdAt: string; senderUserId: string } | null
+  lastMessage: { body: string; createdAt: string; senderUserId: string; readAt: string | null } | null
   updatedAt: string
 }
 
 const { user, fetchUser } = useAuth()
 const { t, locale } = useI18n()
+const { getSpeciesLabel } = useSpeciesLabel()
 const applications = ref<Application[]>([])
 const conversations = ref<Conversation[]>([])
 const requests = ref<Request[]>([])
@@ -90,6 +91,7 @@ interface MapRequest {
   distanceKm?: number
 }
 
+const profileLoading = ref(true)
 const mapFilters = ref({
   dateFrom: '',
   dateTo: '',
@@ -113,6 +115,11 @@ const mapSelectedRoute = computed(() => {
     from: [req.originLng, req.originLat] as [number, number],
     to: [req.destLng, req.destLat] as [number, number],
   }
+})
+
+const mapSelectedRequest = computed(() => {
+  if (!mapSelectedId.value) return null
+  return mapRequests.value.find((r) => r.id === mapSelectedId.value) ?? null
 })
 
 const mapGroupedRequests = computed(() => {
@@ -195,9 +202,15 @@ const rejectedApplications = computed(() => applications.value.filter((a) => a.s
 // KPIs
 const activeTransports = computed(() => acceptedTrips.value.length)
 const openApplications = computed(() => pendingApplications.value.length)
+// Gleiche Logik wie Header: unread = letzte Nachricht von anderem + readAt ist null
 const unreadMessages = computed(() => {
   if (!user.value) return 0
-  return conversations.value.filter((c) => c.lastMessage && c.lastMessage.senderUserId !== user.value!.id).length
+  return conversations.value.filter(
+    (c) =>
+      c.lastMessage &&
+      c.lastMessage.senderUserId !== user.value!.id &&
+      c.lastMessage.readAt === null
+  ).length
 })
 
 // Filtered applications
@@ -206,11 +219,16 @@ const filteredApplications = computed(() => {
   return applications.value.filter((a) => a.status === applicationFilter.value)
 })
 
-// Unread conversations (new messages)
+// Unread conversations (new messages) – gleiche Logik wie Header
 const unreadConversations = computed(() => {
   if (!user.value) return []
   return conversations.value
-    .filter((c) => c.lastMessage && c.lastMessage.senderUserId !== user.value!.id)
+    .filter(
+      (c) =>
+        c.lastMessage &&
+        c.lastMessage.senderUserId !== user.value!.id &&
+        c.lastMessage.readAt === null
+    )
     .slice(0, 5) // Show max 5 on dashboard
 })
 
@@ -301,6 +319,8 @@ async function loadData() {
     applications.value = []
     conversations.value = []
     profileSummary.value = null
+  } finally {
+    profileLoading.value = false
   }
 }
 
@@ -359,18 +379,19 @@ function starDisplay(rating: number) {
 
 <template>
   <div class="container mx-auto w-4/5 max-w-full px-4 sm:px-6 py-6 sm:py-8 overflow-x-hidden">
-    <!-- Profilsektion oben (nur für USER mit Profil/Stats) -->
+    <!-- Profilsektion oben – sofort sichtbar, kein Layout-Sprung -->
     <div
-      v-if="profileSummary && profileSummary.stats"
-      class="mb-8 rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-6 sm:p-8 shadow-sm"
+      v-if="user"
+      class="mb-8 rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-6 sm:p-8 shadow-sm min-h-[180px]"
     >
       <div class="flex flex-col sm:flex-row gap-6 sm:gap-8">
-        <div class="flex items-start gap-4 shrink-0">
+        <!-- Linke Spalte: Avatar + Bewertungen direkt darunter, linksbündig -->
+        <div class="flex flex-col shrink-0 w-fit min-w-0">
           <NuxtLink :to="user?.id ? `/user/${user.id}` : '/dashboard'" class="block shrink-0">
             <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-slate-200 border-2 border-amber-200 shadow-inner">
               <img
-                v-if="profileSummary.profile?.avatarUrl"
-                :src="profileSummary.profile.avatarUrl"
+                v-if="!profileLoading && profileSummary?.profile?.avatarUrl"
+                :src="profileSummary!.profile!.avatarUrl"
                 :alt="user?.displayName"
                 class="w-full h-full object-cover"
               />
@@ -379,57 +400,78 @@ function starDisplay(rating: number) {
               </div>
             </div>
           </NuxtLink>
-          <div class="min-w-0">
-            <h2 class="text-lg sm:text-xl font-bold text-slate-900">{{ t('profile.profileSectionTitle') }}</h2>
-            <p class="text-slate-600 text-sm mt-0.5">{{ profileSummary.profile?.city || profileSummary.profile?.countryCode ? [profileSummary.profile.city, profileSummary.profile.countryCode].filter(Boolean).join(', ') : user?.displayName }}</p>
-            <div class="flex flex-wrap gap-3 mt-3">
+          <!-- Bewertungen direkt unter dem Profilbild, ganz links -->
+          <div
+            v-if="!profileLoading && profileSummary?.recentReviews?.length"
+            class="mt-4 w-full sm:min-w-[200px] text-left"
+          >
+            <h3 class="text-sm font-semibold text-slate-700 mb-2">{{ t('profile.recentReviews') }}</h3>
+            <div class="space-y-2 max-h-32 overflow-y-auto pr-2">
+              <div
+                v-for="rev in profileSummary.recentReviews"
+                :key="rev.id"
+                class="p-3 rounded-lg bg-white/80 border border-slate-100 text-sm text-left"
+              >
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-amber-500">{{ '★'.repeat(rev.rating) }}{{ '☆'.repeat(5 - rev.rating) }}</span>
+                  <span class="text-slate-600">{{ rev.reviewerName }}</span>
+                  <span v-if="rev.route" class="text-xs text-slate-500 truncate">· {{ rev.route }}</span>
+                </div>
+                <p v-if="rev.comment" class="text-slate-600 mt-0.5 line-clamp-2">{{ rev.comment }}</p>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="!profileLoading" class="mt-4 w-full text-left text-slate-500 text-sm">
+            {{ t('profile.noReviewsYet') }}
+          </div>
+          <div v-else class="mt-4">
+            <span class="inline-block h-4 w-32 rounded bg-slate-200 animate-pulse" />
+          </div>
+        </div>
+        <!-- Rechte Spalte: Profilinfos -->
+        <div class="min-w-0 flex-1">
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900">{{ t('profile.profileSectionTitle') }}</h2>
+          <p class="text-slate-600 text-sm mt-0.5">
+            <template v-if="profileLoading">…</template>
+            <template v-else-if="profileSummary?.profile?.city || profileSummary?.profile?.countryCode">
+              {{ [profileSummary?.profile?.city, profileSummary?.profile?.countryCode].filter(Boolean).join(', ') }}
+            </template>
+            <template v-else>{{ user?.email }}</template>
+          </p>
+          <div class="flex flex-wrap gap-3 mt-3">
+            <template v-if="profileLoading">
+              <span class="inline-block h-4 w-20 rounded bg-slate-200 animate-pulse" />
+              <span class="inline-block h-4 w-24 rounded bg-slate-200 animate-pulse" />
+              <span class="inline-block h-4 w-28 rounded bg-slate-200 animate-pulse" />
+            </template>
+            <template v-else>
               <span
-                v-if="profileSummary.stats.averageRating != null"
+                v-if="profileSummary?.stats?.averageRating != null"
                 class="inline-flex items-center gap-1 text-amber-600 font-medium text-sm"
               >
-                <span v-for="i in starDisplay(profileSummary.stats.averageRating).full" :key="'f'+i">★</span>
-                <span v-for="i in starDisplay(profileSummary.stats.averageRating).empty" :key="'e'+i" class="text-slate-300">★</span>
-                {{ profileSummary.stats.averageRating.toFixed(1) }} ({{ profileSummary.stats.reviewsCount }} {{ t('profile.reviews') }})
+                <span v-for="i in starDisplay(profileSummary!.stats!.averageRating!).full" :key="'full'+i">★</span>
+                <span v-for="i in starDisplay(profileSummary!.stats!.averageRating!).empty" :key="'empty'+i" class="text-slate-300">★</span>
+                {{ (profileSummary?.stats?.averageRating ?? 0).toFixed(1) }} ({{ profileSummary?.stats?.reviewsCount ?? 0 }} {{ t('profile.reviews') }})
               </span>
-              <span class="text-slate-600 text-sm">{{ profileSummary.stats.completedFlightsCount }} {{ t('profile.completedFlights') }}</span>
-              <span class="text-slate-600 text-sm">{{ profileSummary.stats.transportedAnimalsCount }} {{ t('profile.transportedAnimals') }}</span>
-            </div>
-            <div class="flex flex-wrap gap-2 mt-3">
-              <NuxtLink
-                to="/profile-settings"
-                class="px-3 py-1.5 rounded-lg border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium hover:bg-amber-100 transition-colors inline-block"
-              >
-                {{ t('profile.editProfile') }}
-              </NuxtLink>
-              <NuxtLink
-                v-if="user?.id"
-                :to="`/user/${user.id}`"
-                class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
-              >
-                {{ t('profile.viewFullProfile') }}
-              </NuxtLink>
-            </div>
+              <span class="text-slate-600 text-sm">{{ profileSummary?.stats?.completedFlightsCount ?? 0 }} {{ t('profile.completedFlights') }}</span>
+              <span class="text-slate-600 text-sm">{{ profileSummary?.stats?.transportedAnimalsCount ?? 0 }} {{ t('profile.transportedAnimals') }}</span>
+            </template>
           </div>
-        </div>
-        <div v-if="profileSummary.recentReviews.length" class="flex-1 min-w-0">
-          <h3 class="text-sm font-semibold text-slate-700 mb-2">{{ t('profile.recentReviews') }}</h3>
-          <div class="space-y-2 max-h-32 overflow-y-auto pr-2">
-            <div
-              v-for="rev in profileSummary.recentReviews"
-              :key="rev.id"
-              class="p-3 rounded-lg bg-white/80 border border-slate-100 text-sm"
+          <div class="flex flex-wrap gap-2 mt-3">
+            <NuxtLink
+              to="/profile-settings"
+              class="px-3 py-1.5 rounded-lg border border-amber-400 bg-amber-50 text-amber-800 text-sm font-medium hover:bg-amber-100 transition-colors inline-block"
             >
-              <div class="flex items-center gap-2">
-                <span class="text-amber-500">{{ '★'.repeat(rev.rating) }}{{ '☆'.repeat(5 - rev.rating) }}</span>
-                <span class="text-slate-600">{{ rev.reviewerName }}</span>
-                <span v-if="rev.route" class="text-xs text-slate-500 truncate">· {{ rev.route }}</span>
-              </div>
-              <p v-if="rev.comment" class="text-slate-600 mt-0.5 line-clamp-2">{{ rev.comment }}</p>
-            </div>
+              {{ t('profile.editProfile') }}
+            </NuxtLink>
+            <NuxtLink
+              v-if="user?.id"
+              :to="`/user/${user.id}`"
+              class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              {{ t('profile.viewFullProfile') }}
+            </NuxtLink>
           </div>
-        </div>
-        <div v-else class="flex-1 flex items-center text-slate-500 text-sm">
-          {{ t('profile.noReviewsYet') }}
         </div>
       </div>
       <p class="text-xs text-slate-500 mt-4">{{ t('profile.profileSectionSubtitle') }}</p>
@@ -472,14 +514,23 @@ function starDisplay(rating: number) {
           <p class="text-sm font-medium text-slate-900">{{ t('dashboard.kpiOpenApplications') }}</p>
         </div>
       </div>
-      <div class="flex items-center gap-4 p-4 rounded-lg bg-white border border-slate-200 shadow-sm">
-        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 font-semibold tabular-nums">
+      <NuxtLink
+        to="/inbox"
+        class="flex items-center gap-4 p-4 rounded-lg border shadow-sm transition-all"
+        :class="unreadMessages > 0
+          ? 'bg-amber-50 border-amber-300 hover:border-amber-400 hover:bg-amber-100'
+          : 'bg-white border-slate-200 hover:border-slate-300'"
+      >
+        <div
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-semibold tabular-nums"
+          :class="unreadMessages > 0 ? 'bg-amber-200 text-amber-900' : 'bg-slate-100 text-slate-600'"
+        >
           {{ unreadMessages }}
         </div>
         <div class="min-w-0">
           <p class="text-sm font-medium text-slate-900">{{ t('dashboard.kpiNewMessages') }}</p>
         </div>
-      </div>
+      </NuxtLink>
     </div>
 
     <!-- Meine Trips -->
@@ -503,7 +554,7 @@ function starDisplay(rating: number) {
                   @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
                 />
                 <div v-else class="w-full h-full flex items-center justify-center text-slate-300 text-xs font-medium uppercase">
-                  {{ trip.request?.animal?.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }}
+                  {{ getSpeciesLabel(trip.request?.animal?.species ?? '') }}
                 </div>
               </div>
               <div class="flex-1 min-w-0">
@@ -561,30 +612,31 @@ function starDisplay(rating: number) {
       </NuxtLink>
     </div>
 
-    <!-- Neue Nachrichten -->
+    <!-- Neue Nachrichten – prominent -->
     <div v-if="unreadConversations.length > 0" class="mb-8">
       <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">{{ t('dashboard.newMessagesTitle') }}</h2>
-        <NuxtLink to="/inbox" class="text-sm text-slate-600 hover:text-slate-900 font-medium">
+        <h2 class="text-base font-semibold text-slate-800">{{ t('dashboard.newMessagesTitle') }}</h2>
+        <NuxtLink to="/inbox" class="text-sm text-amber-600 hover:text-amber-700 font-semibold">
           {{ t('dashboard.newMessagesShowAll') }}
         </NuxtLink>
       </div>
-      <div class="space-y-2">
+      <div class="space-y-3">
         <NuxtLink
           v-for="conv in unreadConversations"
           :key="conv.id"
           :to="`/inbox/${conv.id}`"
-          class="block p-3 sm:p-4 rounded-lg bg-white border border-slate-200 hover:border-slate-300 shadow-sm transition-all cursor-pointer group"
+          class="block p-4 sm:p-5 rounded-xl bg-white border-2 border-amber-200 hover:border-amber-400 shadow-md hover:shadow-lg transition-all cursor-pointer group"
         >
           <div class="flex items-start gap-3">
-            <span class="mt-1.5 shrink-0 w-2 h-2 rounded-full bg-slate-400 group-hover:bg-slate-600" />
+            <span class="mt-2 shrink-0 w-3 h-3 rounded-full bg-amber-500 ring-4 ring-amber-100" />
             <div class="flex-1 min-w-0">
-              <p class="font-medium text-slate-900 text-sm group-hover:text-slate-700">
+              <p class="font-semibold text-slate-900 group-hover:text-amber-700 transition-colors">
                 {{ conv.requestTitle ?? t('dashboard.request') }} – {{ conv.orgName ?? t('dashboard.organization') }}
               </p>
-              <p v-if="conv.lastMessage" class="text-sm text-slate-500 truncate mt-0.5">{{ conv.lastMessage.body }}</p>
-              <p class="text-xs text-slate-400 mt-1">{{ formatRelativeTime(conv.lastMessage?.createdAt ?? conv.updatedAt) }}</p>
+              <p v-if="conv.lastMessage" class="text-sm text-slate-600 truncate mt-1">{{ conv.lastMessage.body }}</p>
+              <p class="text-xs text-slate-500 mt-2">{{ formatRelativeTime(conv.lastMessage?.createdAt ?? conv.updatedAt) }}</p>
             </div>
+            <span class="shrink-0 text-amber-500 group-hover:translate-x-1 transition-transform">→</span>
           </div>
         </NuxtLink>
       </div>
@@ -654,7 +706,7 @@ function starDisplay(rating: number) {
                 @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
               />
               <div v-else class="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium uppercase">
-                {{ app.request?.animal?.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }}
+                {{ getSpeciesLabel(app.request?.animal?.species ?? '') }}
               </div>
             </div>
             <div class="flex-1 min-w-0">
@@ -700,6 +752,7 @@ function starDisplay(rating: number) {
               :selected-id="mapSelectedId"
               :selected-route="mapSelectedRoute"
               class="h-[280px] sm:h-[380px] lg:h-[500px] w-full"
+              @pin-click="onMapPinClick"
             />
             <template #fallback>
               <div class="h-[280px] sm:h-[380px] lg:h-[500px] bg-slate-200 flex items-center justify-center">

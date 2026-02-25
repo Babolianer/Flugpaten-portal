@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t, locale } = useI18n()
+const { getSpeciesLabel } = useSpeciesLabel()
 const { getRequestStatusLabel } = useRequestStatus()
 
 type MatchType = 'DIRECT' | 'RADIUS' | 'COUNTRY'
@@ -44,7 +45,7 @@ defineEmits<{
         @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
       />
       <div v-else class="w-full h-full flex items-center justify-center text-2xl text-slate-400">
-        {{ request.animal?.species === 'dog' ? '🐕' : '🐈' }}
+        {{ request.animal?.species === 'dog' ? '🐕' : request.animal?.species === 'cat' ? '🐈' : '🐾' }}
       </div>
     </div>
 
@@ -83,7 +84,7 @@ defineEmits<{
       </div>
       <h3 class="font-semibold text-slate-900">{{ request.title }}</h3>
       <p v-if="request.animal" class="text-sm text-slate-600 mt-1">
-        {{ request.animal.name }} ({{ request.animal.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }})
+        {{ request.animal.name }} ({{ getSpeciesLabel(request.animal.species) }})
       </p>
       <p class="text-sm text-slate-600 mt-1">
         {{ request.originAirport }} → {{ request.destAirport }}

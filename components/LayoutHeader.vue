@@ -5,6 +5,7 @@ import logoImgHover from '~/assets/images/logo_2.png'
 const { user, fetchUser, logout } = useAuth()
 const { locale, locales, t, setLocale } = useI18n()
 const mobileMenuOpen = ref(false)
+const unreadMessagesCount = ref(0)
 const logoHover = ref(false)
 const langDropdownOpen = ref(false)
 const langDropdownDesktopRef = ref<HTMLElement | null>(null)
@@ -39,7 +40,73 @@ watch(langDropdownOpen, (isOpen) => {
   setTimeout(() => document.addEventListener('click', handler), 0)
 })
 
-onMounted(fetchUser)
+async function loadUnreadCount() {
+  if (user.value?.role === 'USER') {
+    try {
+      const res = await $fetch<{ unreadCount: number }>('/api/user/conversations/unread-count')
+      unreadMessagesCount.value = res.unreadCount
+    } catch {
+      unreadMessagesCount.value = 0
+    }
+    return
+  }
+  if (user.value?.role === 'ORG_USER') {
+    try {
+      const res = await $fetch<{ unreadCount: number }>('/api/org/dashboard/conversations/unread-count')
+      unreadMessagesCount.value = res.unreadCount
+    } catch {
+      unreadMessagesCount.value = 0
+    }
+    return
+  }
+  unreadMessagesCount.value = 0
+}
+
+const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null)
+
+function startUnreadPolling() {
+  if (pollingInterval.value) return
+  pollingInterval.value = setInterval(() => {
+    if (document.hidden) return
+    if (user.value?.role === 'USER' || user.value?.role === 'ORG_USER') {
+      loadUnreadCount()
+    }
+  }, 10000)
+}
+
+function stopUnreadPolling() {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+    pollingInterval.value = null
+  }
+}
+
+watch(user, (u) => {
+  if (u?.role === 'USER' || u?.role === 'ORG_USER') {
+    loadUnreadCount()
+    startUnreadPolling()
+  } else {
+    unreadMessagesCount.value = 0
+    stopUnreadPolling()
+  }
+}, { immediate: true })
+
+const route = useRoute()
+watch(() => route.path, () => {
+  if (user.value?.role === 'USER' || user.value?.role === 'ORG_USER') loadUnreadCount()
+})
+
+onMounted(async () => {
+  await fetchUser()
+  if (user.value?.role === 'USER' || user.value?.role === 'ORG_USER') {
+    loadUnreadCount()
+    startUnreadPolling()
+  }
+})
+
+onUnmounted(() => {
+  stopUnreadPolling()
+})
 </script>
 
 <template>
@@ -61,7 +128,7 @@ onMounted(fetchUser)
         />
         <div class="flex flex-col min-w-0">
           <span class="truncate">{{ t('app.name') }}</span>
-          <span class="text-xs sm:text-sm font-normal text-slate-300 hidden sm:block">{{ t('app.tagline') }}</span>
+          <span class="text-xs sm:text-sm font-normal text-slate-300">{{ t('app.tagline') }}</span>
         </div>
       </NuxtLink>
 
@@ -79,7 +146,44 @@ onMounted(fetchUser)
           <NuxtLink v-if="user.role === 'ADMIN'" to="/admin" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.admin') }}</NuxtLink>
           <NuxtLink v-if="user.role === 'ORG_USER'" to="/org/dashboard" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.dashboard') }}</NuxtLink>
           <NuxtLink v-if="user.role === 'USER'" to="/dashboard" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.dashboard') }}</NuxtLink>
-          <span class="text-slate-300 text-sm truncate max-w-[120px] lg:max-w-none">{{ user.displayName }}</span>
+          <NuxtLink
+            v-if="user.role === 'ORG_USER'"
+            to="/inbox"
+            class="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap"
+          >
+            <span>{{ t('nav.inbox') }}</span>
+            <span
+              v-if="unreadMessagesCount > 0"
+              class="flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-slate-900 text-xs font-bold"
+            >
+              {{ unreadMessagesCount > 99 ? '99+' : unreadMessagesCount }}
+            </span>
+          </NuxtLink>
+          <NuxtLink
+            v-if="user.role === 'USER'"
+            to="/inbox"
+            class="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap"
+          >
+            <span>{{ t('nav.inbox') }}</span>
+            <span
+              v-if="unreadMessagesCount > 0"
+              class="flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-slate-900 text-xs font-bold"
+            >
+              {{ unreadMessagesCount > 99 ? '99+' : unreadMessagesCount }}
+            </span>
+          </NuxtLink>
+          <NuxtLink
+            v-if="user.role === 'USER' && user.id"
+            :to="`/user/${user.id}`"
+            class="flex items-center justify-center w-10 h-10 rounded-full bg-slate-700 border border-slate-600 hover:bg-slate-600 hover:border-slate-500 transition-colors shrink-0"
+            :title="t('profile.viewFullProfile')"
+            :aria-label="t('profile.viewFullProfile')"
+          >
+            <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </NuxtLink>
+          <span v-else class="text-slate-300 text-sm truncate max-w-[120px] lg:max-w-none">{{ user.displayName }}</span>
           <button
             type="button"
             class="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors text-sm whitespace-nowrap"
@@ -149,8 +253,15 @@ onMounted(fetchUser)
         </div>
       </nav>
 
-      <!-- Mobile: Flaggen-Sprachauswahl + Hamburger -->
-      <div class="flex md:hidden items-center gap-2">
+      <!-- Mobile: Flugpaten werden + Flaggen-Sprachauswahl + Hamburger -->
+      <div class="flex md:hidden items-center gap-2 shrink-0">
+        <NuxtLink
+          to="/map"
+          class="inline-flex px-3 py-2 rounded-lg border-2 border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-slate-900 font-medium text-sm transition-colors whitespace-nowrap min-h-[40px] items-center justify-center"
+          @click="closeMobileMenu"
+        >
+          {{ t('nav.flugpatenWerden') }}
+        </NuxtLink>
         <div ref="langDropdownMobileRef" class="relative" role="group" :aria-label="t('nav.language')">
           <button
             type="button"
@@ -233,24 +344,64 @@ onMounted(fetchUser)
         :aria-label="t('nav.mainMenu')"
       >
         <div class="container mx-auto px-4 py-4 flex flex-col gap-1">
-          <NuxtLink to="/flugpate" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.wissen') }}</NuxtLink>
-          <NuxtLink to="/orgs-map" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.organisations') }}</NuxtLink>
+          <!-- 1. Nachrichten -->
           <NuxtLink
-            to="/map"
-            class="py-3 px-4 rounded-lg border-2 border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-slate-900 font-medium text-center mt-1"
+            v-if="user && (user.role === 'ORG_USER')"
+            to="/inbox"
+            class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium flex items-center justify-between"
             @click="closeMobileMenu"
           >
-            {{ t('nav.flugpatenWerden') }}
+            <span>{{ t('nav.inbox') }}</span>
+            <span
+              v-if="unreadMessagesCount > 0"
+              class="flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-amber-500 text-slate-900 text-sm font-bold"
+            >
+              {{ unreadMessagesCount > 99 ? '99+' : unreadMessagesCount }}
+            </span>
           </NuxtLink>
+          <NuxtLink
+            v-if="user && user.role === 'USER'"
+            to="/inbox"
+            class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium flex items-center justify-between"
+            @click="closeMobileMenu"
+          >
+            <span>{{ t('nav.inbox') }}</span>
+            <span
+              v-if="unreadMessagesCount > 0"
+              class="flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-amber-500 text-slate-900 text-sm font-bold"
+            >
+              {{ unreadMessagesCount > 99 ? '99+' : unreadMessagesCount }}
+            </span>
+          </NuxtLink>
+          <!-- 2. Dashboard -->
+          <NuxtLink v-if="user?.role === 'ADMIN'" to="/admin" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.admin') }}</NuxtLink>
+          <NuxtLink v-if="user?.role === 'ORG_USER'" to="/org/dashboard" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.dashboard') }}</NuxtLink>
+          <NuxtLink v-if="user?.role === 'USER'" to="/dashboard" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.dashboard') }}</NuxtLink>
+          <!-- 3. Profil -->
+          <NuxtLink
+            v-if="user?.role === 'USER' && user?.id"
+            :to="`/user/${user.id}`"
+            class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium flex items-center gap-3"
+            :aria-label="t('profile.viewFullProfile')"
+            @click="closeMobileMenu"
+          >
+            <span class="flex items-center justify-center w-10 h-10 rounded-full bg-slate-700 border border-slate-600 shrink-0">
+              <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </span>
+            {{ t('profile.viewFullProfile') }}
+          </NuxtLink>
+          <p v-else-if="user" class="py-2 px-4 text-slate-400 text-sm">{{ user.displayName }}</p>
+          <!-- 4. Organisationen -->
+          <NuxtLink to="/orgs-map" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.organisations') }}</NuxtLink>
+          <!-- 5. Wissen -->
+          <NuxtLink to="/flugpate" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.wissen') }}</NuxtLink>
           <template v-if="user">
-            <NuxtLink v-if="user.role === 'ADMIN'" to="/admin" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.admin') }}</NuxtLink>
-            <NuxtLink v-if="user.role === 'ORG_USER'" to="/org/dashboard" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.dashboard') }}</NuxtLink>
-            <NuxtLink v-if="user.role === 'USER'" to="/dashboard" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.dashboard') }}</NuxtLink>
-            <p class="py-2 px-4 text-slate-400 text-sm">{{ user.displayName }}</p>
-            <button type="button" class="py-3 px-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-left w-full font-medium" @click="logout(); closeMobileMenu()">{{ t('nav.logout') }}</button>
+            <button type="button" class="py-3 px-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-left w-full font-medium mt-2" @click="logout(); closeMobileMenu()">{{ t('nav.logout') }}</button>
           </template>
           <template v-else>
-            <NuxtLink to="/login" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.login') }}</NuxtLink>
+            <NuxtLink to="/login" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium mt-2" @click="closeMobileMenu">{{ t('nav.login') }}</NuxtLink>
             <NuxtLink to="/register" class="py-3 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium text-center mt-2" @click="closeMobileMenu">{{ t('nav.register') }}</NuxtLink>
           </template>
         </div>
