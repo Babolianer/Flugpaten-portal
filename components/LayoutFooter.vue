@@ -22,6 +22,7 @@ const linkGroups = computed(() => {
       { to: '/kontakt', label: t('footer.contact') },
       { to: '/impressum', label: t('footer.impressum') },
       { to: '/datenschutz', label: t('footer.datenschutz') },
+      { to: '/nutzungsbedingungen', label: t('footer.nutzungsbedingungen') },
       { isAction: true, label: t('footer.cookieSettings'), action: 'openCookieSettings' },
     ]},
   ]

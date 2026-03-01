@@ -5,8 +5,10 @@ const email = ref('')
 const password = ref('')
 const displayName = ref('')
 const role = ref<'USER' | 'ORG_USER'>('USER')
-const termsAccepted = ref(false)
-const privacyAccepted = ref(false)
+const termsAndPrivacyAccepted = ref(false)
+const newsletterOptIn = ref(false)
+const showTermsModal = ref(false)
+const showPrivacyModal = ref(false)
 const redirectTo = computed(() => (route.query.redirect as string) || '/dashboard')
 const orgDescription = ref('')
 const orgWebsite = ref('')
@@ -28,6 +30,9 @@ async function submit() {
           description: orgDescription.value.trim() || undefined,
           website: orgWebsite.value.trim() || undefined,
           contactEmail: orgContactEmail.value.trim(),
+          termsAccepted: termsAndPrivacyAccepted.value,
+          privacyAccepted: termsAndPrivacyAccepted.value,
+          newsletterOptIn: newsletterOptIn.value,
         },
       })
       await navigateTo('/org/dashboard?registered=1')
@@ -40,8 +45,9 @@ async function submit() {
           password: password.value,
           role: 'USER',
           displayName: displayName.value,
-          termsAccepted: termsAccepted.value,
-          privacyAccepted: privacyAccepted.value,
+          termsAccepted: termsAndPrivacyAccepted.value,
+          privacyAccepted: termsAndPrivacyAccepted.value,
+          newsletterOptIn: newsletterOptIn.value,
         },
       })
       await navigateTo(redirectTo.value)
@@ -108,18 +114,22 @@ async function submit() {
             class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           />
         </div>
-        <template v-if="role === 'USER'">
-          <div class="mb-4 space-y-3">
-            <label class="flex items-start gap-2 cursor-pointer">
-              <input v-model="termsAccepted" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300" />
-              <span class="text-sm text-slate-700">{{ t('register.termsCheckbox') }}</span>
-            </label>
-            <label class="flex items-start gap-2 cursor-pointer">
-              <input v-model="privacyAccepted" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300" />
-              <span class="text-sm text-slate-700">{{ t('register.privacyCheckbox') }}</span>
-            </label>
-          </div>
-        </template>
+        <div class="mb-4 space-y-3">
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input v-model="termsAndPrivacyAccepted" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300 shrink-0" />
+            <span class="text-sm text-slate-700">
+              {{ t('register.termsAndPrivacyCheckboxPrefix') }}
+              <button type="button" class="text-amber-600 hover:underline" @click.prevent="showTermsModal = true">{{ t('register.termsLink') }}</button>
+              {{ t('register.termsAndPrivacyCheckboxMiddle') }}
+              <button type="button" class="text-amber-600 hover:underline" @click.prevent="showPrivacyModal = true">{{ t('register.privacyLink') }}</button>
+              {{ t('register.termsAndPrivacyCheckboxSuffix') }}
+            </span>
+          </label>
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input v-model="newsletterOptIn" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300 shrink-0" />
+            <span class="text-sm text-slate-700">{{ t('register.newsletterCheckbox') }}</span>
+          </label>
+        </div>
         <template v-if="role === 'ORG_USER'">
           <div class="mb-4">
             <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.description') }}</label>
@@ -152,7 +162,7 @@ async function submit() {
         </template>
         <button
           type="submit"
-          :disabled="loading"
+          :disabled="loading || !termsAndPrivacyAccepted"
           class="w-full py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium disabled:opacity-50 transition-colors min-h-[48px]"
         >
           {{ loading ? t('register.submitting') : t('register.submit') }}
@@ -166,5 +176,53 @@ async function submit() {
         {{ t('register.orgHint') }}
       </p>
     </div>
+
+    <!-- Modal: AGB kurz -->
+    <Teleport to="body">
+      <div v-if="showTermsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col">
+          <div class="p-6 overflow-y-auto flex-1">
+            <h3 class="text-lg font-bold text-slate-900 mb-3">{{ t('terms.title') }}</h3>
+            <p class="text-sm text-slate-700 whitespace-pre-line mb-4">{{ t('terms.shortSummary') }}</p>
+            <NuxtLink
+              to="/nutzungsbedingungen"
+              class="inline-flex items-center text-amber-600 hover:underline font-medium text-sm"
+              @click="showTermsModal = false"
+            >
+              {{ t('register.modalFullText') }} →
+            </NuxtLink>
+          </div>
+          <div class="p-4 border-t border-slate-200">
+            <button type="button" class="w-full py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50" @click="showTermsModal = false">
+              {{ t('register.modalClose') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal: Datenschutz kurz -->
+    <Teleport to="body">
+      <div v-if="showPrivacyModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col">
+          <div class="p-6 overflow-y-auto flex-1">
+            <h3 class="text-lg font-bold text-slate-900 mb-3">{{ t('privacy.title') }}</h3>
+            <p class="text-sm text-slate-700 whitespace-pre-line mb-4">{{ t('privacy.shortSummary') }}</p>
+            <NuxtLink
+              to="/datenschutz"
+              class="inline-flex items-center text-amber-600 hover:underline font-medium text-sm"
+              @click="showPrivacyModal = false"
+            >
+              {{ t('register.modalFullText') }} →
+            </NuxtLink>
+          </div>
+          <div class="p-4 border-t border-slate-200">
+            <button type="button" class="w-full py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50" @click="showPrivacyModal = false">
+              {{ t('register.modalClose') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

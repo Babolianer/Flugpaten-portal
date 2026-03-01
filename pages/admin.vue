@@ -19,6 +19,10 @@ interface ApprovedOrg {
   contactEmail: string
 }
 
+interface BlockedOrg extends ApprovedOrg {
+  status: 'CANCELLED' | 'REJECTED'
+}
+
 interface TransportRequestRow {
   id: string
   title: string
@@ -64,21 +68,45 @@ interface AcquisitionContactRow {
 
 const { t, locale } = useI18n()
 const pendingOrgs = ref<PendingOrg[]>([])
+const pendingPage = ref(1)
+const pendingTotal = ref(0)
+const pendingTotalPages = ref(0)
+const pendingPageSize = ref(15)
+const pendingSearch = ref('')
 const approvedOrgs = ref<ApprovedOrg[]>([])
-const blockedOrgs = ref<ApprovedOrg[]>([])
+const approvedPage = ref(1)
+const approvedTotal = ref(0)
+const approvedTotalPages = ref(0)
+const approvedPageSize = ref(15)
+const approvedSearch = ref('')
+const blockedOrgs = ref<BlockedOrg[]>([])
+const blockedPage = ref(1)
+const blockedTotal = ref(0)
+const blockedTotalPages = ref(0)
+const blockedPageSize = ref(15)
+const blockedSearch = ref('')
+const blockedStatusFilter = ref<string>('')
 const requests = ref<TransportRequestRow[]>([])
+const requestsPage = ref(1)
+const requestsTotal = ref(0)
+const requestsTotalPages = ref(0)
+const requestsPageSize = ref(15)
+const requestsSearch = ref('')
+const requestsStatusFilter = ref<string>('')
 const acquisitionContacts = ref<AcquisitionContactRow[]>([])
 const acquisePage = ref(1)
 const acquiseTotal = ref(0)
 const acquiseTotalPages = ref(0)
-const acquisePageSize = ref(50)
+const acquisePageSize = ref(15)
+const acquiseSearch = ref('')
+const acquiseStatusFilter = ref<string>('')
 const loading = ref(true)
 const loadingApproved = ref(true)
 const loadingBlocked = ref(true)
 const loadingRequests = ref(true)
 const loadingAcquise = ref(true)
 const message = ref('')
-const activeTab = ref<'overview' | 'requests' | 'acquise' | 'reviews'>('overview')
+const activeTab = ref<'overview' | 'organizations' | 'requests' | 'acquise' | 'reviews' | 'settings'>('overview')
 const savingId = ref<string | null>(null)
 const sendingMail = ref(false)
 const mailResult = ref<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -111,7 +139,7 @@ const mailSettingsSaved = ref(false)
 const maintenanceMode = ref(false)
 const loadingMaintenance = ref(false)
 const savingMaintenance = ref(false)
-const acquiseSubTab = ref<'contacts' | 'users'>('contacts')
+const acquiseSubTab = ref<'contacts' | 'users' | 'registeredOrgs'>('contacts')
 
 interface AdminUserRow {
   id: string
@@ -132,6 +160,7 @@ const loadingAdminUsers = ref(false)
 const adminUsersFilterNew = ref(false)
 const adminUsersFilterUnverified = ref(false)
 const adminUsersFilterActive = ref(false)
+const adminUsersSearch = ref('')
 const savingUserNotesId = ref<string | null>(null)
 const verifyingUserId = ref<string | null>(null)
 
@@ -152,8 +181,32 @@ interface ReportedReviewRow {
 const adminReviews = ref<ReportedReviewRow[]>([])
 const loadingAdminReviews = ref(false)
 const deletingReviewId = ref<string | null>(null)
+const reviewsPage = ref(1)
+const reviewsTotal = ref(0)
+const reviewsTotalPages = ref(0)
+const reviewsPageSize = ref(15)
+const reviewsSearch = ref('')
+const reviewsHasReports = ref(false)
+const stats = ref<{ orgsCount: number; transportsCount: number; usersCount: number } | null>(null)
+const loadingStats = ref(false)
 
 const { getRequestStatusLabel } = useRequestStatus()
+
+/** Gibt die anzuzeigenden Seitenzahlen für die Paginierung zurück (inkl. 'ellipsis' für Auslassungen) */
+function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | 'ellipsis')[] = []
+  if (current <= 4) {
+    for (let i = 1; i <= Math.min(5, total); i++) pages.push(i)
+    if (total > 6) pages.push('ellipsis', total)
+  } else if (current >= total - 3) {
+    pages.push(1, 'ellipsis')
+    for (let i = Math.max(1, total - 4); i <= total; i++) pages.push(i)
+  } else {
+    pages.push(1, 'ellipsis', current - 1, current, current + 1, 'ellipsis', total)
+  }
+  return pages
+}
 
 async function loadMaintenance() {
   loadingMaintenance.value = true
@@ -184,10 +237,20 @@ async function setMaintenance(value: boolean) {
   }
 }
 
-async function loadPending() {
+async function loadPending(page = 1) {
   try {
-    const res = await $fetch<{ organizations: PendingOrg[] }>('/api/admin/orgs')
+    const params = new URLSearchParams()
+    params.set('page', String(page))
+    params.set('pageSize', String(pendingPageSize.value))
+    if (pendingSearch.value.trim()) params.set('search', pendingSearch.value.trim())
+    const res = await $fetch<{
+      organizations: PendingOrg[]
+      pagination: { page: number; pageSize: number; total: number; totalPages: number }
+    }>('/api/admin/orgs?' + params.toString())
     pendingOrgs.value = res.organizations
+    pendingPage.value = res.pagination.page
+    pendingTotal.value = res.pagination.total
+    pendingTotalPages.value = res.pagination.totalPages
   } catch (e: unknown) {
     if ((e as { statusCode?: number })?.statusCode === 403) {
       await navigateTo('/login')
@@ -198,10 +261,20 @@ async function loadPending() {
   }
 }
 
-async function loadApproved() {
+async function loadApproved(page = 1) {
   try {
-    const res = await $fetch<{ organizations: ApprovedOrg[] }>('/api/admin/orgs/approved')
+    const params = new URLSearchParams()
+    params.set('page', String(page))
+    params.set('pageSize', String(approvedPageSize.value))
+    if (approvedSearch.value.trim()) params.set('search', approvedSearch.value.trim())
+    const res = await $fetch<{
+      organizations: ApprovedOrg[]
+      pagination: { page: number; pageSize: number; total: number; totalPages: number }
+    }>('/api/admin/orgs/approved?' + params.toString())
     approvedOrgs.value = res.organizations
+    approvedPage.value = res.pagination.page
+    approvedTotal.value = res.pagination.total
+    approvedTotalPages.value = res.pagination.totalPages
   } catch {
     message.value = 'Fehler beim Laden der Organisationen'
   } finally {
@@ -209,10 +282,21 @@ async function loadApproved() {
   }
 }
 
-async function loadBlocked() {
+async function loadBlocked(page = 1) {
   try {
-    const res = await $fetch<{ organizations: ApprovedOrg[] }>('/api/admin/orgs/blocked')
+    const params = new URLSearchParams()
+    params.set('page', String(page))
+    params.set('pageSize', String(blockedPageSize.value))
+    if (blockedSearch.value.trim()) params.set('search', blockedSearch.value.trim())
+    if (blockedStatusFilter.value) params.set('status', blockedStatusFilter.value)
+    const res = await $fetch<{
+      organizations: BlockedOrg[]
+      pagination: { page: number; pageSize: number; total: number; totalPages: number }
+    }>('/api/admin/orgs/blocked?' + params.toString())
     blockedOrgs.value = res.organizations
+    blockedPage.value = res.pagination.page
+    blockedTotal.value = res.pagination.total
+    blockedTotalPages.value = res.pagination.totalPages
   } catch {
     message.value = 'Fehler beim Laden der gesperrten Organisationen'
   } finally {
@@ -220,10 +304,21 @@ async function loadBlocked() {
   }
 }
 
-async function loadRequests() {
+async function loadRequests(page = 1) {
   try {
-    const res = await $fetch<{ requests: TransportRequestRow[] }>('/api/admin/requests')
+    const params = new URLSearchParams()
+    params.set('page', String(page))
+    params.set('pageSize', String(requestsPageSize.value))
+    if (requestsSearch.value.trim()) params.set('search', requestsSearch.value.trim())
+    if (requestsStatusFilter.value) params.set('status', requestsStatusFilter.value)
+    const res = await $fetch<{
+      requests: TransportRequestRow[]
+      pagination: { page: number; pageSize: number; total: number; totalPages: number }
+    }>('/api/admin/requests?' + params.toString())
     requests.value = res.requests
+    requestsPage.value = res.pagination.page
+    requestsTotal.value = res.pagination.total
+    requestsTotalPages.value = res.pagination.totalPages
   } catch {
     message.value = 'Fehler beim Laden der Transportanfragen'
   } finally {
@@ -270,11 +365,14 @@ async function loadAcquise(page = 1) {
   loadingAcquise.value = true
   if (activeTab.value === 'acquise') message.value = ''
   try {
+    const query: Record<string, string | number> = { page, pageSize: acquisePageSize.value }
+    if (acquiseSearch.value.trim()) query.search = acquiseSearch.value.trim()
+    if (acquiseStatusFilter.value) query.status = acquiseStatusFilter.value
     const [res] = await Promise.all([
       $fetch<{
         contacts: AcquisitionContactRow[]
         pagination: { page: number; pageSize: number; total: number; totalPages: number }
-      }>('/api/admin/acquisition', { query: { page, pageSize: acquisePageSize.value } }),
+      }>('/api/admin/acquisition', { query }),
       loadMailSettings(),
     ])
     acquisitionContacts.value = res.contacts
@@ -294,15 +392,36 @@ function goToAcquisePage(p: number) {
   loadAcquise(p)
 }
 
+function goToPendingPage(p: number) {
+  if (p < 1 || p > pendingTotalPages.value) return
+  loadPending(p)
+}
+
+function goToApprovedPage(p: number) {
+  if (p < 1 || p > approvedTotalPages.value) return
+  loadApproved(p)
+}
+
+function goToBlockedPage(p: number) {
+  if (p < 1 || p > blockedTotalPages.value) return
+  loadBlocked(p)
+}
+
+function goToRequestsPage(p: number) {
+  if (p < 1 || p > requestsTotalPages.value) return
+  loadRequests(p)
+}
+
 async function loadAdminUsers(page = 1) {
   loadingAdminUsers.value = true
   try {
     const params = new URLSearchParams()
     params.set('page', String(page))
-    params.set('pageSize', '50')
+    params.set('pageSize', '15')
     if (adminUsersFilterNew.value) params.set('filterNew', 'true')
     if (adminUsersFilterUnverified.value) params.set('filterUnverified', 'true')
     if (adminUsersFilterActive.value) params.set('filterActive', 'true')
+    if (adminUsersSearch.value.trim()) params.set('search', adminUsersSearch.value.trim())
     const res = await $fetch<{
       users: AdminUserRow[]
       total: number
@@ -381,8 +500,7 @@ async function load() {
 async function approve(id: string) {
   try {
     await $fetch(`/api/admin/orgs/${id}/approve`, { method: 'POST' })
-    pendingOrgs.value = pendingOrgs.value.filter((o) => o.id !== id)
-    await loadApproved()
+    await Promise.all([loadPending(pendingPage.value), loadApproved(approvedPage.value)])
   } catch {
     message.value = 'Fehler beim Genehmigen'
   }
@@ -391,7 +509,7 @@ async function approve(id: string) {
 async function reject(id: string) {
   try {
     await $fetch(`/api/admin/orgs/${id}/reject`, { method: 'POST' })
-    pendingOrgs.value = pendingOrgs.value.filter((o) => o.id !== id)
+    await loadPending(pendingPage.value)
   } catch {
     message.value = 'Fehler beim Ablehnen'
   }
@@ -406,9 +524,7 @@ async function blockOrg(id: string) {
   try {
     await $fetch(`/api/admin/orgs/${id}/block`, { method: 'POST' })
     message.value = ''
-    approvedOrgs.value = approvedOrgs.value.filter((o) => o.id !== id)
-    await loadBlocked()
-    await loadRequests()
+    await Promise.all([loadApproved(approvedPage.value), loadBlocked(blockedPage.value), loadRequests(requestsPage.value)])
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } }
     message.value = err?.data?.message ?? 'Fehler beim Sperren'
@@ -420,8 +536,7 @@ async function unblockOrg(id: string) {
   try {
     await $fetch(`/api/admin/orgs/${id}/unblock`, { method: 'POST' })
     message.value = ''
-    blockedOrgs.value = blockedOrgs.value.filter((o) => o.id !== id)
-    await loadApproved()
+    await Promise.all([loadApproved(approvedPage.value), loadPending(pendingPage.value), loadBlocked(blockedPage.value)])
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } }
     message.value = err?.data?.message ?? 'Fehler beim Entsperren'
@@ -577,16 +692,41 @@ async function sendTestMail() {
   }
 }
 
-async function loadAdminReviews() {
+async function loadStats() {
+  loadingStats.value = true
+  try {
+    stats.value = await $fetch<{ orgsCount: number; transportsCount: number; usersCount: number }>('/api/admin/stats')
+  } catch {
+    stats.value = null
+  } finally {
+    loadingStats.value = false
+  }
+}
+
+async function loadAdminReviews(page = 1) {
   loadingAdminReviews.value = true
   try {
-    const res = await $fetch<{ reviews: ReportedReviewRow[] }>('/api/admin/reviews')
+    const query: Record<string, string | number | boolean> = { page, pageSize: reviewsPageSize.value }
+    if (reviewsSearch.value.trim()) query.search = reviewsSearch.value.trim()
+    if (reviewsHasReports.value) query.hasReports = 'true'
+    const res = await $fetch<{
+      reviews: ReportedReviewRow[]
+      pagination: { page: number; pageSize: number; total: number; totalPages: number }
+    }>('/api/admin/reviews', { query })
     adminReviews.value = res.reviews
+    reviewsPage.value = res.pagination.page
+    reviewsTotal.value = res.pagination.total
+    reviewsTotalPages.value = res.pagination.totalPages
   } catch {
     adminReviews.value = []
   } finally {
     loadingAdminReviews.value = false
   }
+}
+
+function goToReviewsPage(p: number) {
+  if (p < 1 || p > reviewsTotalPages.value) return
+  loadAdminReviews(p)
 }
 
 async function deleteReview(id: string) {
@@ -604,17 +744,26 @@ async function deleteReview(id: string) {
 }
 
 watch([activeTab, acquiseSubTab], ([tab, sub]) => {
+  if (tab === 'organizations') {
+    loadPending()
+    loadApproved()
+    loadBlocked()
+  }
+  if (tab === 'requests') loadRequests(requestsPage.value)
   if (tab === 'acquise' && sub === 'users') loadAdminUsers()
-  if (tab === 'reviews') loadAdminReviews()
+  if (tab === 'acquise' && sub === 'registeredOrgs') loadApproved()
+  if (tab === 'reviews') loadAdminReviews(reviewsPage.value)
+  if (tab === 'overview') loadStats()
 })
 
-watch([adminUsersFilterNew, adminUsersFilterUnverified, adminUsersFilterActive], () => {
+watch([adminUsersFilterNew, adminUsersFilterUnverified, adminUsersFilterActive, adminUsersSearch], () => {
   if (activeTab.value === 'acquise' && acquiseSubTab.value === 'users') loadAdminUsers(1)
 })
 
 onMounted(() => {
   load()
   loadMaintenance()
+  loadStats()
 })
 </script>
 
@@ -631,9 +780,17 @@ onMounted(() => {
         type="button"
         class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
         :class="activeTab === 'overview' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-        @click="activeTab = 'overview'"
+        @click="activeTab = 'overview'; loadStats()"
       >
         {{ t('admin.tabOverview') }}
+      </button>
+      <button
+        type="button"
+        class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
+        :class="activeTab === 'organizations' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+        @click="activeTab = 'organizations'"
+      >
+        {{ t('admin.tabOrganizations') }}
       </button>
       <button
         type="button"
@@ -655,44 +812,91 @@ onMounted(() => {
         type="button"
         class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
         :class="activeTab === 'reviews' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-        @click="activeTab = 'reviews'; loadAdminReviews()"
+        @click="activeTab = 'reviews'; loadAdminReviews(1)"
       >
         {{ t('admin.tabReviews') }}
       </button>
+      <button
+        type="button"
+        class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
+        :class="activeTab === 'settings' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+        @click="activeTab = 'settings'"
+      >
+        {{ t('admin.tabSettings') }}
+      </button>
     </nav>
 
-    <!-- Tab: Übersicht -->
+    <!-- Tab: Übersicht (Dashboard) -->
     <div v-show="activeTab === 'overview'" class="space-y-10">
-      <!-- Wartungsmodus -->
-      <section class="p-4 sm:p-6 rounded-xl border-2 bg-amber-50 border-amber-200">
-        <h2 class="text-lg font-semibold text-slate-800 mb-2">Wartungsmodus</h2>
-        <p class="text-sm text-slate-600 mb-4">
-          Wenn aktiv, sehen Besucher nur eine Wartungsseite. Nur wer das Wartungs-Passwort kennt, kann sich anmelden und die Seite nutzen.
-        </p>
-        <div v-if="loadingMaintenance" class="text-slate-500 text-sm">Lade …</div>
-        <div v-else class="flex items-center gap-4">
-          <button
-            type="button"
-            :disabled="savingMaintenance"
-            class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 min-h-[44px] min-w-[56px]"
-            :class="maintenanceMode ? 'bg-amber-500' : 'bg-slate-200'"
-            role="switch"
-            :aria-checked="maintenanceMode"
-            @click="setMaintenance(!maintenanceMode)"
-          >
-            <span
-              class="pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition"
-              :class="maintenanceMode ? 'translate-x-6' : 'translate-x-1'"
-            />
-          </button>
-          <span class="font-medium text-slate-700">
-            {{ maintenanceMode ? 'Aktiv – nur Admin-Zugang' : 'Aus – Seite für alle erreichbar' }}
-          </span>
+      <!-- Statistik -->
+      <section class="p-4 sm:p-6 rounded-xl border border-slate-200 bg-white">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">{{ t('admin.statsTitle') }}</h2>
+        <div v-if="loadingStats" class="text-slate-500 text-sm">{{ t('admin.loading') }}</div>
+        <div v-else-if="stats" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
+            <p class="text-2xl font-bold text-slate-900">{{ stats.orgsCount }}</p>
+            <p class="text-sm text-slate-600">{{ t('admin.statsOrgs') }}</p>
+          </div>
+          <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
+            <p class="text-2xl font-bold text-slate-900">{{ stats.transportsCount }}</p>
+            <p class="text-sm text-slate-600">{{ t('admin.statsTransports') }}</p>
+          </div>
+          <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
+            <p class="text-2xl font-bold text-slate-900">{{ stats.usersCount }}</p>
+            <p class="text-sm text-slate-600">{{ t('admin.statsUsers') }}</p>
+          </div>
         </div>
       </section>
 
+      <section v-if="pendingTotal > 0" class="p-4 rounded-xl border border-amber-200 bg-amber-50">
+        <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.pendingOrgs') }}</h2>
+        <p class="text-slate-600 text-sm mb-3">
+          {{ t('admin.overviewPendingHint', { count: pendingTotal }) }}
+        </p>
+        <button
+          type="button"
+          class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors"
+          @click="activeTab = 'organizations'"
+        >
+          {{ t('admin.goToOrganizations') }}
+        </button>
+      </section>
+
+      <section v-if="stats && stats.transportsCount > 0" class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+        <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.transportRequests') }}</h2>
+        <p class="text-slate-600 text-sm mb-3">
+          {{ t('admin.overviewRequestsHint', { count: stats.transportsCount }) }}
+        </p>
+        <button
+          type="button"
+          class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-medium text-sm transition-colors"
+          @click="activeTab = 'requests'"
+        >
+          {{ t('admin.goToTransportRequests') }}
+        </button>
+      </section>
+    </div>
+
+    <!-- Tab: Organisationen -->
+    <div v-show="activeTab === 'organizations'" class="space-y-10">
       <section>
         <h2 class="text-lg font-semibold text-slate-800 mb-3">{{ t('admin.pendingOrgs') }}</h2>
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <input
+            v-model="pendingSearch"
+            type="search"
+            :placeholder="t('admin.searchPlaceholder')"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 max-w-[220px]"
+            @keyup.enter="loadPending(1)"
+          />
+          <button
+            type="button"
+            class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600"
+            @click="loadPending(1)"
+          >
+            {{ t('admin.search') }}
+          </button>
+        </div>
         <div v-if="loading" class="text-slate-600 text-sm">{{ t('admin.loading') }}</div>
         <div v-else-if="pendingOrgs.length === 0" class="p-5 sm:p-6 rounded-xl bg-white border border-slate-200">
           {{ t('admin.noPending') }}
@@ -728,11 +932,34 @@ onMounted(() => {
             </div>
           </div>
         </div>
+        <div v-if="pendingTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <p class="text-sm text-slate-600">{{ t('admin.acquise.pageInfo', { from: (pendingPage - 1) * pendingPageSize + 1, to: Math.min(pendingPage * pendingPageSize, pendingTotal), total: pendingTotal }) }}</p>
+          <nav class="flex items-center gap-1" aria-label="Paginierung">
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="pendingPage <= 1 || loading" :aria-label="t('admin.paginationFirst')" @click="goToPendingPage(1)">«</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="pendingPage <= 1 || loading" :aria-label="t('admin.acquise.prevPage')" @click="goToPendingPage(pendingPage - 1)">&lt;</button>
+            <template v-for="p in getPageNumbers(pendingPage, pendingTotalPages)" :key="String(p)">
+              <span v-if="p === 'ellipsis'" class="px-1.5 text-slate-400">…</span>
+              <button v-else type="button" class="min-w-[32px] rounded px-2.5 py-1.5 text-sm font-medium transition-colors" :class="p === pendingPage ? 'bg-slate-800 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'" :disabled="loading" @click="goToPendingPage(p)">{{ p }}</button>
+            </template>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="pendingPage >= pendingTotalPages || loading" :aria-label="t('admin.acquise.nextPage')" @click="goToPendingPage(pendingPage + 1)">&gt;</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="pendingPage >= pendingTotalPages || loading" :aria-label="t('admin.paginationLast')" @click="goToPendingPage(pendingTotalPages)">»</button>
+          </nav>
+        </div>
       </section>
 
       <section>
         <h2 class="text-lg font-semibold text-slate-800 mb-3">{{ t('admin.approvedOrgs') }}</h2>
-        <p class="text-slate-600 text-sm mb-4">{{ t('admin.overviewHintApproved') }}</p>
+        <p class="text-slate-600 text-sm mb-2">{{ t('admin.overviewHintApproved') }}</p>
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <input
+            v-model="approvedSearch"
+            type="search"
+            :placeholder="t('admin.searchPlaceholder')"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 max-w-[220px]"
+            @keyup.enter="loadApproved(1)"
+          />
+          <button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600" @click="loadApproved(1)">{{ t('admin.search') }}</button>
+        </div>
         <div v-if="loadingApproved" class="text-slate-600 text-sm">{{ t('admin.loading') }}</div>
         <div v-else-if="approvedOrgs.length === 0" class="p-5 rounded-xl bg-white border border-slate-200">
           {{ t('admin.noApproved') }}
@@ -772,11 +999,43 @@ onMounted(() => {
             </tbody>
           </table>
         </div>
+        <div v-if="approvedTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <p class="text-sm text-slate-600">{{ t('admin.acquise.pageInfo', { from: (approvedPage - 1) * approvedPageSize + 1, to: Math.min(approvedPage * approvedPageSize, approvedTotal), total: approvedTotal }) }}</p>
+          <nav class="flex items-center gap-1" aria-label="Paginierung">
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="approvedPage <= 1 || loadingApproved" :aria-label="t('admin.paginationFirst')" @click="goToApprovedPage(1)">«</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="approvedPage <= 1 || loadingApproved" :aria-label="t('admin.acquise.prevPage')" @click="goToApprovedPage(approvedPage - 1)">&lt;</button>
+            <template v-for="p in getPageNumbers(approvedPage, approvedTotalPages)" :key="String(p)">
+              <span v-if="p === 'ellipsis'" class="px-1.5 text-slate-400">…</span>
+              <button v-else type="button" class="min-w-[32px] rounded px-2.5 py-1.5 text-sm font-medium transition-colors" :class="p === approvedPage ? 'bg-slate-800 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'" :disabled="loadingApproved" @click="goToApprovedPage(p)">{{ p }}</button>
+            </template>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="approvedPage >= approvedTotalPages || loadingApproved" :aria-label="t('admin.acquise.nextPage')" @click="goToApprovedPage(approvedPage + 1)">&gt;</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="approvedPage >= approvedTotalPages || loadingApproved" :aria-label="t('admin.paginationLast')" @click="goToApprovedPage(approvedTotalPages)">»</button>
+          </nav>
+        </div>
       </section>
 
       <section>
         <h2 class="text-lg font-semibold text-slate-800 mb-3">{{ t('admin.blockedOrgs') }}</h2>
-        <p class="text-slate-600 text-sm mb-4">{{ t('admin.overviewHintBlocked') }}</p>
+        <p class="text-slate-600 text-sm mb-2">{{ t('admin.overviewHintBlocked') }}</p>
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <input
+            v-model="blockedSearch"
+            type="search"
+            :placeholder="t('admin.searchPlaceholder')"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 max-w-[220px]"
+            @keyup.enter="loadBlocked(1)"
+          />
+          <select
+            v-model="blockedStatusFilter"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white"
+            @change="loadBlocked(1)"
+          >
+            <option value="">{{ t('admin.filterAll') }}</option>
+            <option value="REJECTED">{{ t('admin.statusRejected') }}</option>
+            <option value="CANCELLED">{{ t('admin.statusBlocked') }}</option>
+          </select>
+          <button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600" @click="loadBlocked(1)">{{ t('admin.search') }}</button>
+        </div>
         <div v-if="loadingBlocked" class="text-slate-600 text-sm">{{ t('admin.loading') }}</div>
         <div v-else-if="blockedOrgs.length === 0" class="p-5 rounded-xl bg-white border border-slate-200">
           {{ t('admin.noBlocked') }}
@@ -786,6 +1045,7 @@ onMounted(() => {
             <thead class="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
+                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableStatus') }}</th>
                 <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableContact') }}</th>
                 <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
               </tr>
@@ -793,6 +1053,14 @@ onMounted(() => {
             <tbody>
               <tr v-for="org in blockedOrgs" :key="org.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
                 <td class="py-3 px-4 text-slate-900">{{ org.name }}</td>
+                <td class="py-3 px-4">
+                  <span
+                    class="inline-flex px-2 py-0.5 rounded text-xs font-medium"
+                    :class="org.status === 'REJECTED' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700'"
+                  >
+                    {{ org.status === 'REJECTED' ? t('admin.statusRejected') : t('admin.statusBlocked') }}
+                  </span>
+                </td>
                 <td class="py-3 px-4 text-slate-600">{{ org.contactEmail }}</td>
                 <td class="py-3 px-4 text-right">
                   <button
@@ -807,6 +1075,19 @@ onMounted(() => {
             </tbody>
           </table>
         </div>
+        <div v-if="blockedTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <p class="text-sm text-slate-600">{{ t('admin.acquise.pageInfo', { from: (blockedPage - 1) * blockedPageSize + 1, to: Math.min(blockedPage * blockedPageSize, blockedTotal), total: blockedTotal }) }}</p>
+          <nav class="flex items-center gap-1" aria-label="Paginierung">
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="blockedPage <= 1 || loadingBlocked" :aria-label="t('admin.paginationFirst')" @click="goToBlockedPage(1)">«</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="blockedPage <= 1 || loadingBlocked" :aria-label="t('admin.acquise.prevPage')" @click="goToBlockedPage(blockedPage - 1)">&lt;</button>
+            <template v-for="p in getPageNumbers(blockedPage, blockedTotalPages)" :key="String(p)">
+              <span v-if="p === 'ellipsis'" class="px-1.5 text-slate-400">…</span>
+              <button v-else type="button" class="min-w-[32px] rounded px-2.5 py-1.5 text-sm font-medium transition-colors" :class="p === blockedPage ? 'bg-slate-800 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'" :disabled="loadingBlocked" @click="goToBlockedPage(p)">{{ p }}</button>
+            </template>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="blockedPage >= blockedTotalPages || loadingBlocked" :aria-label="t('admin.acquise.nextPage')" @click="goToBlockedPage(blockedPage + 1)">&gt;</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="blockedPage >= blockedTotalPages || loadingBlocked" :aria-label="t('admin.paginationLast')" @click="goToBlockedPage(blockedTotalPages)">»</button>
+          </nav>
+        </div>
       </section>
     </div>
 
@@ -814,7 +1095,28 @@ onMounted(() => {
     <div v-show="activeTab === 'requests'" class="space-y-6">
       <section>
         <h2 class="text-lg font-semibold text-slate-800 mb-3">{{ t('admin.transportRequests') }}</h2>
-        <p class="text-slate-600 text-sm mb-4">{{ t('admin.requestsHint') }}</p>
+        <p class="text-slate-600 text-sm mb-2">{{ t('admin.requestsHint') }}</p>
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <input
+            v-model="requestsSearch"
+            type="search"
+            :placeholder="t('admin.searchPlaceholder')"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 max-w-[220px]"
+            @keyup.enter="loadRequests(1)"
+          />
+          <select
+            v-model="requestsStatusFilter"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white"
+            @change="loadRequests(1)"
+          >
+            <option value="">{{ t('admin.filterAll') }}</option>
+            <option value="OPEN">{{ t('requestStatus.OPEN') }}</option>
+            <option value="MATCHED">{{ t('requestStatus.MATCHED') }}</option>
+            <option value="COMPLETED">{{ t('requestStatus.COMPLETED') }}</option>
+            <option value="CANCELLED">{{ t('requestStatus.CANCELLED') }}</option>
+          </select>
+          <button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600" @click="loadRequests(1)">{{ t('admin.search') }}</button>
+        </div>
         <div v-if="loadingRequests" class="text-slate-600 text-sm">{{ t('admin.loading') }}</div>
         <div v-else-if="requests.length === 0" class="p-5 rounded-xl bg-white border border-slate-200">
           {{ t('admin.noRequests') }}
@@ -865,6 +1167,22 @@ onMounted(() => {
             </tbody>
           </table>
         </div>
+        <div v-if="requests.length > 0" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <p class="text-sm text-slate-600">{{ t('admin.acquise.pageInfo', { from: (requestsPage - 1) * requestsPageSize + 1, to: Math.min(requestsPage * requestsPageSize, requestsTotal), total: requestsTotal }) }}</p>
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-slate-600">{{ t('admin.acquise.pageOf', { page: requestsPage, total: requestsTotalPages || 1 }) }}</span>
+            <nav v-if="requestsTotal > 15" class="flex items-center gap-1" aria-label="Paginierung">
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="requestsPage <= 1 || loadingRequests" :aria-label="t('admin.paginationFirst')" @click="goToRequestsPage(1)">«</button>
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="requestsPage <= 1 || loadingRequests" :aria-label="t('admin.acquise.prevPage')" @click="goToRequestsPage(requestsPage - 1)">&lt;</button>
+              <template v-for="p in getPageNumbers(requestsPage, requestsTotalPages)" :key="String(p)">
+                <span v-if="p === 'ellipsis'" class="px-1.5 text-slate-400">…</span>
+                <button v-else type="button" class="min-w-[32px] rounded px-2.5 py-1.5 text-sm font-medium transition-colors" :class="p === requestsPage ? 'bg-slate-800 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'" :disabled="loadingRequests" @click="goToRequestsPage(p)">{{ p }}</button>
+              </template>
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="requestsPage >= requestsTotalPages || loadingRequests" :aria-label="t('admin.acquise.nextPage')" @click="goToRequestsPage(requestsPage + 1)">&gt;</button>
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="requestsPage >= requestsTotalPages || loadingRequests" :aria-label="t('admin.paginationLast')" @click="goToRequestsPage(requestsTotalPages)">»</button>
+            </nav>
+          </div>
+        </div>
       </section>
     </div>
 
@@ -886,6 +1204,14 @@ onMounted(() => {
           @click="acquiseSubTab = 'users'; loadAdminUsers()"
         >
           {{ t('admin.acquise.tabUsers') }}
+        </button>
+        <button
+          type="button"
+          :class="acquiseSubTab === 'registeredOrgs' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          @click="acquiseSubTab = 'registeredOrgs'; loadApproved()"
+        >
+          {{ t('admin.acquise.tabRegisteredOrgs') }}
         </button>
       </div>
 
@@ -992,7 +1318,29 @@ onMounted(() => {
 
       <section>
         <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.acquise.title') }}</h2>
-        <p class="text-slate-600 text-sm mb-4">{{ t('admin.acquise.description') }}</p>
+        <p class="text-slate-600 text-sm mb-2">{{ t('admin.acquise.description') }}</p>
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <input
+            v-model="acquiseSearch"
+            type="search"
+            :placeholder="t('admin.searchPlaceholder')"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 max-w-[220px]"
+            @keyup.enter="loadAcquise(1)"
+          />
+          <select
+            v-model="acquiseStatusFilter"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white"
+            @change="loadAcquise(1)"
+          >
+            <option value="">{{ t('admin.filterAll') }}</option>
+            <option value="OPEN">{{ t('admin.acquise.statusOpen') }}</option>
+            <option value="CONTACTED">{{ t('admin.acquise.statusContacted') }}</option>
+            <option value="REPLIED">{{ t('admin.acquise.statusReplied') }}</option>
+            <option value="REGISTERED">{{ t('admin.acquise.statusRegistered') }}</option>
+            <option value="REJECTED">{{ t('admin.acquise.statusRejected') }}</option>
+          </select>
+          <button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600" @click="loadAcquise(1)">{{ t('admin.search') }}</button>
+        </div>
         <div v-if="loadingAcquise" class="text-slate-600 text-sm">{{ t('admin.acquise.loading') }}</div>
         <div v-else-if="acquisitionContacts.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
           {{ t('admin.acquise.empty') }}
@@ -1087,28 +1435,19 @@ onMounted(() => {
           </table>
         </div>
         <!-- Paginierung -->
-        <div v-if="acquiseTotalPages > 1" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <div v-if="acquiseTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
           <p class="text-sm text-slate-600">
             {{ t('admin.acquise.pageInfo', { from: (acquisePage - 1) * acquisePageSize + 1, to: Math.min(acquisePage * acquisePageSize, acquiseTotal), total: acquiseTotal }) }}
           </p>
-          <nav class="flex items-center gap-2" aria-label="Acquise-Seiten">
-            <button
-              type="button"
-              class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              :disabled="acquisePage <= 1 || loadingAcquise"
-              @click="goToAcquisePage(acquisePage - 1)"
-            >
-              {{ t('admin.acquise.prevPage') }}
-            </button>
-            <span class="text-sm text-slate-600">{{ t('admin.acquise.pageOf', { page: acquisePage, total: acquiseTotalPages }) }}</span>
-            <button
-              type="button"
-              class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              :disabled="acquisePage >= acquiseTotalPages || loadingAcquise"
-              @click="goToAcquisePage(acquisePage + 1)"
-            >
-              {{ t('admin.acquise.nextPage') }}
-            </button>
+          <nav class="flex items-center gap-1" aria-label="Paginierung">
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="acquisePage <= 1 || loadingAcquise" :aria-label="t('admin.paginationFirst')" @click="goToAcquisePage(1)">«</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="acquisePage <= 1 || loadingAcquise" :aria-label="t('admin.acquise.prevPage')" @click="goToAcquisePage(acquisePage - 1)">&lt;</button>
+            <template v-for="p in getPageNumbers(acquisePage, acquiseTotalPages)" :key="String(p)">
+              <span v-if="p === 'ellipsis'" class="px-1.5 text-slate-400">…</span>
+              <button v-else type="button" class="min-w-[32px] rounded px-2.5 py-1.5 text-sm font-medium transition-colors" :class="p === acquisePage ? 'bg-slate-800 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'" :disabled="loadingAcquise" @click="goToAcquisePage(p)">{{ p }}</button>
+            </template>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="acquisePage >= acquiseTotalPages || loadingAcquise" :aria-label="t('admin.acquise.nextPage')" @click="goToAcquisePage(acquisePage + 1)">&gt;</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="acquisePage >= acquiseTotalPages || loadingAcquise" :aria-label="t('admin.paginationLast')" @click="goToAcquisePage(acquiseTotalPages)">»</button>
           </nav>
         </div>
       </section>
@@ -1119,7 +1458,14 @@ onMounted(() => {
         <section>
           <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.acquise.usersTitle') }}</h2>
           <p class="text-slate-600 text-sm mb-4">{{ t('admin.acquise.usersDescription') }}</p>
-          <div class="flex flex-wrap gap-4 mb-4">
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <input
+              v-model="adminUsersSearch"
+              type="search"
+              :placeholder="t('admin.searchPlaceholder')"
+              class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 max-w-[220px]"
+              @keyup.enter="loadAdminUsers(1)"
+            />
             <label class="flex items-center gap-2 cursor-pointer">
               <input v-model="adminUsersFilterNew" type="checkbox" class="rounded border-slate-300" />
               <span class="text-sm text-slate-700">{{ t('admin.acquise.filterNew') }}</span>
@@ -1132,6 +1478,7 @@ onMounted(() => {
               <input v-model="adminUsersFilterActive" type="checkbox" class="rounded border-slate-300" />
               <span class="text-sm text-slate-700">{{ t('admin.acquise.filterActive') }}</span>
             </label>
+            <button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600" @click="loadAdminUsers(1)">{{ t('admin.search') }}</button>
           </div>
           <div v-if="loadingAdminUsers" class="text-slate-600 text-sm py-4">{{ t('admin.acquise.loading') }}</div>
           <div v-else-if="adminUsers.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
@@ -1190,29 +1537,142 @@ onMounted(() => {
               </tbody>
             </table>
           </div>
-          <div v-if="adminUsersTotalPages > 1" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <div v-if="adminUsersTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
             <p class="text-sm text-slate-600">
-              {{ t('admin.acquise.pageInfo', { from: (adminUsersPage - 1) * 50 + 1, to: Math.min(adminUsersPage * 50, adminUsersTotal), total: adminUsersTotal }) }}
+              {{ t('admin.acquise.pageInfo', { from: (adminUsersPage - 1) * 15 + 1, to: Math.min(adminUsersPage * 15, adminUsersTotal), total: adminUsersTotal }) }}
             </p>
-            <nav class="flex items-center gap-2">
-              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50" :disabled="adminUsersPage <= 1" @click="goToAdminUsersPage(adminUsersPage - 1)">
-                {{ t('admin.acquise.prevPage') }}
-              </button>
-              <span class="text-sm text-slate-600">{{ t('admin.acquise.pageOf', { page: adminUsersPage, total: adminUsersTotalPages }) }}</span>
-              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50" :disabled="adminUsersPage >= adminUsersTotalPages" @click="goToAdminUsersPage(adminUsersPage + 1)">
-                {{ t('admin.acquise.nextPage') }}
-              </button>
+            <nav class="flex items-center gap-1" aria-label="Paginierung">
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="adminUsersPage <= 1 || loadingAdminUsers" :aria-label="t('admin.paginationFirst')" @click="goToAdminUsersPage(1)">«</button>
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="adminUsersPage <= 1 || loadingAdminUsers" :aria-label="t('admin.acquise.prevPage')" @click="goToAdminUsersPage(adminUsersPage - 1)">&lt;</button>
+              <template v-for="p in getPageNumbers(adminUsersPage, adminUsersTotalPages)" :key="String(p)">
+                <span v-if="p === 'ellipsis'" class="px-1.5 text-slate-400">…</span>
+                <button v-else type="button" class="min-w-[32px] rounded px-2.5 py-1.5 text-sm font-medium transition-colors" :class="p === adminUsersPage ? 'bg-slate-800 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'" :disabled="loadingAdminUsers" @click="goToAdminUsersPage(p)">{{ p }}</button>
+              </template>
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="adminUsersPage >= adminUsersTotalPages || loadingAdminUsers" :aria-label="t('admin.acquise.nextPage')" @click="goToAdminUsersPage(adminUsersPage + 1)">&gt;</button>
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="adminUsersPage >= adminUsersTotalPages || loadingAdminUsers" :aria-label="t('admin.paginationLast')" @click="goToAdminUsersPage(adminUsersTotalPages)">»</button>
+            </nav>
+          </div>
+        </section>
+      </template>
+
+      <!-- Sub-Tab: Registrierte Organisationen -->
+      <template v-else-if="acquiseSubTab === 'registeredOrgs'">
+        <section>
+          <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.acquise.registeredOrgsTitle') }}</h2>
+          <p class="text-slate-600 text-sm mb-2">{{ t('admin.acquise.registeredOrgsDescription') }}</p>
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <input
+              v-model="approvedSearch"
+              type="search"
+              :placeholder="t('admin.searchPlaceholder')"
+              class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 max-w-[220px]"
+              @keyup.enter="loadApproved(1)"
+            />
+            <button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600" @click="loadApproved(1)">{{ t('admin.search') }}</button>
+          </div>
+          <div v-if="loadingApproved" class="text-slate-600 text-sm py-4">{{ t('admin.loading') }}</div>
+          <div v-else-if="approvedOrgs.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
+            {{ t('admin.noApproved') }}
+          </div>
+          <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[400px] text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableContact') }}</th>
+                  <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="org in approvedOrgs" :key="org.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                  <td class="py-3 px-4 text-slate-900">{{ org.name }}</td>
+                  <td class="py-3 px-4 text-slate-600">{{ org.contactEmail }}</td>
+                  <td class="py-3 px-4 text-right">
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                      <NuxtLink
+                        v-if="org.slug"
+                        :to="`/org/${org.slug}`"
+                        class="inline-flex items-center px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-sm transition-colors"
+                      >
+                        {{ t('admin.viewProfile') }}
+                      </NuxtLink>
+                      <button
+                        type="button"
+                        class="inline-flex items-center px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors"
+                        @click="viewAsOrg(org.id)"
+                      >
+                        {{ t('admin.viewAsOrg') }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-if="approvedTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <p class="text-sm text-slate-600">{{ t('admin.acquise.pageInfo', { from: (approvedPage - 1) * approvedPageSize + 1, to: Math.min(approvedPage * approvedPageSize, approvedTotal), total: approvedTotal }) }}</p>
+            <nav class="flex items-center gap-1" aria-label="Paginierung">
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="approvedPage <= 1 || loadingApproved" :aria-label="t('admin.paginationFirst')" @click="goToApprovedPage(1)">«</button>
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="approvedPage <= 1 || loadingApproved" :aria-label="t('admin.acquise.prevPage')" @click="goToApprovedPage(approvedPage - 1)">&lt;</button>
+              <template v-for="p in getPageNumbers(approvedPage, approvedTotalPages)" :key="String(p)">
+                <span v-if="p === 'ellipsis'" class="px-1.5 text-slate-400">…</span>
+                <button v-else type="button" class="min-w-[32px] rounded px-2.5 py-1.5 text-sm font-medium transition-colors" :class="p === approvedPage ? 'bg-slate-800 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'" :disabled="loadingApproved" @click="goToApprovedPage(p)">{{ p }}</button>
+              </template>
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="approvedPage >= approvedTotalPages || loadingApproved" :aria-label="t('admin.acquise.nextPage')" @click="goToApprovedPage(approvedPage + 1)">&gt;</button>
+              <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="approvedPage >= approvedTotalPages || loadingApproved" :aria-label="t('admin.paginationLast')" @click="goToApprovedPage(approvedTotalPages)">»</button>
             </nav>
           </div>
         </section>
       </template>
     </div>
 
+    <!-- Tab: Einstellungen -->
+    <div v-show="activeTab === 'settings'" class="space-y-6">
+      <section class="p-4 sm:p-6 rounded-xl border-2 bg-amber-50 border-amber-200">
+        <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.settings.maintenanceTitle') }}</h2>
+        <p class="text-sm text-slate-600 mb-4">{{ t('admin.settings.maintenanceDescription') }}</p>
+        <div v-if="loadingMaintenance" class="text-slate-500 text-sm">{{ t('admin.loading') }}</div>
+        <div v-else class="flex items-center gap-4">
+          <button
+            type="button"
+            :disabled="savingMaintenance"
+            class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 min-h-[44px] min-w-[56px]"
+            :class="maintenanceMode ? 'bg-amber-500' : 'bg-slate-200'"
+            role="switch"
+            :aria-checked="maintenanceMode"
+            @click="setMaintenance(!maintenanceMode)"
+          >
+            <span
+              class="pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition"
+              :class="maintenanceMode ? 'translate-x-6' : 'translate-x-1'"
+            />
+          </button>
+          <span class="font-medium text-slate-700">
+            {{ maintenanceMode ? t('admin.settings.maintenanceOn') : t('admin.settings.maintenanceOff') }}
+          </span>
+        </div>
+      </section>
+    </div>
+
     <!-- Tab: Bewertungen -->
     <div v-show="activeTab === 'reviews'" class="space-y-6">
       <section>
-        <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.reviews.title') }}</h2>
-        <p class="text-slate-600 text-sm mb-4">{{ t('admin.reviews.description') }}</p>
+        <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.reviews.titleAll') }}</h2>
+        <p class="text-slate-600 text-sm mb-2">{{ t('admin.reviews.descriptionAll') }}</p>
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <input
+            v-model="reviewsSearch"
+            type="search"
+            :placeholder="t('admin.searchPlaceholder')"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 max-w-[220px]"
+            @keyup.enter="loadAdminReviews(1)"
+          />
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input v-model="reviewsHasReports" type="checkbox" class="rounded border-slate-300" @change="loadAdminReviews(1)" />
+            <span class="text-sm text-slate-700">{{ t('admin.reviews.filterReported') }}</span>
+          </label>
+          <button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600" @click="loadAdminReviews(1)">{{ t('admin.search') }}</button>
+        </div>
         <div v-if="loadingAdminReviews" class="text-slate-600 text-sm py-4">{{ t('admin.loading') }}</div>
         <div v-else-if="adminReviews.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
           {{ t('admin.reviews.empty') }}
@@ -1241,7 +1701,11 @@ onMounted(() => {
                   <span v-else>{{ r.orgName ?? '–' }}</span>
                 </td>
                 <td class="py-3 px-4">
-                  <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{{ r.reportsCount }} {{ t('admin.reviews.reports') }}</span>
+                  <span
+                    v-if="r.reportsCount > 0"
+                    class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700"
+                  >{{ r.reportsCount }} {{ t('admin.reviews.reports') }}</span>
+                  <span v-else class="text-slate-400 text-xs">0</span>
                   <p v-if="r.reportReasons.length" class="text-xs text-slate-600 mt-1 max-w-xs truncate" :title="r.reportReasons.join('; ')">{{ r.reportReasons[0] }}</p>
                 </td>
                 <td class="py-3 px-4 text-right">
@@ -1257,6 +1721,22 @@ onMounted(() => {
               </tr>
             </tbody>
           </table>
+        </div>
+        <!-- Paginierung Bewertungen -->
+        <div v-if="reviewsTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <p class="text-sm text-slate-600">
+            {{ t('admin.acquise.pageInfo', { from: (reviewsPage - 1) * reviewsPageSize + 1, to: Math.min(reviewsPage * reviewsPageSize, reviewsTotal), total: reviewsTotal }) }}
+          </p>
+          <nav class="flex items-center gap-1" aria-label="Paginierung">
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="reviewsPage <= 1 || loadingAdminReviews" :aria-label="t('admin.paginationFirst')" @click="goToReviewsPage(1)">«</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="reviewsPage <= 1 || loadingAdminReviews" :aria-label="t('admin.acquise.prevPage')" @click="goToReviewsPage(reviewsPage - 1)">&lt;</button>
+            <template v-for="p in getPageNumbers(reviewsPage, reviewsTotalPages)" :key="String(p)">
+              <span v-if="p === 'ellipsis'" class="px-1.5 text-slate-400">…</span>
+              <button v-else type="button" class="min-w-[32px] rounded px-2.5 py-1.5 text-sm font-medium transition-colors" :class="p === reviewsPage ? 'bg-slate-800 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'" :disabled="loadingAdminReviews" @click="goToReviewsPage(p)">{{ p }}</button>
+            </template>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="reviewsPage >= reviewsTotalPages || loadingAdminReviews" :aria-label="t('admin.acquise.nextPage')" @click="goToReviewsPage(reviewsPage + 1)">&gt;</button>
+            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="reviewsPage >= reviewsTotalPages || loadingAdminReviews" :aria-label="t('admin.paginationLast')" @click="goToReviewsPage(reviewsTotalPages)">»</button>
+          </nav>
         </div>
       </section>
     </div>

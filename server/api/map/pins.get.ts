@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   const userDestCountry = dest_country ?? (dest_iata ? getAirportByIata(dest_iata)?.country : null)
 
   const requestsWhere: Record<string, unknown> = {
-    status: 'OPEN',
+    status: { in: ['OPEN', 'MATCHED'] },
     organization: { status: 'APPROVED' },
   }
 

@@ -157,7 +157,6 @@ const formSettings = reactive({
 /** Vorlagen für die automatische Nachricht (nur zum Befüllen der Textarea) */
 const AUTOMATED_MESSAGE_PRESETS: Record<string, string> = {
   short_ack: 'Vielen Dank für Ihre Bewerbung. Wir haben sie erhalten und werden uns zeitnah bei Ihnen melden.',
-  accepted: 'Ihre Bewerbung wurde angenommen. Wir freuen uns auf die Zusammenarbeit und melden uns mit den nächsten Schritten.',
   individual: '',
 }
 const automatedMessagePresetKey = ref<string>('')
@@ -224,6 +223,8 @@ function getSpeciesLabel(species: string) {
 }
 
 const locationGeocodeError = ref(false)
+/** 'parse_error' = nur Rot (Link ungültig), 'coords_only' = Grün + Rot (Koordinaten ok, Adresse fehlt) */
+const locationMapsLinkStatus = ref<'parse_error' | 'coords_only' | null>(null)
 const locationFromLinkLoading = ref(false)
 
 async function load() {
@@ -278,6 +279,7 @@ function openCreate(mode: 'location' | 'animal' | 'request') {
   modalMode.value = mode
   editingId.value = null
   locationGeocodeError.value = false
+  locationMapsLinkStatus.value = null
   if (mode === 'location') {
     Object.assign(formLocation, { title: '', city: '', address: '', postalCode: '', lat: 0, lng: 0, countryCode: 'DE' })
     locationFromLinkLoading.value = false
@@ -314,6 +316,7 @@ function openEditLocation(loc: Location) {
   modalMode.value = 'location'
   editingId.value = loc.id
   locationGeocodeError.value = false
+  locationMapsLinkStatus.value = null
   mapsLinkInput.value = ''
   Object.assign(formLocation, {
     title: loc.title,
@@ -533,9 +536,11 @@ async function applyAddressFromMapsLink() {
   const raw = (mapsLinkInput.value || '').trim()
   if (!raw) return
   locationGeocodeError.value = false
+  locationMapsLinkStatus.value = null
   const parsed = parseMapsLink(raw)
   if (!parsed) {
     locationGeocodeError.value = true
+    locationMapsLinkStatus.value = 'parse_error'
     message.value = t('orgDashboard.mapsLinkParseError')
     return
   }
@@ -548,7 +553,8 @@ async function applyAddressFromMapsLink() {
     if (!res.ok) {
       applyCoordsFallback(parsed)
       locationGeocodeError.value = true
-      message.value = t('orgDashboard.mapsLinkReverseError')
+      locationMapsLinkStatus.value = 'coords_only'
+      message.value = ''
       return
     }
     const data = (await res.json()) as {
@@ -570,10 +576,12 @@ async function applyAddressFromMapsLink() {
     const titleFromDisplay = data.displayName ? data.displayName.split(',')[0].trim() : ''
     formLocation.title = titleFromDisplay || parsed.titleFromPath || parsed.titleFromQuery || formLocation.title
     message.value = ''
+    locationMapsLinkStatus.value = null
   } catch {
     applyCoordsFallback(parsed)
     locationGeocodeError.value = true
-    message.value = t('orgDashboard.mapsLinkReverseError')
+    locationMapsLinkStatus.value = 'coords_only'
+    message.value = ''
   } finally {
     locationFromLinkLoading.value = false
   }
@@ -611,6 +619,7 @@ async function saveLocation() {
     }
     message.value = ''
     locationGeocodeError.value = false
+    locationMapsLinkStatus.value = null
     showModal.value = false
     await load()
   } catch (e: unknown) {
@@ -1294,7 +1303,6 @@ onUnmounted(() => {
               >
                 <option value="" disabled>{{ t('orgDashboard.automatedMessagePresetChoose') }}</option>
                 <option value="short_ack">{{ t('orgDashboard.automatedMessagePresetShortAck') }}</option>
-                <option value="accepted">{{ t('orgDashboard.automatedMessagePresetAccepted') }}</option>
                 <option value="individual">{{ t('orgDashboard.automatedMessagePresetIndividual') }}</option>
               </select>
               <textarea
@@ -1355,7 +1363,7 @@ onUnmounted(() => {
 
     <!-- Modal -->
     <Teleport to="body">
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60" @click.self="showModal = false">
+      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
         <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
           <h3 class="text-lg font-bold text-slate-900 mb-4">
             {{ modalMode === 'location' ? (editingId ? t('orgDashboard.editLocation') : t('orgDashboard.addLocationModal')) : modalMode === 'animal' ? (editingId ? t('orgDashboard.editAnimal') : t('orgDashboard.addAnimalModal')) : (editingId ? t('orgDashboard.editRequest') : t('orgDashboard.createRequestModal')) }}
@@ -1366,7 +1374,13 @@ onUnmounted(() => {
             <div class="rounded-xl border-2 border-slate-200 bg-slate-50/80 p-4 space-y-3">
               <p class="text-sm font-medium text-slate-800">{{ t('orgDashboard.mapsLinkLabel') }}</p>
               <p class="text-xs text-slate-500">{{ t('orgDashboard.mapsLinkHint') }}</p>
-              <div v-if="locationGeocodeError" class="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+              <div v-if="locationMapsLinkStatus === 'coords_only'" class="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
+                {{ t('orgDashboard.mapsLinkCoordsSuccess') }}
+              </div>
+              <div v-if="locationMapsLinkStatus === 'coords_only'" class="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                {{ t('orgDashboard.mapsLinkAddressError') }}
+              </div>
+              <div v-if="locationMapsLinkStatus === 'parse_error' || (locationGeocodeError && locationMapsLinkStatus !== 'coords_only')" class="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
                 {{ message || t('orgDashboard.geocodeError') }}
               </div>
               <div class="flex gap-2">
@@ -1552,7 +1566,7 @@ onUnmounted(() => {
     </Teleport>
 
     <Teleport to="body">
-      <div v-if="reportingReviewId" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="cancelReportReview">
+      <div v-if="reportingReviewId" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
         <div class="w-full max-w-md rounded-xl bg-white shadow-xl p-6">
           <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ t('orgDashboard.reviews.reportTitle') }}</h3>
           <textarea v-model="reportReason" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mb-4" :placeholder="t('orgDashboard.reviews.reportPlaceholder')" />

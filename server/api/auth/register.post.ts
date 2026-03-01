@@ -10,6 +10,7 @@ const schema = z.object({
   phone: z.string().optional(),
   termsAccepted: z.boolean().optional(),
   privacyAccepted: z.boolean().optional(),
+  newsletterOptIn: z.boolean().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid input', data: parsed.error.flatten() })
   }
 
-  const { email, password, role, displayName, phone, termsAccepted, privacyAccepted } = parsed.data
+  const { email, password, role, displayName, phone, termsAccepted, privacyAccepted, newsletterOptIn } = parsed.data
 
   if (role === 'USER') {
     if (termsAccepted !== true || privacyAccepted !== true) {
@@ -43,6 +44,7 @@ export default defineEventHandler(async (event) => {
         displayName,
         phone,
         emailVerified: false,
+        newsletterOptIn: !!newsletterOptIn,
       },
       select: {
         id: true,
@@ -67,7 +69,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = await prisma.user.create({
-    data: { email, passwordHash, role, displayName, phone },
+    data: { email, passwordHash, role, displayName, phone, newsletterOptIn: !!newsletterOptIn },
     select: {
       id: true,
       email: true,

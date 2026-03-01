@@ -10,6 +10,9 @@ const schema = z.object({
   website: z.string().url().optional().or(z.literal('')),
   contactEmail: z.string().email(),
   maintenancePreRegister: z.boolean().optional(),
+  termsAccepted: z.boolean().optional(),
+  privacyAccepted: z.boolean().optional(),
+  newsletterOptIn: z.boolean().optional(),
 })
 
 function slugify(text: string): string {
@@ -30,8 +33,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid input', data: parsed.error.flatten() })
   }
 
-  const { email, password, displayName, description, website, contactEmail, maintenancePreRegister } = parsed.data
+  const { email, password, displayName, description, website, contactEmail, maintenancePreRegister, termsAccepted, privacyAccepted, newsletterOptIn } = parsed.data
   const name = displayName.trim()
+
+  if (termsAccepted !== true || privacyAccepted !== true) {
+    throw createError({ statusCode: 400, message: 'Bitte akzeptiere die Nutzungsbedingungen und die Datenschutzerklärung.' })
+  }
 
   const existingUser = await prisma.user.findUnique({ where: { email } })
   if (existingUser) {
@@ -51,6 +58,7 @@ export default defineEventHandler(async (event) => {
       passwordHash,
       role: 'ORG_USER',
       displayName: name,
+      newsletterOptIn: !!newsletterOptIn,
     },
     select: {
       id: true,

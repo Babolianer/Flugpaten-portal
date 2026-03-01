@@ -37,9 +37,11 @@ interface Request {
 const { data, error, refresh: refreshRequest } = await useFetch<{
   request: Request
   participantInfo?: { isCompletedParticipant: boolean; canRateOrg: boolean; orgId: string; orgName: string } | null
+  waitingListInfo?: { count: number; isOnWaitingList: boolean; canJoin: boolean } | null
 }>(`/api/requests/${id}`)
 const request = computed(() => data.value?.request)
 const participantInfo = computed(() => data.value?.participantInfo ?? null)
+const waitingListInfo = computed(() => data.value?.waitingListInfo ?? null)
 
 const hasRouteCoords = computed(
   () =>
@@ -70,6 +72,8 @@ const mapCenter = computed((): [number, number] => {
 const message = ref('')
 const loading = ref(false)
 const applied = ref(false)
+const waitingListLoading = ref(false)
+const onWaitingList = ref(false)
 const form = reactive({
   vorname: '',
   nachname: '',
@@ -121,6 +125,21 @@ async function apply() {
   }
 }
 
+async function joinWaitingList() {
+  if (!isLoggedInAsPatron.value || !waitingListInfo.value?.canJoin) return
+  waitingListLoading.value = true
+  try {
+    await $fetch(`/api/requests/${id}/waiting-list`, { method: 'POST' })
+    onWaitingList.value = true
+    await refreshRequest()
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    alert(err?.data?.message || t('request.waitingListError'))
+  } finally {
+    waitingListLoading.value = false
+  }
+}
+
 const canSubmit = computed(() =>
   message.value.trim().length > 0 &&
   form.datenschutz &&
@@ -136,6 +155,7 @@ const canSubmit = computed(() =>
 
 const { getRequestStatusLabel } = useRequestStatus()
 const isOpen = computed(() => request.value?.status === 'OPEN')
+const isMatched = computed(() => request.value?.status === 'MATCHED')
 
 // Als Organisation: Bewerbungen laden und anzeigen
 const { data: me } = await useFetch<{ user: { id: string; role: string; email?: string; phone?: string | null }; memberships: { organizationId: string }[] }>('/api/auth/me')
@@ -156,6 +176,9 @@ watch(profileForApply, (data) => {
   if (data.profile?.lastName != null) form.nachname = data.profile.lastName
   if (data.phone != null) form.telefon = data.phone
   if (me.value?.user?.email) form.email = me.value.user.email
+}, { immediate: true })
+watch(waitingListInfo, (wi) => {
+  if (wi?.isOnWaitingList) onWaitingList.value = true
 }, { immediate: true })
 
 const loginRedirectUrl = computed(() => `/requests/${id}`)
@@ -246,7 +269,7 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
             'bg-red-100 text-red-800': request.status === 'CANCELLED',
           }"
         >
-          {{ getRequestStatusLabel(request.status) }}
+          {{ getRequestStatusLabel(request.status, true) }}
         </span>
         <p v-if="request.animal" class="mt-2 text-slate-600">
           {{ request.animal.name }} ({{ request.animal.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }})
@@ -416,6 +439,9 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
                 <p v-else-if="app.status === 'ACCEPTED'" class="text-sm font-medium text-emerald-700">
                   {{ t('request.accepted') }}
                 </p>
+                <p v-else-if="app.status === 'WAITING_LIST'" class="text-sm font-medium text-amber-700">
+                  {{ t('request.waitingList') }}
+                </p>
               </div>
             </div>
           </div>
@@ -447,7 +473,60 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
               </NuxtLink>
             </div>
           </div>
-          <!-- Abgeschlossen / Geschlossen: Keine Bewerbung mehr möglich -->
+          <!-- Reserviert (MATCHED): Warteliste möglich -->
+          <div
+            v-else-if="isMatched && waitingListInfo"
+            class="sticky top-6 rounded-xl bg-amber-50 border border-amber-200 shadow-sm p-6"
+          >
+            <h2 class="font-semibold text-slate-900 text-lg">{{ t('request.reservedWithWaitingListTitle') }}</h2>
+            <p class="text-slate-600 mt-2">
+              {{ t('request.reservedWithWaitingListText') }}
+            </p>
+            <p v-if="onWaitingList || waitingListInfo.isOnWaitingList" class="text-emerald-700 font-medium mt-3">
+              {{ t('request.onWaitingList') }}
+            </p>
+            <div v-else-if="waitingListInfo.canJoin && isLoggedInAsPatron" class="mt-4 space-y-3">
+              <p class="text-sm text-slate-600">
+                {{ t('request.waitingListSlots', { count: 2 - waitingListInfo.count }) }}
+              </p>
+              <button
+                type="button"
+                :disabled="waitingListLoading"
+                class="inline-flex px-4 py-2.5 rounded-lg bg-amber-500 text-slate-900 font-medium hover:bg-amber-400 disabled:opacity-50"
+                @click="joinWaitingList"
+              >
+                {{ waitingListLoading ? t('request.waitingListJoining') : t('request.joinWaitingList') }}
+              </button>
+            </div>
+            <div v-else-if="waitingListInfo.canJoin && !isLoggedInAsPatron" class="mt-4 space-y-3">
+              <p class="text-sm text-slate-600">{{ t('request.waitingListLoginRequired') }}</p>
+              <div class="flex flex-wrap gap-3">
+                <NuxtLink
+                  :to="`/login?redirect=${encodeURIComponent(loginRedirectUrl)}`"
+                  class="inline-flex px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium hover:bg-amber-400"
+                >
+                  {{ t('nav.login') }}
+                </NuxtLink>
+                <NuxtLink
+                  :to="`/register?redirect=${encodeURIComponent(loginRedirectUrl)}`"
+                  class="inline-flex px-4 py-2 rounded-lg border-2 border-amber-500 text-amber-700 hover:bg-amber-50 font-medium"
+                >
+                  {{ t('nav.register') }}
+                </NuxtLink>
+              </div>
+            </div>
+            <p v-else-if="!waitingListInfo.canJoin && !onWaitingList" class="text-sm text-slate-600 mt-3">
+              {{ t('request.waitingListFull') }}
+            </p>
+            <NuxtLink
+              v-if="request.organization"
+              :to="`/org/${request.organization.slug}`"
+              class="inline-flex mt-4 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50"
+            >
+              {{ t('request.toOrgPageButton') }}
+            </NuxtLink>
+          </div>
+          <!-- Abgeschlossen / Storniert: Keine Bewerbung mehr möglich -->
           <div v-else-if="!isOpen" class="sticky top-6 rounded-xl bg-amber-50 border border-amber-200 shadow-sm p-6">
             <h2 class="font-semibold text-slate-900 text-lg">{{ t('request.applyNotPossible') }}</h2>
             <p class="text-slate-600 mt-2">

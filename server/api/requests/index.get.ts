@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const species = query.species ? String(query.species) : null
 
   const where: Record<string, unknown> = {
-    status: 'OPEN',
+    status: { in: ['OPEN', 'MATCHED'] },
     organization: { status: 'APPROVED' },
   }
 

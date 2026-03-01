@@ -25,6 +25,7 @@ interface Request {
   destAirport: string
   earliestDate: string
   latestDate: string
+  status?: string
   originLat: number | null
   originLng: number | null
   destLat: number | null

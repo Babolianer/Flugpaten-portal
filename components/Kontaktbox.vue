@@ -6,10 +6,6 @@ defineProps<{
   instagram?: string | null
   facebook?: string | null
 }>()
-
-function mailDisplay(email: string) {
-  return email.replace('@', ' [at] ')
-}
 </script>
 
 <template>
@@ -25,7 +21,7 @@ function mailDisplay(email: string) {
           <polyline points="22,6 12,13 2,6" />
         </svg>
       </span>
-      <a :href="`mailto:${email}`" class="hover:underline break-all">{{ mailDisplay(email) }}</a>
+      <a :href="`mailto:${email}`" class="hover:underline break-all">{{ email }}</a>
     </div>
     <div v-if="website" class="flex items-center gap-3 mb-3">
       <span class="flex-shrink-0 w-8 h-8 flex items-center justify-center" aria-hidden="true">

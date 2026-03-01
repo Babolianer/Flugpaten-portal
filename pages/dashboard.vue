@@ -56,7 +56,7 @@ const profileSummary = ref<{
 } | null>(null)
 const pollingInterval = ref<NodeJS.Timeout | null>(null)
 const isPageVisible = ref(true)
-const applicationFilter = ref<'all' | 'PENDING' | 'ACCEPTED' | 'REJECTED'>('all')
+const applicationFilter = ref<'all' | 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WAITING_LIST'>('all')
 
 type MatchType = 'DIRECT' | 'RADIUS' | 'COUNTRY'
 
@@ -237,6 +237,7 @@ const applicationStatusLabel = (status: string) => {
     case 'PENDING': return t('dashboard.applicationStatusPending')
     case 'ACCEPTED': return t('dashboard.applicationStatusAccepted')
     case 'REJECTED': return t('dashboard.applicationStatusRejected')
+    case 'WAITING_LIST': return t('dashboard.applicationStatusWaitingList')
     default: return status
   }
 }
@@ -246,6 +247,7 @@ const getStatusBadgeClass = (status: string) => {
     case 'ACCEPTED': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
     case 'PENDING': return 'bg-amber-100 text-amber-700 border-amber-200'
     case 'REJECTED': return 'bg-red-100 text-red-700 border-red-200'
+    case 'WAITING_LIST': return 'bg-blue-100 text-blue-700 border-blue-200'
     default: return 'bg-slate-100 text-slate-700 border-slate-200'
   }
 }
@@ -653,6 +655,7 @@ function starDisplay(rating: number) {
               { value: 'PENDING', label: t('dashboard.filterPending') },
               { value: 'ACCEPTED', label: t('dashboard.filterAccepted') },
               { value: 'REJECTED', label: t('dashboard.filterRejected') },
+              { value: 'WAITING_LIST', label: t('dashboard.filterWaitingList') },
             ]"
             :key="filter.value"
             :class="[
@@ -677,7 +680,9 @@ function starDisplay(rating: number) {
               ? t('dashboard.noApplicationsPending')
               : applicationFilter === 'ACCEPTED'
                 ? t('dashboard.noApplicationsAccepted')
-                : t('dashboard.noApplicationsRejected') }}
+                : applicationFilter === 'WAITING_LIST'
+                  ? t('dashboard.noApplicationsWaitingList')
+                  : t('dashboard.noApplicationsRejected') }}
         </p>
         <NuxtLink
           v-if="applicationFilter === 'all'"

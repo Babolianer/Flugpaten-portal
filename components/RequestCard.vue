@@ -61,7 +61,7 @@ defineEmits<{
             'bg-red-100 text-red-800': request.status === 'CANCELLED',
           }"
         >
-          {{ getRequestStatusLabel(request.status) }}
+          {{ getRequestStatusLabel(request.status, true) }}
         </span>
         <span
           v-if="request.matchType === 'DIRECT'"

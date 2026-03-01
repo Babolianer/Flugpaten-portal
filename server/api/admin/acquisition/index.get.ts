@@ -1,5 +1,6 @@
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
+import type { AcquisitionStatus } from '@prisma/client'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
@@ -7,11 +8,34 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const page = Math.max(1, parseInt(String(query.page), 10) || 1)
   const pageSize = Math.min(100, Math.max(10, parseInt(String(query.pageSize), 10) || 50))
+  const search = String(query.search || '').trim()
+  const statusFilter = query.status as string
   const skip = (page - 1) * pageSize
+
+  const where: {
+    status?: AcquisitionStatus
+    OR?: Array<
+      | { name: { contains: string; mode: 'insensitive' } }
+      | { country: { contains: string; mode: 'insensitive' } }
+      | { email: { contains: string; mode: 'insensitive' } }
+    >
+  } = {}
+  const validStatuses = ['OPEN', 'CONTACTED', 'REPLIED', 'REGISTERED', 'REJECTED'] as AcquisitionStatus[]
+  if (statusFilter && validStatuses.includes(statusFilter as AcquisitionStatus)) {
+    where.status = statusFilter as AcquisitionStatus
+  }
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { country: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ]
+  }
 
   try {
     const [contacts, total] = await Promise.all([
       prisma.acquisitionContact.findMany({
+        where: Object.keys(where).length ? where : undefined,
         orderBy: [{ websiteLanguage: 'asc' }, { name: 'asc' }],
         skip,
         take: pageSize,
@@ -26,7 +50,7 @@ export default defineEventHandler(async (event) => {
           },
         },
       }),
-      prisma.acquisitionContact.count(),
+      prisma.acquisitionContact.count({ where: Object.keys(where).length ? where : undefined }),
     ])
 
     return {

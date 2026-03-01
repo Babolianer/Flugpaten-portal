@@ -120,6 +120,32 @@ export default defineEventHandler(async (event) => {
       }
     : undefined
 
+  // Warteliste-Info für MATCHED Requests
+  let waitingListInfo: { count: number; isOnWaitingList: boolean; canJoin: boolean } | null = null
+  if (request.status === 'MATCHED') {
+    const waitingCount = await prisma.requestApplication.count({
+      where: { requestId: id!, status: 'WAITING_LIST' },
+    })
+    let isOnWaitingList = false
+    let canJoin = waitingCount < 2
+    try {
+      const user = await getUserFromEvent(event)
+      if (user?.role === 'USER' || user?.role === 'ADMIN') {
+        const myApp = await prisma.requestApplication.findUnique({
+          where: { requestId_userId: { requestId: id!, userId: user.id } },
+          select: { status: true },
+        })
+        if (myApp) {
+          isOnWaitingList = myApp.status === 'WAITING_LIST'
+          canJoin = false
+        }
+      }
+    } catch {
+      canJoin = false
+    }
+    waitingListInfo = { count: waitingCount, isOnWaitingList, canJoin }
+  }
+
   // Für eingeloggte Flugpaten: Prüfen ob sie der zugewiesene Teilnehmer bei abgeschlossenem Transport sind
   let participantInfo: { isCompletedParticipant: boolean; canRateOrg: boolean; orgId: string; orgName: string } | null = null
   if (request.status === 'COMPLETED' && request.organizationId && organization) {
@@ -152,5 +178,6 @@ export default defineEventHandler(async (event) => {
       organization,
     },
     participantInfo,
+    waitingListInfo,
   }
 })

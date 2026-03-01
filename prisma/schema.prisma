@@ -36,6 +36,7 @@ enum ApplicationStatus {
   PENDING
   ACCEPTED
   REJECTED
+  WAITING_LIST
 }
 
 model User {
@@ -53,6 +54,7 @@ model User {
   phoneVerified         Boolean   @default(false) @map("phone_verified")
   lastLoginAt           DateTime? @map("last_login_at")
   adminNotes            String?   @map("admin_notes")
+  newsletterOptIn       Boolean   @default(false) @map("newsletter_opt_in")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 

@@ -10,8 +10,16 @@ export default defineEventHandler(async (event) => {
   const filterNew = query.filterNew === 'true' || query.filterNew === '1'
   const filterUnverified = query.filterUnverified === 'true' || query.filterUnverified === '1'
   const filterActive = query.filterActive === 'true' || query.filterActive === '1'
+  const search = String(query.search || '').trim()
 
   const where: Record<string, unknown> = { role: 'USER' }
+
+  if (search) {
+    where.OR = [
+      { displayName: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ]
+  }
 
   if (filterNew) {
     const thirtyDaysAgo = new Date()
