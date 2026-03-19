@@ -647,6 +647,8 @@
     "latestDate": "Latest date",
     "originAirport": "Departure airport",
     "destAirport": "Destination airport",
+    "addDestination": "Add another destination",
+    "removeDestination": "Remove destination",
     "assignAnimal": "Assign animal",
     "noAnimal": "No animal",
     "noImage": "No image",

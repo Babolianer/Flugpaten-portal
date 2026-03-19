@@ -10,6 +10,7 @@ interface Request {
   title: string
   originAirport: string
   destAirport: string
+  destinations?: Array<{ airportCode: string }>
   earliestDate: string
   latestDate: string
   status?: string
@@ -64,6 +65,13 @@ function toggleTogetherPopover() {
 
 function closeTogetherPopover() {
   togetherPopoverOpen.value = false
+}
+
+function formatRoute(request: Request): string {
+  const dests = request.destinations && request.destinations.length > 0
+    ? request.destinations.map((d) => d.airportCode).join(', ')
+    : request.destAirport
+  return `${request.originAirport} → ${dests}`
 }
 </script>
 
@@ -184,7 +192,7 @@ function closeTogetherPopover() {
         {{ animalTransportLabel }}
       </p>
       <p class="text-sm text-slate-600 mt-1">
-        {{ request.originAirport }} → {{ request.destAirport }}
+        {{ formatRoute(request) }}
       </p>
       <p class="text-xs text-slate-500 mt-2">
         {{ new Date(request.earliestDate).toLocaleDateString(locale) }} –

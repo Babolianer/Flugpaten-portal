@@ -40,6 +40,7 @@ const orgSelect = {
       groupId: true,
       group: { select: { id: true, title: true } },
       animal: { select: { id: true, name: true, species: true } },
+      destinations: { orderBy: { sortOrder: 'asc' }, select: { id: true, airportCode: true, lat: true, lng: true, sortOrder: true } },
       applications: {
         where: { status: 'ACCEPTED' },
         select: { userId: true, user: { select: { id: true, displayName: true } } },

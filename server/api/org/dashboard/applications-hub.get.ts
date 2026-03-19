@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
     orderBy: { updatedAt: 'desc' },
     include: {
       animal: { select: { id: true, name: true, species: true } },
+      destinations: { orderBy: { sortOrder: 'asc' }, select: { id: true, airportCode: true, lat: true, lng: true, sortOrder: true } },
       applications: {
         orderBy: { createdAt: 'desc' },
         include: {
@@ -66,6 +67,7 @@ export default defineEventHandler(async (event) => {
       originLng: r.originLng,
       destLat: r.destLat,
       destLng: r.destLng,
+      destinations: r.destinations,
       animalCanFlyInCargo: r.animalCanFlyInCargo,
       animalCanFlyInCabin: r.animalCanFlyInCabin,
       animal: r.animal,

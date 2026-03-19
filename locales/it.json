@@ -698,6 +698,8 @@
     "originAirport": "Aeroporto di partenza",
     "originPlaceholder": "es. FCO",
     "destAirport": "Aeroporto di arrivo",
+    "addDestination": "Aggiungi un'altra destinazione",
+    "removeDestination": "Rimuovi destinazione",
     "destPlaceholder": "es. FRA",
     "airline": "Compagnia aerea",
     "travelFrom": "Viaggio da",

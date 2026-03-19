@@ -87,6 +87,7 @@ export default defineEventHandler(async (event) => {
     include: {
       organization: { select: { id: true, name: true, slug: true } },
       animal: { select: { id: true, name: true, species: true, imageUrl: true } },
+      destinations: { orderBy: { sortOrder: 'asc' }, select: { id: true, airportCode: true, lat: true, lng: true, sortOrder: true } },
     },
   })
 
@@ -101,9 +102,12 @@ export default defineEventHandler(async (event) => {
     enrichedList = []
     for (const r of requests) {
       const reqOrigin = (r.originAirport || '').toUpperCase().replace(/\s+/g, ' ').trim()
-      const reqDest = (r.destAirport || '').toUpperCase().replace(/\s+/g, ' ').trim()
+      const dests = (r as { destinations?: Array<{ airportCode: string; lat: number | null; lng: number | null }> }).destinations ?? []
+      const destCodes = dests.length > 0 ? dests.map((d) => (d.airportCode || '').toUpperCase().replace(/\s+/g, ' ').trim()) : [(r.destAirport || '').toUpperCase().replace(/\s+/g, ' ').trim()]
+      const destLats = dests.length > 0 ? dests.map((d) => d.lat) : [r.destLat]
+      const destLngs = dests.length > 0 ? dests.map((d) => d.lng) : [r.destLng]
       const originMatch = reqOrigin === origin_iata || reqOrigin.includes(origin_iata!)
-      const destMatch = reqDest === dest_iata || reqDest.includes(dest_iata!)
+      const destMatch = destCodes.some((dc) => dc && (dc === dest_iata || dc.includes(dest_iata!)))
 
       let matchType: MatchType | null = null
       let distanceKm: number | undefined
@@ -111,18 +115,24 @@ export default defineEventHandler(async (event) => {
       if (originMatch && destMatch) {
         matchType = 'DIRECT'
       } else {
-        const reqDestCountry = getAirportByIata(r.destAirport)?.country?.toUpperCase()
-        const sameCountry = userDestCountry && reqDestCountry && reqDestCountry === userDestCountry
-
-        if (r.destLat != null && r.destLng != null && userDestLat != null && userDestLng != null) {
-          const d = haversineKm(r.destLat, r.destLng, userDestLat, userDestLng)
-          if (d <= radius_km) {
-            matchType = 'RADIUS'
-            distanceKm = Math.round(d)
+        let bestDist = Infinity
+        for (let i = 0; i < destCodes.length; i++) {
+          const lat = destLats[i] ?? null
+          const lng = destLngs[i] ?? null
+          const code = destCodes[i]
+          const reqDestCountry = (code ? getAirportByIata(code)?.country : null)?.toUpperCase()
+          const sameCountry = userDestCountry && reqDestCountry && reqDestCountry === userDestCountry
+          if (lat != null && lng != null && userDestLat != null && userDestLng != null) {
+            const d = haversineKm(lat, lng, userDestLat, userDestLng)
+            if (d <= radius_km && d < bestDist) {
+              matchType = 'RADIUS'
+              distanceKm = Math.round(d)
+              bestDist = d
+            }
           }
-        }
-        if (!matchType && sameCountry) {
-          matchType = 'COUNTRY'
+          if (!matchType && sameCountry) {
+            matchType = 'COUNTRY'
+          }
         }
       }
 
@@ -221,6 +231,7 @@ export default defineEventHandler(async (event) => {
   const pins: Pin[] = []
   const addedOriginDest = new Set<string>()
 
+  const connections: Array<{ from: [number, number]; to: [number, number] }> = []
   for (const r of enrichedList) {
     const addPin = (lat: number, lng: number, idSuffix: string) => {
       if (lat === 0 && lng === 0) return
@@ -245,13 +256,35 @@ export default defineEventHandler(async (event) => {
     }
     const originLat = r.originLat ?? 0
     const originLng = r.originLng ?? 0
-    const destLat = r.destLat ?? 0
-    const destLng = r.destLng ?? 0
     addPin(originLat, originLng, '-origin')
-    if (destLat !== 0 || destLng !== 0) addPin(destLat, destLng, '-dest')
+    const dests = (r as { destinations?: Array<{ lat: number | null; lng: number | null }> }).destinations
+    if (dests && dests.length > 0) {
+      dests.forEach((d, i) => {
+        const lat = d.lat ?? 0
+        const lng = d.lng ?? 0
+        if (lat !== 0 || lng !== 0) {
+          addPin(lat, lng, `-dest-${i}`)
+          if (originLat !== 0 || originLng !== 0) {
+            connections.push({ from: [originLng, originLat], to: [lng, lat] })
+          }
+        }
+      })
+    } else {
+      const destLat = r.destLat ?? 0
+      const destLng = r.destLng ?? 0
+      if (destLat !== 0 || destLng !== 0) {
+        addPin(destLat, destLng, '-dest')
+        if (originLat !== 0 || originLng !== 0) {
+          connections.push({ from: [originLng, originLat], to: [destLng, destLat] })
+        }
+      }
+    }
   }
 
-  let requestList = enrichedList.map((r) => ({
+  let requestList = enrichedList.map((r) => {
+    const dests = (r as { destinations?: Array<{ airportCode: string; lat: number | null; lng: number | null }> }).destinations
+    const firstDest = dests && dests.length > 0 ? dests[0] : null
+    return {
     id: r.id,
     title: r.title,
     details: r.details,
@@ -262,8 +295,9 @@ export default defineEventHandler(async (event) => {
     destAirport: r.destAirport,
     originLat: r.originLat,
     originLng: r.originLng,
-    destLat: r.destLat,
-    destLng: r.destLng,
+    destLat: firstDest?.lat ?? r.destLat,
+    destLng: firstDest?.lng ?? r.destLng,
+    destinations: dests ?? undefined,
     organization: r.organization,
     animal: r.animal,
     animalCanFlyInCargo: r.animalCanFlyInCargo,
@@ -281,7 +315,8 @@ export default defineEventHandler(async (event) => {
     })(),
     matchType: r.matchType,
     distanceKm: r.distanceKm,
-  }))
+  }
+  })
 
   if (locale !== 'de') {
     const allTexts = enrichedList.flatMap((r) => [r.title, r.organization?.name].filter(Boolean))
@@ -310,5 +345,5 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return { pins, requests: requestList }
+  return { pins, requests: requestList, connections }
 })

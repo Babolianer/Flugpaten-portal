@@ -3,6 +3,12 @@ import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 import { ensureOrgAccess } from '~~/server/utils/orgAccess'
 
+const destSchema = z.object({
+  airportCode: z.string().min(1),
+  lat: z.number().optional().nullable(),
+  lng: z.number().optional().nullable(),
+})
+
 const schema = z.object({
   organizationId: z.string(),
   animalId: z.string().optional(),
@@ -16,11 +22,12 @@ const schema = z.object({
   earliestDate: z.union([z.string(), z.date()]),
   latestDate: z.union([z.string(), z.date()]),
   originAirport: z.string().min(1),
-  destAirport: z.string().min(1),
+  destAirport: z.string().optional(),
   originLat: z.number().optional(),
   originLng: z.number().optional(),
   destLat: z.number().optional(),
   destLng: z.number().optional(),
+  destinations: z.array(destSchema).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -61,6 +68,20 @@ export default defineEventHandler(async (event) => {
   const animalCanFlyInCargo = cargo
   const animalCanFlyInCabin = cargo ? false : cabin
 
+  // Resolve destinations: use destinations[] if provided, else fall back to single destAirport
+  const dests = parsed.data.destinations && parsed.data.destinations.length > 0
+    ? parsed.data.destinations
+    : parsed.data.destAirport
+      ? [{ airportCode: parsed.data.destAirport, lat: parsed.data.destLat ?? null, lng: parsed.data.destLng ?? null }]
+      : []
+  if (dests.length === 0) {
+    throw createError({ statusCode: 400, message: 'Mindestens ein Zielflughafen erforderlich' })
+  }
+  const firstDest = dests[0]
+  const destAirport = firstDest.airportCode
+  const destLat = firstDest.lat ?? null
+  const destLng = firstDest.lng ?? null
+
   const request = await prisma.transportRequest.create({
     data: {
       organizationId: parsed.data.organizationId,
@@ -75,11 +96,19 @@ export default defineEventHandler(async (event) => {
       earliestDate: new Date(parsed.data.earliestDate),
       latestDate: new Date(parsed.data.latestDate),
       originAirport: parsed.data.originAirport,
-      destAirport: parsed.data.destAirport,
+      destAirport,
       originLat: parsed.data.originLat ?? null,
       originLng: parsed.data.originLng ?? null,
-      destLat: parsed.data.destLat ?? null,
-      destLng: parsed.data.destLng ?? null,
+      destLat,
+      destLng,
+      destinations: {
+        create: dests.map((d, i) => ({
+          airportCode: d.airportCode,
+          lat: d.lat ?? null,
+          lng: d.lng ?? null,
+          sortOrder: i,
+        })),
+      },
     },
   })
 

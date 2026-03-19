@@ -618,6 +618,8 @@
     "latestDate": "Date la plus tard",
     "originAirport": "Aéroport de départ",
     "destAirport": "Aéroport d'arrivée",
+    "addDestination": "Ajouter une autre destination",
+    "removeDestination": "Supprimer la destination",
     "assignAnimal": "Assigner un animal",
     "noAnimal": "Aucun animal",
     "noImage": "Aucune image",

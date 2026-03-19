@@ -186,11 +186,26 @@ model TransportRequest {
   organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   animal       Animal?              @relation(fields: [animalId], references: [id], onDelete: SetNull)
   group        TransportRequestGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  destinations TransportRequestDestination[]
   applications RequestApplication[]
   conversations Conversation[]      @relation("ConversationRequest")
   reviews      Review[]
 
   @@index([groupId])
+}
+
+model TransportRequestDestination {
+  id         String   @id @default(cuid())
+  requestId  String   @map("request_id")
+  airportCode String  @map("airport_code")
+  lat        Float?
+  lng        Float?
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  request TransportRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
 }
 
 model TransportRequestGroup {

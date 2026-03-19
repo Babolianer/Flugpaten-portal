@@ -3,6 +3,12 @@ import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 import { ensureOrgAccess } from '~~/server/utils/orgAccess'
 
+const destSchema = z.object({
+  airportCode: z.string().min(1),
+  lat: z.number().optional().nullable(),
+  lng: z.number().optional().nullable(),
+})
+
 const schema = z.object({
   title: z.string().min(1).optional(),
   details: z.string().optional().nullable(),
@@ -14,6 +20,7 @@ const schema = z.object({
   originLng: z.number().optional().nullable(),
   destLat: z.number().optional().nullable(),
   destLng: z.number().optional().nullable(),
+  destinations: z.array(destSchema).optional(),
   status: z.enum(['OPEN', 'MATCHED', 'COMPLETED', 'CANCELLED']).optional(),
   animalId: z.string().optional().nullable(),
   waitingListEnabled: z.boolean().optional(),
@@ -61,11 +68,20 @@ export default defineEventHandler(async (event) => {
   if (parsed.data.earliestDate != null) data.earliestDate = new Date(parsed.data.earliestDate)
   if (parsed.data.latestDate != null) data.latestDate = new Date(parsed.data.latestDate)
   if (parsed.data.originAirport != null) data.originAirport = parsed.data.originAirport
-  if (parsed.data.destAirport != null) data.destAirport = parsed.data.destAirport
+  if (parsed.data.destinations !== undefined && parsed.data.destinations.length > 0) {
+    const first = parsed.data.destinations[0]
+    data.destAirport = first.airportCode
+    data.destLat = first.lat ?? null
+    data.destLng = first.lng ?? null
+  } else if (parsed.data.destAirport != null) {
+    data.destAirport = parsed.data.destAirport
+    if (parsed.data.destLat !== undefined) data.destLat = parsed.data.destLat
+    if (parsed.data.destLng !== undefined) data.destLng = parsed.data.destLng
+  }
   if (parsed.data.originLat !== undefined) data.originLat = parsed.data.originLat
   if (parsed.data.originLng !== undefined) data.originLng = parsed.data.originLng
-  if (parsed.data.destLat !== undefined) data.destLat = parsed.data.destLat
-  if (parsed.data.destLng !== undefined) data.destLng = parsed.data.destLng
+  if (parsed.data.destLat !== undefined && parsed.data.destinations === undefined) data.destLat = parsed.data.destLat
+  if (parsed.data.destLng !== undefined && parsed.data.destinations === undefined) data.destLng = parsed.data.destLng
   if (parsed.data.status != null) data.status = parsed.data.status
   if (parsed.data.animalId !== undefined) data.animalId = parsed.data.animalId
   if (parsed.data.waitingListEnabled !== undefined) data.waitingListEnabled = parsed.data.waitingListEnabled
@@ -91,6 +107,22 @@ export default defineEventHandler(async (event) => {
       data.groupId = g.id
     } else {
       data.groupId = null
+    }
+  }
+
+  // Replace destinations if provided
+  if (parsed.data.destinations !== undefined) {
+    await prisma.transportRequestDestination.deleteMany({ where: { requestId: id } })
+    if (parsed.data.destinations.length > 0) {
+      await prisma.transportRequestDestination.createMany({
+        data: parsed.data.destinations.map((d, i) => ({
+          requestId: id,
+          airportCode: d.airportCode,
+          lat: d.lat ?? null,
+          lng: d.lng ?? null,
+          sortOrder: i,
+        })),
+      })
     }
   }
 

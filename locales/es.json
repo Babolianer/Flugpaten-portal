@@ -634,6 +634,8 @@
     "latestDate": "Fecha más tardía",
     "originAirport": "Aeropuerto de salida",
     "destAirport": "Aeropuerto de llegada",
+    "addDestination": "Añadir otro destino",
+    "removeDestination": "Eliminar destino",
     "assignAnimal": "Asignar animal",
     "noAnimal": "Ningún animal",
     "noImage": "Sin imagen",

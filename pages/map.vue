@@ -18,6 +18,12 @@ interface Pin {
   distanceKm?: number
 }
 
+interface DestEntry {
+  airportCode: string
+  lat: number | null
+  lng: number | null
+}
+
 interface Request {
   id: string
   title: string
@@ -36,6 +42,7 @@ interface Request {
   animalCanFlyInCabin?: boolean
   matchType?: MatchType
   distanceKm?: number
+  destinations?: DestEntry[]
 }
 
 type FlexibilityOption = 'exact' | '1' | '3' | '7' | '14' | 'custom'
@@ -69,11 +76,28 @@ function getActiveMapRef() {
 const selectedRoute = computed(() => {
   if (!selectedId.value) return null
   const req = requests.value.find((r) => r.id === selectedId.value)
-  if (!req || req.originLat == null || req.originLng == null || req.destLat == null || req.destLng == null) return null
+  if (!req || req.originLat == null || req.originLng == null) return null
+  const dests = req.destinations && req.destinations.length > 0 ? req.destinations : null
+  if (dests && dests.length > 0) {
+    const routes = dests
+      .filter((d) => d.lat != null && d.lng != null)
+      .map((d) => ({
+        from: [req!.originLng!, req!.originLat!] as [number, number],
+        to: [d.lng!, d.lat!] as [number, number],
+      }))
+    return routes.length > 0 ? routes : null
+  }
+  if (req.destLat == null || req.destLng == null) return null
   return {
     from: [req.originLng, req.originLat] as [number, number],
     to: [req.destLng, req.destLat] as [number, number],
   }
+})
+
+const selectedRoutes = computed(() => {
+  const r = selectedRoute.value
+  if (Array.isArray(r)) return r
+  return r ? [r] : null
 })
 
 const selectedRequest = computed(() => {
@@ -145,8 +169,11 @@ function onFilter(f: MapFilterValues) {
 function onPinClick(pin: Pin) {
   selectedId.value = pin.requestId ?? pin.id
   const req = pin.requestId ? requests.value.find((x) => x.id === pin.requestId) : null
-  if (req && req.originLat != null && req.originLng != null && req.destLat != null && req.destLng != null) {
-  } else if (pin) {
+  const hasCoords = req && req.originLat != null && req.originLng != null && (
+    (req.destinations && req.destinations.some((d) => d.lat != null && d.lng != null)) ||
+    (req.destLat != null && req.destLng != null)
+  )
+  if (!hasCoords && pin) {
     getActiveMapRef()?.flyTo(pin.lng, pin.lat)
   }
   // Scroll the right-side list so the selected request card is visible (only when selecting via map pin)
@@ -160,8 +187,11 @@ function onPinClick(pin: Pin) {
 
 function onRequestClick(req: Request) {
   selectedId.value = req.id
-  if (req.originLat != null && req.originLng != null && req.destLat != null && req.destLng != null) {
-  } else {
+  const hasCoords = req.originLat != null && req.originLng != null && (
+    (req.destinations && req.destinations.some((d) => d.lat != null && d.lng != null)) ||
+    (req.destLat != null && req.destLng != null)
+  )
+  if (!hasCoords) {
     const pin = pins.value.find((p) => p.requestId === req.id)
     if (pin) getActiveMapRef()?.flyTo(pin.lng, pin.lat)
   }
@@ -233,8 +263,9 @@ watch(mapExpanded, (expanded) => {
           <MapView
             ref="mapRef"
             :pins="pins"
+            :connections="[]"
             :selected-id="selectedId"
-            :selected-route="selectedRoute"
+            :selected-routes="selectedRoutes"
             :compact="isMobile && !mapExpanded"
             class="h-[140px] md:h-[380px] lg:h-[500px] w-full"
             @pin-click="onPinClick"
@@ -270,8 +301,9 @@ watch(mapExpanded, (expanded) => {
               <MapView
                 ref="overlayMapRef"
                 :pins="pins"
+                :connections="[]"
                 :selected-id="selectedId"
-                :selected-route="selectedRoute"
+                :selected-routes="selectedRoutes"
                 class="absolute inset-0 w-full h-full"
                 @pin-click="onPinClick"
               />

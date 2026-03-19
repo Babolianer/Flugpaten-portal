@@ -30,6 +30,12 @@ interface Animal {
   imageUrl?: string | null
 }
 
+interface DestEntry {
+  airportCode: string
+  lat: number | null
+  lng: number | null
+}
+
 interface Request {
   id: string
   title: string
@@ -50,6 +56,7 @@ interface Request {
   groupId?: string | null
   group?: { id: string; title: string } | null
   applications?: Array<{ userId: string; user: { id: string; displayName: string } }>
+  destinations?: Array<{ id: string; airportCode: string; lat: number | null; lng: number | null; sortOrder: number }>
 }
 
 interface Org {
@@ -139,17 +146,27 @@ const formRequest = reactive({
   earliestDate: '',
   latestDate: '',
   originAirport: '',
-  destAirport: '',
-  originLat: null as number | null,
-  originLng: null as number | null,
-  destLat: null as number | null,
-  destLng: null as number | null,
+  destinations: [] as DestEntry[],
   animalId: '',
   status: 'OPEN' as 'OPEN' | 'MATCHED' | 'COMPLETED' | 'CANCELLED',
   waitingListEnabled: false,
   animalCanFlyInCargo: false,
   animalCanFlyInCabin: false,
 })
+
+function addDestination() {
+  formRequest.destinations.push({ airportCode: '', lat: null, lng: null })
+}
+
+function removeDestination(index: number) {
+  formRequest.destinations.splice(index, 1)
+}
+
+function formatRequestDestinations(r: Request): string {
+  const dests = (r as Request & { destinations?: Array<{ airportCode: string }> }).destinations
+  if (dests && dests.length > 0) return dests.map((d) => d.airportCode).join(', ')
+  return r.destAirport
+}
 
 function normalizeAnimalTransportSelection() {
   // Mutually exclusive transport location: cargo XOR cabin (or neither).
@@ -335,12 +352,10 @@ function openCreate(mode: 'location' | 'animal' | 'request') {
       earliestDate: '',
       latestDate: '',
       originAirport: '',
-      destAirport: '',
+      destinations: [{ airportCode: '', lat: null, lng: null }],
       animalId: '',
       originLat: null,
       originLng: null,
-      destLat: null,
-      destLng: null,
       status: 'OPEN',
       waitingListEnabled: false,
       animalCanFlyInCargo: false,
@@ -404,6 +419,10 @@ function openEditAnimal(a: Animal) {
 function openEditRequest(r: Request) {
   modalMode.value = 'request'
   editingId.value = r.id
+  const dests = (r as Request & { destinations?: Array<{ airportCode: string; lat: number | null; lng: number | null }> }).destinations
+  const destList = dests && dests.length > 0
+    ? dests.map((d) => ({ airportCode: d.airportCode, lat: d.lat ?? null, lng: d.lng ?? null }))
+    : [{ airportCode: r.destAirport, lat: r.destLat, lng: r.destLng }]
   Object.assign(formRequest, {
     title: r.title,
     details: r.details ?? '',
@@ -413,12 +432,10 @@ function openEditRequest(r: Request) {
     earliestDate: r.earliestDate.slice(0, 10),
     latestDate: r.latestDate.slice(0, 10),
     originAirport: r.originAirport,
-    destAirport: r.destAirport,
+    destinations: destList,
     animalId: r.animal?.id ?? '',
     originLat: r.originLat,
     originLng: r.originLng,
-    destLat: r.destLat,
-    destLng: r.destLng,
     status: (r.status || 'OPEN') as 'OPEN' | 'MATCHED' | 'COMPLETED' | 'CANCELLED',
     waitingListEnabled: !!r.waitingListEnabled,
     animalCanFlyInCargo: !!r.animalCanFlyInCargo,
@@ -742,9 +759,21 @@ async function saveAnimal() {
 
 async function saveRequest() {
   if (requestSaving.value) return
-  if (!selectedOrgId.value || !formRequest.title || !formRequest.earliestDate || !formRequest.latestDate || !formRequest.originAirport || !formRequest.destAirport) return
+  const validDests = formRequest.destinations.filter((d) => d.airportCode?.trim())
+  if (
+    !selectedOrgId.value ||
+    !formRequest.title ||
+    !formRequest.earliestDate ||
+    !formRequest.latestDate ||
+    !formRequest.originAirport ||
+    validDests.length === 0
+  )
+    return
   const origin = airports.value.find((a) => a.code === formRequest.originAirport || a.id === formRequest.originAirport)
-  const dest = airports.value.find((a) => a.code === formRequest.destAirport || a.id === formRequest.destAirport)
+  const destsResolved = validDests.map((d) => {
+    const a = airports.value.find((x) => x.code === d.airportCode || x.id === d.airportCode)
+    return { airportCode: a?.code ?? d.airportCode, lat: a?.lat ?? d.lat, lng: a?.lng ?? d.lng }
+  })
   requestSaving.value = true
   try {
     normalizeAnimalTransportSelection()
@@ -760,12 +789,10 @@ async function saveRequest() {
       earliestDate: formRequest.earliestDate,
       latestDate: formRequest.latestDate,
       originAirport: origin?.code ?? formRequest.originAirport,
-      destAirport: dest?.code ?? formRequest.destAirport,
+      destinations: destsResolved,
       animalId: formRequest.animalId || undefined,
       originLat: origin?.lat ?? formRequest.originLat,
       originLng: origin?.lng ?? formRequest.originLng,
-      destLat: dest?.lat ?? formRequest.destLat,
-      destLng: dest?.lng ?? formRequest.destLng,
       ...(editingId.value ? { status: formRequest.status } : {}),
     }
     if (editingId.value) {
@@ -1259,7 +1286,7 @@ onUnmounted(() => {
               <div class="min-w-0">
                 <h3 class="font-medium text-slate-900 text-sm">{{ r.title }}</h3>
                 <p v-if="r.animal" class="text-sm text-slate-500 mt-0.5">{{ t('orgDashboard.animalLabel') }}: {{ r.animal.name }} ({{ getSpeciesLabel(r.animal.species) }})</p>
-                <p class="text-sm text-slate-500 mt-0.5">{{ r.originAirport }} → {{ r.destAirport }}</p>
+                <p class="text-sm text-slate-500 mt-0.5">{{ r.originAirport }} → {{ formatRequestDestinations(r) }}</p>
                 <p class="text-xs text-slate-400 mt-1">
                   {{ new Date(r.earliestDate).toLocaleDateString(locale) }} – {{ new Date(r.latestDate).toLocaleDateString(locale) }}
                 </p>
@@ -1714,14 +1741,35 @@ onUnmounted(() => {
                 @select="(a) => { formRequest.originLat = a.lat; formRequest.originLng = a.lon }"
               />
             </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.destAirport') }}</label>
-              <AirportAutocomplete
-                :model-value="formRequest.destAirport"
-                :placeholder="t('map.filterDestPlaceholder', 'Zielflughafen suchen…')"
-                @update:model-value="(v) => { formRequest.destAirport = v; if (!v) { formRequest.destLat = null; formRequest.destLng = null } }"
-                @select="(a) => { formRequest.destLat = a.lat; formRequest.destLng = a.lon }"
-              />
+            <div class="space-y-3">
+              <label class="block text-sm font-medium text-slate-700">{{ t('orgDashboard.destAirport') }}</label>
+              <div v-for="(dest, idx) in formRequest.destinations" :key="idx" class="flex gap-2 items-start">
+                <div class="flex-1 min-w-0">
+                  <AirportAutocomplete
+                    :model-value="dest.airportCode"
+                    :placeholder="t('map.filterDestPlaceholder', 'Zielflughafen suchen…')"
+                    @update:model-value="(v) => { dest.airportCode = v; if (!v) { dest.lat = null; dest.lng = null } }"
+                    @select="(a) => { dest.lat = a.lat; dest.lng = a.lon }"
+                  />
+                </div>
+                <button
+                  v-if="formRequest.destinations.length > 1"
+                  type="button"
+                  class="shrink-0 p-2 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                  :title="t('orgDashboard.removeDestination')"
+                  @click="removeDestination(idx)"
+                >
+                  <span class="text-lg leading-none">×</span>
+                </button>
+              </div>
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-slate-300 text-slate-600 hover:border-amber-400 hover:text-amber-600 text-sm font-medium"
+                @click="addDestination"
+              >
+                <span>+</span>
+                {{ t('orgDashboard.addDestination') }}
+              </button>
             </div>
             <div class="flex gap-2 pt-2">
               <button type="submit" :disabled="requestSaving" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed">

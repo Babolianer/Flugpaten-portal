@@ -34,6 +34,7 @@ export interface HubTransportRequest {
   originLng: number | null
   destLat: number | null
   destLng: number | null
+  destinations?: Array<{ airportCode: string }>
   animalCanFlyInCargo: boolean
   animalCanFlyInCabin: boolean
   animal: { id: string; name: string; species: string } | null

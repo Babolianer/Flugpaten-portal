@@ -703,6 +703,8 @@
     "latestDate": "Spätestes Datum",
     "originAirport": "Abflughafen",
     "destAirport": "Zielflughafen",
+    "addDestination": "Weiteren Standort hinzufügen",
+    "removeDestination": "Standort entfernen",
     "assignAnimal": "Tier zuweisen",
     "noAnimal": "Kein Tier",
     "noImage": "Kein Bild",

@@ -31,6 +31,8 @@ const props = withDefaults(
     pins: Pin[]
     connections?: Connection[]
     selectedRoute?: SelectedRoute | null
+    /** Mehrere Strecken (z.B. 1 Start + 2 Ziele): wird bevorzugt vor selectedRoute */
+    selectedRoutes?: SelectedRoute[] | null
     selectedId?: string | null
     center?: [number, number]
     zoom?: number
@@ -40,6 +42,7 @@ const props = withDefaults(
   {
     connections: () => [],
     selectedRoute: null,
+    selectedRoutes: null,
     selectedId: null,
     center: () => [10.4515, 51.1657] as [number, number],
     zoom: 4,
@@ -118,19 +121,22 @@ function updateSelectedRoute() {
   try {
     const source = map.getSource('selectedRoute') as maplibregl.GeoJSONSource | undefined
     if (!source) return
-    if (props.selectedRoute) {
+    const routes = props.selectedRoutes && props.selectedRoutes.length > 0
+      ? props.selectedRoutes
+      : props.selectedRoute
+        ? [props.selectedRoute]
+        : null
+    if (routes && routes.length > 0) {
       source.setData({
         type: 'FeatureCollection',
-        features: [
-          {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: [props.selectedRoute.from, props.selectedRoute.to],
-            },
+        features: routes.map((r) => ({
+          type: 'Feature' as const,
+          properties: {},
+          geometry: {
+            type: 'LineString' as const,
+            coordinates: [r.from, r.to],
           },
-        ],
+        })),
       })
       selectedRouteMarkers.value.forEach((m) => m.remove())
       selectedRouteMarkers.value = []
@@ -148,24 +154,32 @@ function updateSelectedRoute() {
         fontSize: '12px',
         fontWeight: 'bold',
       }
-      const startEl = document.createElement('div')
-      startEl.title = 'Start (A)'
-      startEl.textContent = 'A'
-      Object.assign(startEl.style, routePointStyle)
-      const endEl = document.createElement('div')
-      endEl.title = 'Ziel (B)'
-      endEl.textContent = 'B'
-      Object.assign(endEl.style, { ...routePointStyle })
-      const mStart = new maplibregl.Marker({ element: startEl })
-        .setLngLat(props.selectedRoute.from)
-        .addTo(map)
-      const mEnd = new maplibregl.Marker({ element: endEl })
-        .setLngLat(props.selectedRoute.to)
-        .addTo(map)
-      selectedRouteMarkers.value = [mStart, mEnd]
       const bounds = new maplibregl.LngLatBounds()
-      bounds.extend(props.selectedRoute.from)
-      bounds.extend(props.selectedRoute.to)
+      const startAdded = new Set<string>()
+      routes.forEach((r, idx) => {
+        const startKey = `${r.from[0]},${r.from[1]}`
+        if (!startAdded.has(startKey)) {
+          startAdded.add(startKey)
+          const startEl = document.createElement('div')
+          startEl.title = 'Start (A)'
+          startEl.textContent = 'A'
+          Object.assign(startEl.style, routePointStyle)
+          const mStart = new maplibregl.Marker({ element: startEl })
+            .setLngLat(r.from)
+            .addTo(map!)
+          selectedRouteMarkers.value.push(mStart)
+        }
+        bounds.extend(r.from)
+        bounds.extend(r.to)
+        const endEl = document.createElement('div')
+        endEl.title = routes.length > 1 ? `Ziel ${idx + 1} (${String.fromCharCode(66 + idx)})` : 'Ziel (B)'
+        endEl.textContent = routes.length > 1 ? String(idx + 1) : 'B'
+        Object.assign(endEl.style, { ...routePointStyle })
+        const mEnd = new maplibregl.Marker({ element: endEl })
+          .setLngLat(r.to)
+          .addTo(map!)
+        selectedRouteMarkers.value.push(mEnd)
+      })
       map.fitBounds(bounds, { padding: 60, maxZoom: 10 })
     } else {
       source.setData({ type: 'FeatureCollection', features: [] })
@@ -264,7 +278,7 @@ watch(
   { deep: true }
 )
 watch(
-  () => props.selectedRoute,
+  () => [props.selectedRoute, props.selectedRoutes],
   () => updateSelectedRoute(),
   { deep: true }
 )

@@ -698,6 +698,8 @@
     "originAirport": "Lotnisko odlotu",
     "originPlaceholder": "np. WAW",
     "destAirport": "Lotnisko przylotu",
+    "addDestination": "Dodaj kolejne miejsce docelowe",
+    "removeDestination": "Usuń miejsce docelowe",
     "destPlaceholder": "np. FRA",
     "airline": "Linia lotnicza",
     "travelFrom": "Podróż od",

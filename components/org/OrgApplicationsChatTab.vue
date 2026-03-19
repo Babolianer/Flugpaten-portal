@@ -76,6 +76,13 @@ function statusPillClass(status: string) {
   }
 }
 
+function formatRoute(req: { originAirport: string; destAirport: string; destinations?: Array<{ airportCode: string }> }): string {
+  const dests = req.destinations && req.destinations.length > 0
+    ? req.destinations.map((d) => d.airportCode).join(', ')
+    : req.destAirport
+  return `${req.originAirport} → ${dests}`
+}
+
 function speciesLabel(species: string) {
   const map: Record<string, string> = {
     cat: 'orgDashboard.speciesCat',
@@ -358,7 +365,7 @@ defineExpose({ reloadAll })
                 </span>
                 <span class="text-xs text-slate-500">{{ expanded[req.id] ? '▼' : '▶' }}</span>
               </div>
-              <p class="text-sm text-slate-600 mt-1">{{ req.originAirport }} → {{ req.destAirport }}</p>
+              <p class="text-sm text-slate-600 mt-1">{{ formatRoute(req) }}</p>
               <p class="text-xs text-slate-400 mt-0.5">
                 {{ new Date(req.earliestDate).toLocaleDateString(locale) }} – {{ new Date(req.latestDate).toLocaleDateString(locale) }}
               </p>
@@ -604,7 +611,7 @@ defineExpose({ reloadAll })
             <p class="font-semibold text-slate-800">{{ t('orgDashboard.applicationsChatFlightBlock') }}</p>
             <p>
               <span class="text-slate-500">{{ t('orgDashboard.applicationsChatRoute') }}:</span>
-              {{ detailRequest.originAirport }} → {{ detailRequest.destAirport }}
+              {{ formatRoute(detailRequest) }}
             </p>
             <p>
               <span class="text-slate-500">{{ t('orgDashboard.applicationsChatDates') }}:</span>
@@ -759,7 +766,7 @@ defineExpose({ reloadAll })
 
           <div v-for="leg in editorGroupLegs" :key="leg.id" class="mt-8 border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-4">
             <div>
-              <h4 class="font-semibold text-slate-900">{{ leg.originAirport }} → {{ leg.destAirport }}</h4>
+              <h4 class="font-semibold text-slate-900">{{ formatRoute(leg) }}</h4>
               <p class="text-xs text-slate-500 mt-0.5">
                 <span
                   class="inline-flex px-2 py-0.5 rounded text-xs font-medium border"
