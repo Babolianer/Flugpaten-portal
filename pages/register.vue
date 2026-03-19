@@ -92,7 +92,7 @@ async function submit() {
             type="text"
             required
             :placeholder="role === 'ORG_USER' ? t('register.displayNamePlaceholderOrg') : t('register.displayNamePlaceholder')"
-            class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           />
         </div>
         <div class="mb-4">
@@ -101,7 +101,7 @@ async function submit() {
             v-model="email"
             type="email"
             required
-            class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           />
         </div>
         <div class="mb-6">
@@ -111,7 +111,7 @@ async function submit() {
             type="password"
             required
             minlength="8"
-            class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           />
         </div>
         <div class="mb-4 space-y-3">
@@ -136,7 +136,7 @@ async function submit() {
             <textarea
               v-model="orgDescription"
               rows="3"
-              class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
               :placeholder="t('register.descriptionPlaceholder')"
             />
           </div>
@@ -146,7 +146,7 @@ async function submit() {
               v-model="orgWebsite"
               type="url"
               :placeholder="t('register.websitePlaceholder')"
-              class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
           </div>
           <div class="mb-6">
@@ -155,7 +155,7 @@ async function submit() {
               v-model="orgContactEmail"
               type="email"
               :required="role === 'ORG_USER'"
-              class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
               :placeholder="t('register.contactEmailPlaceholder')"
             />
           </div>
@@ -180,7 +180,15 @@ async function submit() {
     <!-- Modal: AGB kurz -->
     <Teleport to="body">
       <div v-if="showTermsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col relative">
+          <button
+            type="button"
+            class="absolute top-3 right-3 inline-flex items-center justify-center h-10 w-10 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            aria-label="Schließen"
+            @click="showTermsModal = false"
+          >
+            <span class="text-2xl leading-none">×</span>
+          </button>
           <div class="p-6 overflow-y-auto flex-1">
             <h3 class="text-lg font-bold text-slate-900 mb-3">{{ t('terms.title') }}</h3>
             <p class="text-sm text-slate-700 whitespace-pre-line mb-4">{{ t('terms.shortSummary') }}</p>
@@ -204,7 +212,15 @@ async function submit() {
     <!-- Modal: Datenschutz kurz -->
     <Teleport to="body">
       <div v-if="showPrivacyModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col relative">
+          <button
+            type="button"
+            class="absolute top-3 right-3 inline-flex items-center justify-center h-10 w-10 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            aria-label="Schließen"
+            @click="showPrivacyModal = false"
+          >
+            <span class="text-2xl leading-none">×</span>
+          </button>
           <div class="p-6 overflow-y-auto flex-1">
             <h3 class="text-lg font-bold text-slate-900 mb-3">{{ t('privacy.title') }}</h3>
             <p class="text-sm text-slate-700 whitespace-pre-line mb-4">{{ t('privacy.shortSummary') }}</p>

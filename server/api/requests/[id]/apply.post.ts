@@ -72,16 +72,39 @@ export default defineEventHandler(async (event) => {
 
   if (!request) throw createError({ statusCode: 404, message: 'Request not found' })
 
-  const existing = await prisma.requestApplication.findUnique({
-    where: { requestId_userId: { requestId, userId: user.id } },
-  })
-  if (existing) {
-    throw createError({ statusCode: 409, message: 'Already applied' })
+  const groupId = (request as { groupId?: string | null }).groupId ?? null
+  const groupRequestIds: string[] = []
+  if (groupId) {
+    const groupRequests = await prisma.transportRequest.findMany({
+      where: { groupId },
+      select: { id: true, status: true },
+    })
+    const nonOpen = groupRequests.filter((r) => r.status !== 'OPEN')
+    if (nonOpen.length > 0) {
+      throw createError({ statusCode: 400, message: 'Diese Gruppe ist bereits teilweise geschlossen.' })
+    }
+    groupRequestIds.push(...groupRequests.map((r) => r.id))
+
+    const existingInGroup = await prisma.requestApplication.findFirst({
+      where: { userId: user.id, groupId },
+      select: { id: true },
+    })
+    if (existingInGroup) {
+      throw createError({ statusCode: 409, message: 'Already applied' })
+    }
+  } else {
+    const existing = await prisma.requestApplication.findUnique({
+      where: { requestId_userId: { requestId, userId: user.id } },
+    })
+    if (existing) {
+      throw createError({ statusCode: 409, message: 'Already applied' })
+    }
   }
 
   const createData: {
     requestId: string
     userId: string
+    groupId?: string | null
     status: string
     message: string
     applicationData?: unknown
@@ -89,6 +112,7 @@ export default defineEventHandler(async (event) => {
   } = {
     requestId,
     userId: user.id,
+    groupId,
     status: 'PENDING',
     message,
   }
@@ -96,25 +120,33 @@ export default defineEventHandler(async (event) => {
   if (attachmentPath) createData.attachmentPath = attachmentPath
 
   try {
-    const [application, conversation] = await prisma.$transaction([
-      prisma.requestApplication.create({
-        data: createData,
-      }),
-      prisma.conversation.create({
-        data: {
-          requestId,
-          organizationId: request.organizationId,
-          userId: user.id,
-        },
-      }),
-    ])
+    const targetRequestIds = groupRequestIds.length ? groupRequestIds : [requestId]
 
-    await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        senderUserId: user.id,
-        body: message,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      const applications = []
+      const conversations = []
+      for (const rid of targetRequestIds) {
+        const application = await tx.requestApplication.create({
+          data: { ...createData, requestId: rid },
+        })
+        const conversation = await tx.conversation.create({
+          data: {
+            requestId: rid,
+            organizationId: request.organizationId,
+            userId: user.id,
+          },
+        })
+        await tx.message.create({
+          data: {
+            conversationId: conversation.id,
+            senderUserId: user.id,
+            body: message,
+          },
+        })
+        applications.push(application)
+        conversations.push(conversation)
+      }
+      return { applications, conversations }
     })
 
     // Automatische Antwort der Organisation an den Nutzer (wenn Vorlage 1 gesetzt ist)
@@ -128,43 +160,53 @@ export default defineEventHandler(async (event) => {
         .replace(/\{\{organisation\}\}/g, org.name)
         .trim()
       if (autoBody) {
-        await prisma.message.create({
-          data: {
-            conversationId: conversation.id,
-            senderUserId: org.createdByUserId,
-            body: autoBody,
-          },
-        })
+        for (const conv of result.conversations) {
+          await prisma.message.create({
+            data: {
+              conversationId: conv.id,
+              senderUserId: org.createdByUserId,
+              body: autoBody,
+            },
+          })
+        }
       }
     }
 
-    return { application, conversation }
+    return { applications: result.applications, conversations: result.conversations }
   } catch (dbErr: unknown) {
     const msg = dbErr instanceof Error ? dbErr.message : String(dbErr)
-    if (msg.includes('Unknown argument') && (msg.includes('applicationData') || msg.includes('attachmentPath'))) {
-      const [application, conversation] = await prisma.$transaction([
-        prisma.requestApplication.create({
-          data: {
-            requestId,
-            userId: user.id,
-            status: 'PENDING',
-            message,
-          },
-        }),
-        prisma.conversation.create({
-          data: {
-            requestId,
-            organizationId: request.organizationId,
-            userId: user.id,
-          },
-        }),
-      ])
-      await prisma.message.create({
-        data: {
-          conversationId: conversation.id,
-          senderUserId: user.id,
-          body: message,
-        },
+    if (msg.includes('Unknown argument') && (msg.includes('applicationData') || msg.includes('attachmentPath') || msg.includes('groupId'))) {
+      const targetRequestIds = groupRequestIds.length ? groupRequestIds : [requestId]
+      const result = await prisma.$transaction(async (tx) => {
+        const applications = []
+        const conversations = []
+        for (const rid of targetRequestIds) {
+          const application = await tx.requestApplication.create({
+            data: {
+              requestId: rid,
+              userId: user.id,
+              status: 'PENDING',
+              message,
+            },
+          })
+          const conversation = await tx.conversation.create({
+            data: {
+              requestId: rid,
+              organizationId: request.organizationId,
+              userId: user.id,
+            },
+          })
+          await tx.message.create({
+            data: {
+              conversationId: conversation.id,
+              senderUserId: user.id,
+              body: message,
+            },
+          })
+          applications.push(application)
+          conversations.push(conversation)
+        }
+        return { applications, conversations }
       })
       const org = await prisma.organization.findUnique({
         where: { id: request.organizationId },
@@ -176,16 +218,18 @@ export default defineEventHandler(async (event) => {
           .replace(/\{\{organisation\}\}/g, org.name)
           .trim()
         if (autoBody) {
-          await prisma.message.create({
-            data: {
-              conversationId: conversation.id,
-              senderUserId: org.createdByUserId,
-              body: autoBody,
-            },
-          })
+          for (const conv of result.conversations) {
+            await prisma.message.create({
+              data: {
+                conversationId: conv.id,
+                senderUserId: org.createdByUserId,
+                body: autoBody,
+              },
+            })
+          }
         }
       }
-      return { application, conversation }
+      return { applications: result.applications, conversations: result.conversations }
     }
     throw dbErr
   }

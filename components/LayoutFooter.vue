@@ -37,10 +37,10 @@ const linkGroups = computed(() => {
         <div class="flex flex-col gap-4 max-w-xs">
           <NuxtLink
             to="/"
-            class="flex items-center gap-3 font-semibold text-white hover:text-amber-400 transition-colors w-fit group"
+            class="flex items-start gap-3 font-semibold text-white hover:text-amber-400 transition-colors w-full max-w-xs min-w-0 group"
           >
-            <img :src="logoImg" alt="" class="h-11 w-11 object-contain group-hover:opacity-90 transition-opacity" width="44" height="44" />
-            <span>{{ t('app.name') }} – {{ t('app.tagline') }}</span>
+            <img :src="logoImg" alt="" class="h-11 w-11 shrink-0 object-contain group-hover:opacity-90 transition-opacity" width="44" height="44" />
+            <span class="min-w-0 break-words text-left leading-snug">{{ t('app.name') }} – {{ t('app.tagline') }}</span>
           </NuxtLink>
           <p class="text-sm text-slate-500 leading-relaxed">
             {{ t('footer.tagline') }}

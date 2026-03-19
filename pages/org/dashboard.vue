@@ -35,6 +35,9 @@ interface Request {
   title: string
   details: string | null
   status: string
+  waitingListEnabled?: boolean
+  animalCanFlyInCargo?: boolean
+  animalCanFlyInCabin?: boolean
   earliestDate: string
   latestDate: string
   originAirport: string
@@ -44,6 +47,8 @@ interface Request {
   destLat: number | null
   destLng: number | null
   animal: { id: string; name: string; species: string } | null
+  groupId?: string | null
+  group?: { id: string; title: string } | null
   applications?: Array<{ userId: string; user: { id: string; displayName: string } }>
 }
 
@@ -80,19 +85,19 @@ const message = ref('')
 const activeTab = ref<'locations' | 'animals' | 'requests' | 'inbox' | 'reviews' | 'settings'>('locations')
 const selectedOrgId = ref('')
 const sortBy = ref<'title' | 'date'>('title')
+const requestSaving = ref(false)
+const applicationsHubRef = ref<{ reloadAll: (opts?: { silent?: boolean }) => Promise<void> } | null>(null)
 
 const showModal = ref(false)
 const modalMode = ref<'location' | 'animal' | 'request'>('location')
 const editingId = ref<string | null>(null)
 
-const inbox = ref<{ id: string; requestId: string | null; requestTitle: string | null; userDisplayName: string | null; lastMessage: { body: string; createdAt: string } | null }[]>([])
 const orgReviews = ref<OrgReview[]>([])
 const orgReviewsLoading = ref(false)
 const editingReviewId = ref<string | null>(null)
 const orgResponseDraft = ref('')
 const reportingReviewId = ref<string | null>(null)
 const reportReason = ref('')
-const inboxLoading = ref(false)
 const inboxPollingInterval = ref<NodeJS.Timeout | null>(null)
 const isPageVisible = ref(true)
 const copiedRequestId = ref<string | null>(null)
@@ -105,8 +110,8 @@ const formLocation = reactive({
   city: '',
   address: '',
   postalCode: '',
-  lat: 0,
-  lng: 0,
+  lat: null as number | null,
+  lng: null as number | null,
 })
 const mapsLinkInput = ref('')
 
@@ -128,6 +133,9 @@ const { getRequestStatusLabel, statusOptions } = useRequestStatus()
 const formRequest = reactive({
   title: '',
   details: '',
+  groupMode: 'none' as 'none' | 'existing' | 'new',
+  groupId: '',
+  groupTitle: '',
   earliestDate: '',
   latestDate: '',
   originAirport: '',
@@ -138,7 +146,30 @@ const formRequest = reactive({
   destLng: null as number | null,
   animalId: '',
   status: 'OPEN' as 'OPEN' | 'MATCHED' | 'COMPLETED' | 'CANCELLED',
+  waitingListEnabled: false,
+  animalCanFlyInCargo: false,
+  animalCanFlyInCabin: false,
 })
+
+function normalizeAnimalTransportSelection() {
+  // Mutually exclusive transport location: cargo XOR cabin (or neither).
+  if (formRequest.animalCanFlyInCargo) formRequest.animalCanFlyInCabin = false
+  else if (formRequest.animalCanFlyInCabin) formRequest.animalCanFlyInCargo = false
+}
+
+watch(
+  () => formRequest.animalCanFlyInCargo,
+  (cargo) => {
+    if (cargo) formRequest.animalCanFlyInCabin = false
+  },
+)
+
+watch(
+  () => formRequest.animalCanFlyInCabin,
+  (cabin) => {
+    if (cabin) formRequest.animalCanFlyInCargo = false
+  },
+)
 
 const formSettings = reactive({
   description: '',
@@ -170,6 +201,17 @@ const airports = ref<{ id: string; name: string; code: string; lat: number; lng:
 const airportRegions = ref<{ id: string; label: string; airportIds: string[] }[]>([])
 
 const selectedOrg = computed(() => orgs.value.find((o) => o.id === selectedOrgId.value) || null)
+
+const requestGroupOptions = computed(() => {
+  const reqs = selectedOrg.value?.requests ?? []
+  const map = new Map<string, string>()
+  for (const r of reqs) {
+    if (r.groupId && r.group?.title) map.set(r.groupId, r.group.title)
+  }
+  return [...map.entries()]
+    .map(([id, title]) => ({ id, title }))
+    .sort((a, b) => a.title.localeCompare(b.title))
+})
 
 /** Bei PENDING-Organisationen keine Tabs – nur Hinweis „Wartet auf Freigabe“. Kein Zugriff auf Standorte, Tiere, Transporte, Einstellungen. */
 const allowedTabs = computed(() => {
@@ -259,19 +301,9 @@ async function load() {
     message.value = 'Fehler beim Laden'
   } finally {
     loading.value = false
-  }
-}
-
-async function loadInbox(opts?: { silent?: boolean }) {
-  if (!opts?.silent) inboxLoading.value = true
-  try {
-    const query = isAdminViewAsOrg.value && selectedOrgId.value ? { orgId: selectedOrgId.value } : {}
-    const res = await $fetch<{ conversations: { id: string; requestId: string | null; requestTitle: string | null; userDisplayName: string | null; lastMessage: { body: string; createdAt: string } | null }[] }>('/api/org/dashboard/conversations', { query })
-    inbox.value = res.conversations
-  } catch {
-    inbox.value = []
-  } finally {
-    if (!opts?.silent) inboxLoading.value = false
+    if (activeTab.value === 'inbox') {
+      nextTick(() => void applicationsHubRef.value?.reloadAll({ silent: true }))
+    }
   }
 }
 
@@ -281,7 +313,7 @@ function openCreate(mode: 'location' | 'animal' | 'request') {
   locationGeocodeError.value = false
   locationMapsLinkStatus.value = null
   if (mode === 'location') {
-    Object.assign(formLocation, { title: '', city: '', address: '', postalCode: '', lat: 0, lng: 0, countryCode: 'DE' })
+    Object.assign(formLocation, { title: '', city: '', address: '', postalCode: '', lat: null, lng: null, countryCode: 'DE' })
     locationFromLinkLoading.value = false
     mapsLinkInput.value = ''
   }
@@ -297,6 +329,9 @@ function openCreate(mode: 'location' | 'animal' | 'request') {
     Object.assign(formRequest, {
       title: '',
       details: '',
+      groupMode: 'none',
+      groupId: '',
+      groupTitle: '',
       earliestDate: '',
       latestDate: '',
       originAirport: '',
@@ -307,6 +342,9 @@ function openCreate(mode: 'location' | 'animal' | 'request') {
       destLat: null,
       destLng: null,
       status: 'OPEN',
+      waitingListEnabled: false,
+      animalCanFlyInCargo: false,
+      animalCanFlyInCabin: false,
     })
   }
   showModal.value = true
@@ -324,8 +362,8 @@ function openEditLocation(loc: Location) {
     countryCode: loc.countryCode,
     address: loc.address ?? '',
     postalCode: (loc as { postalCode?: string }).postalCode ?? '',
-    lat: loc.lat ?? 0,
-    lng: loc.lng ?? 0,
+    lat: loc.lat ?? null,
+    lng: loc.lng ?? null,
   })
   showModal.value = true
 }
@@ -369,6 +407,9 @@ function openEditRequest(r: Request) {
   Object.assign(formRequest, {
     title: r.title,
     details: r.details ?? '',
+    groupMode: r.groupId ? 'existing' : 'none',
+    groupId: r.groupId ?? '',
+    groupTitle: '',
     earliestDate: r.earliestDate.slice(0, 10),
     latestDate: r.latestDate.slice(0, 10),
     originAirport: r.originAirport,
@@ -379,7 +420,11 @@ function openEditRequest(r: Request) {
     destLat: r.destLat,
     destLng: r.destLng,
     status: (r.status || 'OPEN') as 'OPEN' | 'MATCHED' | 'COMPLETED' | 'CANCELLED',
+    waitingListEnabled: !!r.waitingListEnabled,
+    animalCanFlyInCargo: !!r.animalCanFlyInCargo,
+    animalCanFlyInCabin: !!r.animalCanFlyInCabin,
   })
+  normalizeAnimalTransportSelection()
   showModal.value = true
 }
 
@@ -430,7 +475,10 @@ async function loadSettingsForTab() {
 
 function hasValidLocationCoords(): boolean {
   const { lat, lng } = formLocation
-  return Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)
+  if (lat == null || lng == null) return false
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return false
+  return lat !== 0 || lng !== 0
 }
 
 /**
@@ -693,14 +741,22 @@ async function saveAnimal() {
 }
 
 async function saveRequest() {
+  if (requestSaving.value) return
   if (!selectedOrgId.value || !formRequest.title || !formRequest.earliestDate || !formRequest.latestDate || !formRequest.originAirport || !formRequest.destAirport) return
   const origin = airports.value.find((a) => a.code === formRequest.originAirport || a.id === formRequest.originAirport)
   const dest = airports.value.find((a) => a.code === formRequest.destAirport || a.id === formRequest.destAirport)
+  requestSaving.value = true
   try {
+    normalizeAnimalTransportSelection()
     const body = {
       organizationId: selectedOrgId.value,
       title: formRequest.title,
       details: formRequest.details || undefined,
+      groupId: formRequest.groupMode === 'existing' ? (formRequest.groupId || null) : null,
+      groupTitle: formRequest.groupMode === 'new' ? (formRequest.groupTitle || null) : null,
+      waitingListEnabled: !!formRequest.waitingListEnabled,
+      animalCanFlyInCargo: !!formRequest.animalCanFlyInCargo,
+      animalCanFlyInCabin: !!formRequest.animalCanFlyInCabin,
       earliestDate: formRequest.earliestDate,
       latestDate: formRequest.latestDate,
       originAirport: origin?.code ?? formRequest.originAirport,
@@ -722,7 +778,18 @@ async function saveRequest() {
     await load()
   } catch {
     message.value = t('orgDashboard.errorSave')
+  } finally {
+    requestSaving.value = false
   }
+}
+
+function openEditRequestFromHub(requestId: string) {
+  const r = selectedOrg.value?.requests.find((x) => x.id === requestId)
+  if (r) openEditRequest(r)
+}
+
+function onApplicationsHubError(msg: string) {
+  message.value = msg
 }
 
 async function saveSettings() {
@@ -831,11 +898,10 @@ function startInboxPolling() {
   if (inboxPollingInterval.value) return
   
   inboxPollingInterval.value = setInterval(async () => {
-    // Only poll if page is visible and inbox tab is active – silent: no loading indicator, no flicker
     if (isPageVisible.value && activeTab.value === 'inbox') {
-      await loadInbox({ silent: true })
+      await applicationsHubRef.value?.reloadAll({ silent: true })
     }
-  }, 30000) // Poll every 30 seconds – new applications appear without full page reload
+  }, 30000)
 }
 
 function stopInboxPolling() {
@@ -848,8 +914,7 @@ function stopInboxPolling() {
 function handleVisibilityChange() {
   isPageVisible.value = !document.hidden
   if (isPageVisible.value && activeTab.value === 'inbox') {
-    // Immediately load inbox when page becomes visible
-    loadInbox()
+    void applicationsHubRef.value?.reloadAll({ silent: true })
   }
 }
 
@@ -926,7 +991,7 @@ async function submitReportReview() {
 
 watch(activeTab, (tab) => {
   if (tab === 'inbox') {
-    loadInbox()
+    void nextTick(() => applicationsHubRef.value?.reloadAll())
     startInboxPolling()
   } else if (tab === 'reviews') {
     loadOrgReviews()
@@ -968,7 +1033,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto w-4/5 max-w-full px-4 sm:px-6 py-6 sm:py-8 overflow-x-hidden">
+  <div class="container mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
     <!-- Admin: Infobar „Als Organisation anzeigen“ mit Zurück zum Admin -->
     <div
       v-if="isAdminViewAsOrg && selectedOrg"
@@ -1070,7 +1135,18 @@ onUnmounted(() => {
           {{ t('orgDashboard.waitingApproval') }}
         </span>
       </div>
-      <div v-if="allowedTabs.length > 0" class="flex flex-wrap gap-1 mb-6 -mx-1 overflow-x-auto pb-1 sm:overflow-visible sm:mx-0 sm:pb-0 border-b border-slate-200">
+      <!-- Mobile: Tabs als Select -->
+      <div v-if="allowedTabs.length > 0" class="sm:hidden mb-4">
+        <label class="block text-sm font-medium text-slate-700 mb-1">Bereich</label>
+        <select v-model="activeTab" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm min-h-[44px]">
+          <option v-for="tab in allowedTabs" :key="tab" :value="tab">
+            {{ tab === 'locations' ? t('orgDashboard.tabLocations') : tab === 'animals' ? t('orgDashboard.tabAnimals') : tab === 'requests' ? t('orgDashboard.tabRequests') : tab === 'inbox' ? t('orgDashboard.inboxChat') : tab === 'reviews' ? t('orgDashboard.tabReviews') : t('orgDashboard.tabSettings') }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Desktop: Tabs als Buttons -->
+      <div v-if="allowedTabs.length > 0" class="hidden sm:flex flex-wrap gap-1 mb-6 -mx-1 overflow-x-auto pb-1 sm:overflow-visible sm:mx-0 sm:pb-0 border-b border-slate-200">
         <button
           v-for="tab in allowedTabs"
           :key="tab"
@@ -1078,7 +1154,7 @@ onUnmounted(() => {
           :class="['px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap min-h-[44px]', activeTab === tab ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200']"
           @click="activeTab = tab"
         >
-          {{ tab === 'locations' ? t('orgDashboard.tabLocations') : tab === 'animals' ? t('orgDashboard.tabAnimals') : tab === 'requests' ? t('orgDashboard.tabRequests') : tab === 'inbox' ? t('orgDashboard.tabInbox') : tab === 'reviews' ? t('orgDashboard.tabReviews') : t('orgDashboard.tabSettings') }}
+          {{ tab === 'locations' ? t('orgDashboard.tabLocations') : tab === 'animals' ? t('orgDashboard.tabAnimals') : tab === 'requests' ? t('orgDashboard.tabRequests') : tab === 'inbox' ? t('orgDashboard.inboxChat') : tab === 'reviews' ? t('orgDashboard.tabReviews') : t('orgDashboard.tabSettings') }}
         </button>
       </div>
 
@@ -1101,11 +1177,11 @@ onUnmounted(() => {
             </button>
           </div>
           <ul v-if="sortedLocations.length" class="space-y-2">
-            <li v-for="loc in sortedLocations" :key="loc.id" class="p-4 rounded-lg bg-slate-50/80 border border-slate-100 flex justify-between items-center gap-3">
-              <span class="text-sm text-slate-900">{{ loc.title }} – {{ loc.city }}{{ loc.address ? ', ' + loc.address : '' }}</span>
-              <div class="flex gap-2 shrink-0">
-                <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors" @click="openEditLocation(loc)">{{ t('orgDashboard.edit') }}</button>
-                <button type="button" class="px-3 py-1.5 rounded-lg border border-red-200 text-red-700 text-sm font-medium hover:bg-red-50 transition-colors" @click="deleteLocation(loc.id)">{{ t('orgDashboard.delete') }}</button>
+            <li v-for="loc in sortedLocations" :key="loc.id" class="p-4 rounded-lg bg-slate-50/80 border border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+              <span class="text-sm text-slate-900 break-words">{{ loc.title }} – {{ loc.city }}{{ loc.address ? ', ' + loc.address : '' }}</span>
+              <div class="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+                <button type="button" class="w-full sm:w-auto px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors min-h-[44px]" @click="openEditLocation(loc)">{{ t('orgDashboard.edit') }}</button>
+                <button type="button" class="w-full sm:w-auto px-3 py-2 rounded-lg border border-red-200 text-red-700 text-sm font-medium hover:bg-red-50 transition-colors min-h-[44px]" @click="deleteLocation(loc.id)">{{ t('orgDashboard.delete') }}</button>
               </div>
             </li>
           </ul>
@@ -1130,17 +1206,17 @@ onUnmounted(() => {
             </button>
           </div>
           <ul v-if="sortedAnimals.length" class="space-y-2">
-            <li v-for="a in sortedAnimals" :key="a.id" class="p-4 rounded-lg bg-slate-50/80 border border-slate-100 flex justify-between items-center gap-3">
+            <li v-for="a in sortedAnimals" :key="a.id" class="p-4 rounded-lg bg-slate-50/80 border border-slate-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div class="flex items-center gap-3 min-w-0">
                 <div class="shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                   <img v-if="a.imageUrl" :src="a.imageUrl" :alt="a.name" class="w-full h-full object-cover" @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')" />
                   <div v-else class="w-full h-full flex items-center justify-center text-slate-400 text-lg">🐾</div>
                 </div>
-                <span class="text-sm text-slate-900">{{ a.name }} ({{ getSpeciesLabel(a.species) }})</span>
+                <span class="text-sm text-slate-900 break-words">{{ a.name }} ({{ getSpeciesLabel(a.species) }})</span>
               </div>
-              <div class="flex gap-2 shrink-0">
-                <button type="button" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors" @click="openEditAnimal(a)">{{ t('orgDashboard.edit') }}</button>
-                <button type="button" class="px-3 py-1.5 rounded-lg border border-red-200 text-red-700 text-sm font-medium hover:bg-red-50 transition-colors" @click="deleteAnimal(a.id)">{{ t('orgDashboard.delete') }}</button>
+              <div class="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+                <button type="button" class="w-full sm:w-auto px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors min-h-[44px]" @click="openEditAnimal(a)">{{ t('orgDashboard.edit') }}</button>
+                <button type="button" class="w-full sm:w-auto px-3 py-2 rounded-lg border border-red-200 text-red-700 text-sm font-medium hover:bg-red-50 transition-colors min-h-[44px]" @click="deleteAnimal(a.id)">{{ t('orgDashboard.delete') }}</button>
               </div>
             </li>
           </ul>
@@ -1159,7 +1235,10 @@ onUnmounted(() => {
       <div v-if="activeTab === 'requests'" class="space-y-4">
         <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
           <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-            <h2 class="text-base font-semibold text-slate-900">{{ t('orgDashboard.tabRequests') }}</h2>
+            <div>
+              <h2 class="text-base font-semibold text-slate-900">{{ t('orgDashboard.tabRequests') }}</h2>
+              <p class="text-xs text-slate-500 mt-1">{{ t('orgDashboard.requestsApplicationsHint') }}</p>
+            </div>
             <div class="flex gap-2 items-center flex-wrap">
               <select v-model="sortBy" class="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white min-h-[44px]">
                 <option value="title">{{ t('orgDashboard.sortTitle') }}</option>
@@ -1268,21 +1347,16 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Bewerbungen / Inbox -->
-      <div v-if="activeTab === 'inbox'" class="space-y-4">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">{{ t('orgDashboard.inboxChat') }}</h2>
-        <p v-if="inboxLoading" class="text-sm text-slate-500 py-4">{{ t('orgDashboard.inboxLoading') }}</p>
-        <p v-else-if="!inbox.length" class="text-sm text-slate-500 py-4">{{ t('orgDashboard.noInbox') }}</p>
-        <ul v-else class="space-y-2">
-          <li v-for="c in inbox" :key="c.id" class="p-4 rounded-lg bg-white border border-slate-200">
-            <p class="font-medium text-slate-900 text-sm">{{ c.requestTitle ?? t('dashboard.request') }} – {{ c.userDisplayName ?? t('chat.user') }}</p>
-            <p v-if="c.lastMessage" class="text-sm text-slate-500 mt-1 truncate">{{ c.lastMessage.body }}</p>
-            <div class="flex flex-wrap gap-3 mt-3">
-              <NuxtLink :to="`/inbox/${c.id}`" class="text-slate-600 hover:text-slate-900 text-sm font-medium">{{ t('dashboard.openChat') }}</NuxtLink>
-              <NuxtLink v-if="c.requestId" :to="`/requests/${c.requestId}`" class="text-slate-500 hover:text-slate-700 text-sm font-medium">{{ t('inbox.toRequest') }}</NuxtLink>
-            </div>
-          </li>
-        </ul>
+      <!-- Bewerbungen & Chat -->
+      <div v-if="activeTab === 'inbox' && selectedOrgId" class="space-y-4">
+        <OrgApplicationsChatTab
+          ref="applicationsHubRef"
+          :organization-id="selectedOrgId"
+          :query-org-id="isAdminViewAsOrg"
+          @refresh="load"
+          @edit-request="openEditRequestFromHub"
+          @error="onApplicationsHubError"
+        />
       </div>
 
       <!-- Settings: direkt angezeigt, alle Felder inkl. Logo -->
@@ -1364,7 +1438,15 @@ onUnmounted(() => {
     <!-- Modal -->
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 relative">
+          <button
+            type="button"
+            class="absolute top-3 right-3 inline-flex items-center justify-center h-10 w-10 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            aria-label="Schließen"
+            @click="showModal = false"
+          >
+            <span class="text-2xl leading-none">×</span>
+          </button>
           <h3 class="text-lg font-bold text-slate-900 mb-4">
             {{ modalMode === 'location' ? (editingId ? t('orgDashboard.editLocation') : t('orgDashboard.addLocationModal')) : modalMode === 'animal' ? (editingId ? t('orgDashboard.editAnimal') : t('orgDashboard.addAnimalModal')) : (editingId ? t('orgDashboard.editRequest') : t('orgDashboard.createRequestModal')) }}
           </h3>
@@ -1425,6 +1507,35 @@ onUnmounted(() => {
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.countryCode') }}</label>
               <input v-model="formLocation.countryCode" type="text" maxlength="2" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" placeholder="DE" />
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <p class="text-sm font-medium text-slate-800">{{ t('orgDashboard.coordsManualHint') }}</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">{{ t('orgDashboard.latitude') }}</label>
+                  <input
+                    v-model.number="formLocation.lat"
+                    type="number"
+                    step="0.000001"
+                    min="-90"
+                    max="90"
+                    class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white"
+                    :placeholder="t('orgDashboard.latitudePlaceholder')"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">{{ t('orgDashboard.longitude') }}</label>
+                  <input
+                    v-model.number="formLocation.lng"
+                    type="number"
+                    step="0.000001"
+                    min="-180"
+                    max="180"
+                    class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white"
+                    :placeholder="t('orgDashboard.longitudePlaceholder')"
+                  />
+                </div>
+              </div>
             </div>
             <div class="flex gap-2 pt-2">
               <button
@@ -1521,11 +1632,68 @@ onUnmounted(() => {
                 <option v-for="a in selectedOrg?.animals" :key="a.id" :value="a.id">{{ a.name }} ({{ getSpeciesLabel(a.species) }})</option>
               </select>
             </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <p class="text-sm font-medium text-slate-800">Gemeinsam fliegen</p>
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input v-model="formRequest.groupMode" type="radio" value="none" class="text-amber-500 focus:ring-amber-500" />
+                  Keine Gruppe
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input v-model="formRequest.groupMode" type="radio" value="existing" class="text-amber-500 focus:ring-amber-500" />
+                  Bestehende Gruppe auswählen
+                </label>
+                <div v-if="formRequest.groupMode === 'existing'" class="pl-6">
+                  <select v-model="formRequest.groupId" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white">
+                    <option value="">– Gruppe wählen –</option>
+                    <option v-for="g in requestGroupOptions" :key="g.id" :value="g.id">{{ g.title }}</option>
+                  </select>
+                </div>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input v-model="formRequest.groupMode" type="radio" value="new" class="text-amber-500 focus:ring-amber-500" />
+                  Neue Gruppe anlegen
+                </label>
+                <div v-if="formRequest.groupMode === 'new'" class="pl-6">
+                  <input
+                    v-model="formRequest.groupTitle"
+                    type="text"
+                    class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white"
+                    placeholder="z. B. 2 Katzen gemeinsam nach MUC"
+                  />
+                  <p class="text-xs text-slate-600 mt-1">Diese Gruppe wird für diese Organisation gespeichert und kann später wiederverwendet werden.</p>
+                </div>
+              </div>
+            </div>
             <div v-if="editingId" class="grid grid-cols-1 gap-4">
               <label class="block text-sm font-medium mb-1">{{ t('admin.acquise.status') }}</label>
               <select v-model="formRequest.status" class="border rounded px-3 py-2 w-full">
                 <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <p class="text-sm font-medium text-slate-800">{{ t('map.animalTransportTitle', 'Tiertransport') }}</p>
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input v-model="formRequest.animalCanFlyInCargo" type="checkbox" class="rounded border-slate-300 text-amber-500 focus:ring-amber-500" />
+                  {{ t('map.animalTransportCargo') }}
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                  <input v-model="formRequest.animalCanFlyInCabin" type="checkbox" class="rounded border-slate-300 text-amber-500 focus:ring-amber-500" />
+                  {{ t('map.animalTransportCabin') }}
+                </label>
+              </div>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div class="flex items-start justify-between gap-3">
+                <label class="flex items-center gap-2 text-sm font-medium text-slate-800">
+                  <input v-model="formRequest.waitingListEnabled" type="checkbox" class="rounded border-slate-300 text-amber-500 focus:ring-amber-500" />
+                  {{ t('orgDashboard.waitingListEnable') }}
+                </label>
+                <span class="text-slate-500 text-sm" :title="t('orgDashboard.waitingListEnableHint')">i</span>
+              </div>
+              <p class="text-xs text-slate-600 mt-2">
+                {{ t('orgDashboard.waitingListEnableHint') }}
+              </p>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
@@ -1556,7 +1724,9 @@ onUnmounted(() => {
               />
             </div>
             <div class="flex gap-2 pt-2">
-              <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium">{{ t('orgDashboard.save') }}</button>
+              <button type="submit" :disabled="requestSaving" class="px-4 py-2 rounded-lg bg-amber-500 text-slate-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                {{ t('orgDashboard.save') }}
+              </button>
               <button type="button" class="px-4 py-2 rounded-lg bg-slate-200" @click="showModal = false">{{ t('orgDashboard.cancel') }}</button>
             </div>
           </form>
@@ -1567,7 +1737,15 @@ onUnmounted(() => {
 
     <Teleport to="body">
       <div v-if="reportingReviewId" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-        <div class="w-full max-w-md rounded-xl bg-white shadow-xl p-6">
+        <div class="w-full max-w-md rounded-xl bg-white shadow-xl p-6 relative">
+          <button
+            type="button"
+            class="absolute top-3 right-3 inline-flex items-center justify-center h-10 w-10 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            aria-label="Schließen"
+            @click="cancelReportReview"
+          >
+            <span class="text-2xl leading-none">×</span>
+          </button>
           <h3 class="text-lg font-semibold text-slate-900 mb-4">{{ t('orgDashboard.reviews.reportTitle') }}</h3>
           <textarea v-model="reportReason" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mb-4" :placeholder="t('orgDashboard.reviews.reportPlaceholder')" />
           <div class="flex gap-2">

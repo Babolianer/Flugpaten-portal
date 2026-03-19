@@ -40,18 +40,27 @@ async function submit() {
 
 <template>
   <Teleport to="body">
-    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="emit('close')">
-      <div class="w-full max-w-md rounded-xl bg-white shadow-xl p-6" @click.stop>
+    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto" @click.self="emit('close')">
+      <div class="w-full max-w-md max-h-[min(90vh,40rem)] overflow-y-auto rounded-xl bg-white shadow-xl p-5 sm:p-6 relative my-auto min-w-0" @click.stop>
+        <button
+          type="button"
+          class="absolute top-3 right-3 inline-flex items-center justify-center h-10 w-10 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+          aria-label="Schließen"
+          @click="emit('close')"
+        >
+          <span class="text-2xl leading-none">×</span>
+        </button>
         <h2 class="text-lg font-semibold text-slate-900 mb-4">{{ title }}</h2>
         <div v-if="error" class="mb-4 p-3 rounded bg-red-50 text-red-700 text-sm">{{ error }}</div>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">{{ t('review.rating') }}</label>
-            <div class="flex gap-1">
+            <div class="flex flex-wrap gap-1">
               <button
                 v-for="i in 5"
                 :key="i"
                 type="button"
+                class="min-h-[44px] min-w-[44px] flex items-center justify-center text-2xl leading-none rounded-lg hover:bg-slate-50 transition-colors"
                 :class="i <= rating ? 'text-amber-500' : 'text-slate-300'"
                 @click="rating = i"
               >

@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
     include: {
       organization: { select: { id: true, name: true, slug: true } },
       animal: { select: { id: true, name: true, species: true, imageUrl: true } },
+      group: { select: { id: true, title: true } },
     },
     orderBy: { earliestDate: 'asc' },
   })
@@ -48,6 +49,9 @@ export default defineEventHandler(async (event) => {
     destLng: r.destLng,
     organization: r.organization,
     animal: r.animal,
+    animalCanFlyInCargo: r.animalCanFlyInCargo,
+    animalCanFlyInCabin: r.animalCanFlyInCabin,
+    group: r.group,
   }))
 
   if (locale !== 'de') {

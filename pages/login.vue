@@ -52,7 +52,7 @@ async function submit() {
             v-model="email"
             type="email"
             required
-            class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           />
         </div>
         <div class="mb-6">
@@ -61,7 +61,7 @@ async function submit() {
             v-model="password"
             type="password"
             required
-            class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           />
         </div>
         <button

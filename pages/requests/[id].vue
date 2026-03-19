@@ -13,10 +13,29 @@ interface Request {
   earliestDate: string
   latestDate: string
   status: string
+  waitingListEnabled?: boolean
+  animalCanFlyInCargo?: boolean
+  animalCanFlyInCabin?: boolean
   originLat?: number | null
   originLng?: number | null
   destLat?: number | null
   destLng?: number | null
+  group?: {
+    id: string
+    title: string
+    requests: Array<{
+      id: string
+      title: string
+      status: string
+      earliestDate: string
+      latestDate: string
+      originAirport: string
+      destAirport: string
+      animalCanFlyInCargo?: boolean
+      animalCanFlyInCabin?: boolean
+      animal: { name: string; species: string; imageUrl: string | null } | null
+    }>
+  } | null
   organization?: {
     name: string
     slug: string
@@ -31,7 +50,7 @@ interface Request {
     reviewsCount?: number
     averageRating?: number | null
   }
-  animal?: { name: string; species: string } | null
+  animal?: { name: string; species: string; imageUrl?: string | null } | null
 }
 
 const { data, error, refresh: refreshRequest } = await useFetch<{
@@ -156,11 +175,31 @@ const canSubmit = computed(() =>
 const { getRequestStatusLabel } = useRequestStatus()
 const isOpen = computed(() => request.value?.status === 'OPEN')
 const isMatched = computed(() => request.value?.status === 'MATCHED')
+const waitingListEnabled = computed(() => !!request.value?.waitingListEnabled)
+const hasAnimalTransportOptions = computed(
+  () => !!request.value?.animalCanFlyInCargo || !!request.value?.animalCanFlyInCabin,
+)
+const animalTransportLabel = computed(() => {
+  const cargo = !!request.value?.animalCanFlyInCargo
+  const cabin = !!request.value?.animalCanFlyInCabin
+  if (cargo) return t('map.animalTransportCargo')
+  if (cabin) return t('map.animalTransportCabin')
+  return ''
+})
 
 // Als Organisation: Bewerbungen laden und anzeigen
 const { data: me } = await useFetch<{ user: { id: string; role: string; email?: string; phone?: string | null }; memberships: { organizationId: string }[] }>('/api/auth/me')
 const isOrg = computed(() => !!me.value?.user && ['ORG_USER', 'ADMIN'].includes(me.value.user.role))
 const isLoggedInAsPatron = computed(() => !!me.value?.user && ['USER', 'ADMIN'].includes(me.value.user.role))
+
+const canTogetherApply = computed(() => {
+  const g = request.value?.group
+  if (!g || g.requests.length <= 1) return false
+  if (!isLoggedInAsPatron.value) return false
+  if (request.value?.status !== 'OPEN') return false
+  // Backend erlaubt „Gruppenbewerbung“ nur, wenn keine Request in der Gruppe teilweise geschlossen ist.
+  return g.requests.every((r) => r.status === 'OPEN')
+})
 
 // Profil-Daten für Prefill des Bewerbungsformulars (Vorname, Nachname, Telefon, E-Mail)
 const { data: profileForApply, execute: fetchProfileForApply } = useFetch<{
@@ -274,6 +313,22 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
         <p v-if="request.animal" class="mt-2 text-slate-600">
           {{ request.animal.name }} ({{ request.animal.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }})
         </p>
+        <div v-if="request.animal?.imageUrl" class="mt-4">
+          <div class="relative w-28 h-28 sm:w-32 sm:h-32 rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+            <div v-if="request.status === 'MATCHED'" class="absolute inset-0 z-10 pointer-events-none" aria-hidden="true">
+              <div class="absolute inset-0 bg-slate-900/10" />
+              <div class="absolute -left-10 top-4 w-44 rotate-[-25deg] bg-amber-500/90 text-slate-900 text-xs font-extrabold tracking-wider text-center py-1 shadow">
+                {{ getRequestStatusLabel('MATCHED', true) }}
+              </div>
+            </div>
+            <img
+              :src="request.animal.imageUrl"
+              :alt="request.animal.name"
+              class="w-full h-full object-cover"
+              @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
+            />
+          </div>
+        </div>
         <p class="mt-2 text-slate-600">
           <span class="font-medium">{{ request.originAirport }}</span>
           <span class="mx-2 text-slate-400">→</span>
@@ -285,6 +340,41 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
         </p>
       </div>
     </div>
+
+    <section v-if="request.group && request.group.requests.length > 1" class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h2 class="text-base sm:text-lg font-semibold text-slate-900">Gemeinsam fliegen</h2>
+          <p class="text-sm text-slate-600 mt-1">{{ request.group.title }}</p>
+          <div v-if="canTogetherApply" class="mt-3">
+            <NuxtLink
+              :to="`/requests/together/${id}`"
+              class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium transition-colors"
+            >
+              {{ t('request.togetherApplyButton') }}
+            </NuxtLink>
+          </div>
+        </div>
+        <div class="p-4 sm:p-6 space-y-2">
+          <NuxtLink
+            v-for="gr in request.group.requests.filter((x) => x.id !== request.id)"
+            :key="gr.id"
+            :to="`/requests/${gr.id}`"
+            class="block rounded-lg border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50 transition-colors"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-medium text-slate-900 truncate">{{ gr.title }}</div>
+                <div class="text-xs text-slate-600 mt-0.5 truncate">{{ gr.originAirport }} → {{ gr.destAirport }}</div>
+              </div>
+              <div class="text-xs text-slate-500 shrink-0">
+                {{ new Date(gr.earliestDate).toLocaleDateString(locale) }} – {{ new Date(gr.latestDate).toLocaleDateString(locale) }}
+              </div>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
 
     <!-- Strecke (Flug abbilden) – Mobile-first Kartenhöhe -->
     <section class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -475,7 +565,7 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
           </div>
           <!-- Reserviert (MATCHED): Warteliste möglich -->
           <div
-            v-else-if="isMatched && waitingListInfo"
+            v-else-if="isMatched && waitingListEnabled && waitingListInfo"
             class="sticky top-6 rounded-xl bg-amber-50 border border-amber-200 shadow-sm p-6"
           >
             <h2 class="font-semibold text-slate-900 text-lg">{{ t('request.reservedWithWaitingListTitle') }}</h2>
@@ -669,9 +759,10 @@ if (error.value) throw createError({ statusCode: 404, message: 'Request not foun
             <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <h2 class="text-lg font-semibold text-slate-900">{{ t('request.detailsTitle') }}</h2>
             </div>
-            <div class="p-6">
+            <div class="p-6 space-y-3">
               <p v-if="request.details" class="text-slate-700 whitespace-pre-wrap">{{ request.details }}</p>
-              <p v-else class="text-slate-500">{{ t('request.noDetails') }}</p>
+              <p v-else-if="!hasAnimalTransportOptions" class="text-slate-500">{{ t('request.noDetails') }}</p>
+              <p v-if="hasAnimalTransportOptions" class="text-sm text-slate-700 font-medium">{{ animalTransportLabel }}</p>
             </div>
           </section>
 

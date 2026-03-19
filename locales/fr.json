@@ -1,6 +1,7 @@
 {
   "common": {
-    "searching": "Recherche..."
+    "searching": "Recherche...",
+    "close": "Fermer"
   },
   "app": {
     "name": "PawBridge",
@@ -18,7 +19,7 @@
     "inbox": "Messages",
     "orgDashboard": "Tableau de bord de l'organisation",
     "login": "Connexion",
-    "register": "        \"S'inscrire\",",
+    "register": "S'inscrire",
     "logout": "Déconnexion",
     "language": "Langue",
     "menuOpen": "Accès au menu principal",
@@ -52,7 +53,7 @@
     "exampleAnimal": "Chat • 2 ans",
     "exampleCost": "0 €",
     "exampleCta": "Voir les détails",
-    "exampleNote": "Pas de frais supplémentaires pour vous. L'organisation prend en charge tous les frais.",
+    "exampleNote": "",
     "exampleLabelDate": "Date",
     "exampleLabelAnimal": "Vous habitez",
     "exampleLabelCost": "Coûts",
@@ -125,7 +126,13 @@
     "transparencyText": "Les organisations peuvent également transporter des animaux dans les villes voisines. Tu clarifies les détails directement avec l'organisation.",
     "expandMap": "Agrandir la carte",
     "closeMap": "Fermer la carte",
-    "detailsApply": "Détails / Postuler"
+    "detailsApply": "Détails / Postuler",
+    "animalTransportTitle": "Transport d'animaux",
+    "animalTransportCargo": "Animal en soute",
+    "animalTransportCabin": "Animal en cabine passagers",
+    "animalTransportBoth": "Animal en soute et en cabine passagers",
+    "togetherBadge": "Ensemble",
+    "togetherPartnerInfo": "Cet animal cherche un partenaire de vol partagé"
   },
   "orgsMap": {
     "title": "Organisations de protection des animaux",
@@ -187,16 +194,46 @@
     "ctaRegisterOrg": "S'inscrire en tant qu'organisation",
     "navAriaLabel": "Base de connaissances parrainage aérien",
     "topics": {
-      "was-ist-ein-flugpate": { "title": "Qu'est-ce qu'un parrain de vol ?", "shortDescription": "Définition, signification et distinction du transport commercial." },
-      "ablauf-einer-flugpatenschaft": { "title": "Déroulement d'un parrainage aérien", "shortDescription": "Du premier contact à la remise dans le pays de destination." },
-      "rechtliche-hinweise": { "title": "Informations juridiques", "shortDescription": "Responsabilité, garantie, TRACES, importation et vaccinations." },
-      "tiertransport-im-flugzeug": { "title": "Transport d'animaux en avion", "shortDescription": "IATA, caisses de transport, cabine vs. soute." },
-      "haeufige-fragen": { "title": "Questions fréquentes", "shortDescription": "Réponses aux questions les plus importantes sur le parrainage aérien." },
-      "fuer-organisationen": { "title": "Pour les organisations", "shortDescription": "Avantages, processus et confiance avec les parrains de vol." },
-      "fuer-flugpaten": { "title": "Pour les parrains de vol", "shortDescription": "Exigences, efforts et responsabilités." },
-      "risiken-und-sicherheit": { "title": "Risques et sécurité", "shortDescription": "Rester sérieux et éviter les abus." },
-      "checkliste": { "title": "Liste de contrôle", "shortDescription": "Avant le vol, à l'aéroport et après l'arrivée." },
-      "eu-regelungen": { "title": "Règlementations UE", "shortDescription": "Règlement sur les animaux de compagnie, pays et cas particuliers." }
+      "was-ist-ein-flugpate": {
+        "title": "Qu'est-ce qu'un parrain de vol ?",
+        "shortDescription": "Définition, signification et distinction du transport commercial."
+      },
+      "ablauf-einer-flugpatenschaft": {
+        "title": "Déroulement d'un parrainage aérien",
+        "shortDescription": "Du premier contact à la remise dans le pays de destination."
+      },
+      "rechtliche-hinweise": {
+        "title": "Informations juridiques",
+        "shortDescription": "Responsabilité, garantie, TRACES, importation et vaccinations."
+      },
+      "tiertransport-im-flugzeug": {
+        "title": "Transport d'animaux en avion",
+        "shortDescription": "IATA, caisses de transport, cabine vs. soute."
+      },
+      "haeufige-fragen": {
+        "title": "Questions fréquentes",
+        "shortDescription": "Réponses aux questions les plus importantes sur le parrainage aérien."
+      },
+      "fuer-organisationen": {
+        "title": "Pour les organisations",
+        "shortDescription": "Avantages, processus et confiance avec les parrains de vol."
+      },
+      "fuer-flugpaten": {
+        "title": "Pour les parrains de vol",
+        "shortDescription": "Exigences, efforts et responsabilités."
+      },
+      "risiken-und-sicherheit": {
+        "title": "Risques et sécurité",
+        "shortDescription": "Rester sérieux et éviter les abus."
+      },
+      "checkliste": {
+        "title": "Liste de contrôle",
+        "shortDescription": "Avant le vol, à l'aéroport et après l'arrivée."
+      },
+      "eu-regelungen": {
+        "title": "Règlementations UE",
+        "shortDescription": "Règlement sur les animaux de compagnie, pays et cas particuliers."
+      }
     },
     "ctaNowRegister": "S'inscrire comme parrain de vol",
     "ctaBackToOverview": "Retour à l'aperçu",
@@ -260,7 +297,8 @@
     "mapNoRequests": "Actuellement, aucune demande de transport en cours n'est disponible.",
     "mapCta": "Aller à la carte →",
     "request": "Demande",
-    "organization": "Organisation"
+    "organization": "Organisation",
+    "labelDate": "Date"
   },
   "inbox": {
     "title": "Boîte de réception",
@@ -458,7 +496,9 @@
       "delete": "Supprimer",
       "confirmDelete": "Supprimer cet avis ?",
       "deleteError": "Impossible de supprimer."
-    }
+    },
+    "statsTransportsTotal": "Total transports",
+    "statsTransportsActive": "Active transports"
   },
   "orgDashboard": {
     "viewAs": "Vous consultez le tableau de bord en tant que {name}.",
@@ -475,7 +515,7 @@
     "tabLocations": "Lieux",
     "tabAnimals": "Animaux",
     "tabRequests": "Transports",
-    "tabInbox": "Candidatures",
+    "tabInbox": "Candidatures & Chat",
     "inboxLoading": "Chargement des candidatures…",
     "tabSettings": "Paramètres",
     "addLocation": "Ajouter un lieu",
@@ -515,8 +555,47 @@
     "confirmDeleteLocation": "Vraiment supprimer ce lieu ?",
     "confirmDeleteAnimal": "Vraiment supprimer cet animal ?",
     "confirmDeleteRequest": "Vraiment supprimer cette demande ?",
+    "unmatch": "Lever la réservation",
+    "unmatchFull": "Terminer la réservation et refuser le parrain",
+    "applicationReleaseMatch": "Retirer l’attribution",
+    "applicationSetWaitingList": "Mettre en liste d’attente",
+    "applicationReject": "Refuser",
+    "rejectAllApplicants": "Tout refuser",
+    "confirmRejectAllApplicants": "Refuser toutes les candidatures ouvertes et les entrées en liste d’attente pour ce transport ?",
     "backToAdmin": "Retour à l'Admin",
     "inboxChat": "Candidatures et Chat",
+    "applicationsChatIntro": "Toutes les candidatures et discussions par transport — développez pour les détails, actions et faire avancer quelqu’un depuis la liste d’attente.",
+    "applicationsChatEmpty": "Aucun transport avec candidatures pour l’instant.",
+    "applicationsChatPublicRequest": "Page publique de la demande",
+    "editRequestShort": "Modifier le transport",
+    "editApplicationsShort": "Gérer les candidatures",
+    "applicationsEditorTitle": "Gérer les candidatures",
+    "applicationsEditorGroupHint": "Groupe de transports avec {count} segments. L’acceptation ou la fin de réservation s’applique à tous les segments.",
+    "rejectAllGroupApplicants": "Tout refuser (groupe entier)",
+    "confirmRejectAllGroup": "Refuser toutes les candidatures ouvertes et listes d’attente pour TOUS les segments de ce groupe ?",
+    "editTransportMetaLink": "Modifier les données du transport (titre, dates, aéroports)…",
+    "applicationAcceptAgain": "Accepter à nouveau",
+    "applicationsChatBulk": "Actions rapides",
+    "applicationsChatWaitingTitle": "Liste d’attente",
+    "applicationsChatPromoteHint": "Le transport est ouvert — vous pouvez réserver un candidat en liste d’attente.",
+    "applicationsChatPromote": "Faire avancer",
+    "applicationsChatDetails": "Détails",
+    "applicationsChatApplicationsTitle": "Candidatures & statut",
+    "applicationsChatColPerson": "Personne",
+    "applicationsChatColDate": "Date",
+    "applicationsChatColStatus": "Statut",
+    "applicationsChatColActions": "Actions",
+    "applicationsChatChatsTitle": "Tous les chats",
+    "applicationsChatChatsHint": "Accès rapide aux conversations en cours (par dernière activité).",
+    "applicationsChatDetailTitle": "Détail de la candidature",
+    "applicationsChatFlightBlock": "Transport / vol",
+    "applicationsChatRoute": "Trajet",
+    "applicationsChatDates": "Période",
+    "applicationsChatMessageLabel": "Message du candidat",
+    "applicationsChatFormData": "Données du formulaire",
+    "applicationsChatAttachment": "Pièce jointe",
+    "requestsApplicationsHint": "Gérez les candidatures, chats et liste d’attente dans l’onglet « Candidatures & Chat ».",
+    "applicantsTitle": "Candidats et demandes",
     "settings": "Paramètres",
     "description": "Description",
     "website": "Site web",
@@ -546,7 +625,88 @@
     "countryCode": "Pays (code)",
     "address": "Adresse",
     "status": "Statut",
-    "moreAirports": "Autres aéroports"
+    "moreAirports": "Autres aéroports",
+    "waitingListEnable": "Enable waiting list",
+    "waitingListEnableHint": "When enabled, flight sponsors can join the waiting list even for reserved (MATCHED) requests. If the confirmed sponsor drops out, someone from the list can take their place.",
+    "heroTitle": "Great to have you in the PawBridge community 🐾",
+    "heroSubtext": "Thanks to you, flights can happen regularly and animals can travel safely. You organise, coordinate and make the difference.",
+    "speciesRabbit": "Rabbit",
+    "speciesGuineaPig": "Guinea pig",
+    "speciesBird": "Bird",
+    "speciesReptile": "Reptile",
+    "speciesFerret": "Ferret",
+    "speciesOther": "Other",
+    "speciesOtherPlaceholder": "Enter species",
+    "size": "Size (S/M/L)",
+    "sizeS": "S",
+    "sizeM": "M",
+    "sizeL": "L",
+    "weight": "Weight (kg)",
+    "specialNeeds": "Special needs",
+    "specialNeedsPlaceholder": "e.g. medication, crate required",
+    "compatibleWithOthers": "Gets along with other animals",
+    "compatibleYes": "Yes",
+    "compatibleNo": "No",
+    "compatibleUnknown": "Unknown",
+    "emptyLocationsTitle": "No locations yet",
+    "emptyLocationsText": "Add your first location so flight sponsors can find you.",
+    "emptyAnimalsTitle": "No animals yet",
+    "emptyAnimalsText": "Add animals that are waiting for transport.",
+    "emptyRequestsTitle": "No transports yet",
+    "emptyRequestsText": "Create your first transport request and find flight sponsors for your animals.",
+    "addFirstLocation": "Add location",
+    "addFirstAnimal": "Add animal",
+    "createFirstRequest": "Create request",
+    "tabReviews": "Reviews",
+    "kpiLocations": "Locations",
+    "kpiAnimals": "Animals",
+    "kpiActiveTransports": "Active Transports",
+    "kpiReviews": "Reviews",
+    "applicantsModalBulkTitle": "Whole transport",
+    "applicantsModalBulkHint": "Affects all open applications and waiting-list entries, or ends the reservation and declines the assigned patron.",
+    "applicantsModalListTitle": "People",
+    "applicantsModalCardActions": "Actions",
+    "reviews": {
+      "loading": "Loading reviews…",
+      "empty": "No reviews from flight patrons yet.",
+      "respond": "Respond",
+      "editResponse": "Edit response",
+      "orgResponse": "Your response",
+      "responsePlaceholder": "Your response to this review…",
+      "responseError": "Response could not be saved.",
+      "report": "Report",
+      "reportTitle": "Report review",
+      "reportPlaceholder": "Optional: Reason for reporting…",
+      "reportSubmit": "Report",
+      "reportSuccess": "Review has been reported. An administrator will handle it.",
+      "reportError": "Report could not be sent."
+    },
+    "street": "Street",
+    "streetPlaceholder": "e.g. Main St 12",
+    "postalCode": "Postal code",
+    "postalCodePlaceholder": "e.g. 12345",
+    "locationAddressHint": "Street and house number – coordinates will be looked up automatically.",
+    "locationAddressHintManual": "Enter address manually. You can optionally paste a Google Maps link above to apply coordinates.",
+    "locationAddressHintFromLink": "Paste a link above and click “Apply address from link” to fill title, street, postal code, city, country and coordinates. Save is only enabled when coordinates are set.",
+    "locationNamePlaceholder": "e.g. Munich foster home",
+    "geocodeError": "Address could not be found. Please check street, postal code and city.",
+    "fetchCoords": "Look up coordinates",
+    "geocoding": "Looking up…",
+    "coordsResolved": "Coordinates: {lat}, {lng}",
+    "coordsManualHint": "Optional: enter coordinates manually (e.g. from OpenStreetMap or Google Maps).",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "latitudePlaceholder": "e.g. 48.74",
+    "longitudePlaceholder": "e.g. 9.43",
+    "mapsLinkLabel": "Google Maps link",
+    "mapsLinkHint": "Paste a link from Google Maps or OpenStreetMap and click the button – all fields (title, street, postal code, city, country, coordinates) will be filled automatically.",
+    "mapsLinkPlaceholder": "Paste link from Google Maps, OpenStreetMap or Apple Maps",
+    "mapsLinkApply": "Apply address from link",
+    "mapsLinkParseError": "No valid coordinates found in the link.",
+    "mapsLinkCoordsApplied": "Coordinates applied. Please enter the address manually.",
+    "mapsLinkCoordsSuccess": "Coordinates were determined.",
+    "mapsLinkAddressError": "Address could unfortunately not be determined automatically – please enter street, postal code, city and country manually.",
+    "mapsLinkReverseError": "Coordinates were applied. Address could not be fetched automatically – please enter street, postal code, city and country manually."
   },
   "register": {
     "title": "Inscription",
@@ -570,7 +730,19 @@
     "submitting": "Inscription…",
     "error": "Inscription échouée",
     "alreadyRegistered": "Déjà inscrit ?",
-    "orgHint": "Après l'inscription vous accéderez au tableau de bord organisation. Votre organisation doit être approuvée par un administrateur."
+    "orgHint": "Après l'inscription vous accéderez au tableau de bord organisation. Votre organisation doit être approuvée par un administrateur.",
+    "termsCheckboxPrefix": "J'accepte les ",
+    "termsCheckboxSuffix": ".",
+    "termsAndPrivacyCheckboxPrefix": "J'accepte les ",
+    "termsAndPrivacyCheckboxMiddle": " et la ",
+    "termsAndPrivacyCheckboxSuffix": ".",
+    "newsletterCheckbox": "Je souhaite recevoir la newsletter par e-mail.",
+    "privacyCheckboxPrefix": "J'ai lu et j'accepte la ",
+    "privacyCheckboxSuffix": ".",
+    "termsLink": "Conditions d'utilisation",
+    "privacyLink": "Politique de confidentialité",
+    "modalFullText": "Voir le texte complet",
+    "modalClose": "Fermer"
   },
   "verifyEmail": {
     "title": "Confirmer l'e-mail",
@@ -622,7 +794,14 @@
     "reviews": "avis",
     "completedFlights": "vols terminés",
     "transportedAnimals": "animaux transportés",
-    "reviewsSection": "Avis"
+    "reviewsSection": "Avis",
+    "displayNameHint": "Le nom affiché aux organisations et aux autres parrains de vol.",
+    "myProfile": "Mon profil",
+    "profileSectionTitle": "Votre profil",
+    "profileSectionSubtitle": "Gardez votre profil à jour – les organisations le voient lorsque vous postulez.",
+    "viewFullProfile": "Profil complet",
+    "recentReviews": "Avis récents",
+    "noReviewsYet": "Pas encore d'avis"
   },
   "review": {
     "rating": "Note",
@@ -723,11 +902,17 @@
     "contactOrg": "Pour toute question, contactez directement l'organisation.",
     "toOrgPageButton": "Page de l'organisation",
     "applyTitle": "Postuler comme parrain de vol",
+    "togetherApplyButton": "Postuler ensemble",
+    "togetherApplyTitle": "Postuler ensemble",
+    "togetherApplyIntro": "Avec cette candidature, vous postulez pour les deux vols du groupe – l'affectation se fait séparément en arrière-plan.",
+    "togetherFlights": "Vols du groupe",
+    "viewDetails": "Détails",
     "applyLoginRequired": "Connectez-vous ou inscrivez-vous pour soumettre des candidatures.",
     "applyIntro": "Avec cette candidature vous contactez l'organisation. Seuls les champs marqués * sont obligatoires.",
     "firstName": "Prénom *",
     "lastName": "Nom *",
     "travelersCount": "Nombre de voyageurs (optionnel)",
+    "minimumTravelers": "{count} voyageur(s) requis (à cause de la cabine passagers).",
     "originAirport": "Aéroport de départ",
     "originPlaceholder": "ex. CDG",
     "destAirport": "Aéroport d'arrivée",
@@ -762,7 +947,9 @@
     "reiseBis": "Voyage au",
     "email": "E-mail",
     "telefon": "Téléphone",
-    "handy": "Portable"
+    "handy": "Portable",
+    "completedAsParticipantTitle": "Transport completed successfully",
+    "completedAsParticipantText": "You were assigned as flight sponsor for this transport and completed it successfully. You can now rate the organisation."
   },
   "privacy": {
     "title": "Privacy Policy",
@@ -781,7 +968,8 @@
     "section7Title": "7. Platform Function",
     "section7Content": "PawBridge is a networking platform connecting flight sponsors and animal welfare organizations. The website operator does not conduct animal transports.",
     "section8Title": "8. Your Rights",
-    "section8Content": "You have the right to: Access (Art. 15 GDPR), Rectification (Art. 16 GDPR), Erasure (Art. 17 GDPR), Restriction of processing (Art. 18 GDPR), Data portability (Art. 20 GDPR), Object (Art. 21 GDPR).\n\nYou also have the right to lodge a complaint with a supervisory authority."
+    "section8Content": "You have the right to: Access (Art. 15 GDPR), Rectification (Art. 16 GDPR), Erasure (Art. 17 GDPR), Restriction of processing (Art. 18 GDPR), Data portability (Art. 20 GDPR), Object (Art. 21 GDPR).\n\nYou also have the right to lodge a complaint with a supervisory authority.",
+    "shortSummary": "We process your data to provide the platform. This includes email, name, profile data and messages. We use cookies and optionally Google Analytics. Your data is processed in accordance with GDPR. See the full privacy policy for details and your rights (access, erasure, objection)."
   },
   "impressum": {
     "title": "Mentions légales",
@@ -812,5 +1000,27 @@
   "meta": {
     "title": "PawBridge – Portail des parrains et marraines pour la protection des animaux",
     "description": "Votre vol peut sauver des vies. Devenez parrain de vol et accompagnez les animaux dans une nouvelle maison."
+  },
+  "orgPage": {
+    "reviewsTitle": "Avis des parrains de vol",
+    "reviewsCount": "{count} avis"
+  },
+  "terms": {
+    "title": "Terms of Use",
+    "shortSummary": "PawBridge is solely a technical platform for connecting flight sponsors and animal welfare organisations. The operator assumes no liability for transports, damage or agreements between users. Contracts are concluded exclusively between flight sponsors and organisations. Please see the full terms on the linked page.",
+    "section1Title": "1. Platform Role and Disclaimer",
+    "section1Content": "PawBridge provides solely a technical platform for contact and connection between flight sponsors and animal welfare organisations. PawBridge is not a contracting party, intermediary or service provider in relation to transports.\n\nThe operator assumes no responsibility or liability for:\n• Conduct of animal transports\n• Agreements, contracts or arrangements between flight sponsors and organisations\n• Damage to animals, persons or property\n• Users' compliance with legal requirements\n• Content posted by users or organisations\n\nAll responsibility for transports, documents, import requirements and legal compliance lies solely with the users (flight sponsors and organisations).",
+    "section2Title": "2. Admission of Organisations",
+    "section2Content": "The platform reserves the right to admit or reject organisations according to its own criteria.\n\nAdmission does not constitute a substantive, legal or factual review of the transports offered and does not imply any guarantee or recommendation.",
+    "section3Title": "3. User Responsibility",
+    "section3Content": "Users are solely responsible for:\n\n• Compliance with legal requirements\n• Animal transport law\n• Import regulations\n• Vaccination and health certificates\n• Documentation obligations",
+    "section4Title": "4. Communication via the Platform",
+    "section4Content": "The platform provides a technical messaging system.\n\nContracts and arrangements are concluded exclusively between the users involved.\n\nSystem messages serve solely to provide technical information on status changes.",
+    "section5Title": "5. Reviews",
+    "section5Content": "Where reviews are possible, they represent solely subjective user opinions.\n\nNo substantive or qualitative review is carried out by the platform.",
+    "section6Title": "6. Limitation of Liability",
+    "section6Content": "The operator is not liable for damage arising in connection with use of the platform, animal transports, agreements between users or content posted by users. PawBridge serves only as a technical platform – liability is excluded to that extent. Liability exists only in cases of intent, gross negligence or injury to life, body or health.",
+    "section7Title": "7. Third-Party Content",
+    "section7Content": "Users are responsible for the content they post.\n\nThe operator reserves the right to remove content if it becomes aware of unlawful content."
   }
 }

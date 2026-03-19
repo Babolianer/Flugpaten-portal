@@ -25,6 +25,9 @@ const orgSelect = {
       title: true,
       details: true,
       status: true,
+      waitingListEnabled: true,
+          animalCanFlyInCargo: true,
+          animalCanFlyInCabin: true,
       earliestDate: true,
       latestDate: true,
       originAirport: true,
@@ -34,6 +37,8 @@ const orgSelect = {
       destLat: true,
       destLng: true,
       animalId: true,
+      groupId: true,
+      group: { select: { id: true, title: true } },
       animal: { select: { id: true, name: true, species: true } },
       applications: {
         where: { status: 'ACCEPTED' },

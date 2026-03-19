@@ -38,7 +38,7 @@ Unter **Settings** → **Environment Variables** setzen:
 **Wichtig:** Supabase **Transaction Pooler** verwenden (nicht Direct) **und** `pgbouncer=true` setzen:
 
 ```
-postgresql://postgres.[PROJECT_REF]:[PASS]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require
+postgresql://postgres.vuuabaadszyjlgqdyrij:[YOUR-PASSWORD]@aws-1-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require
 ```
 
 - `[PROJECT_REF]` durch deine Supabase-Project-ID ersetzen

@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
     where: {
       id: requestId,
       status: 'MATCHED',
+      waitingListEnabled: true,
       organization: { status: 'APPROVED' },
     },
   })
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
   if (!request) {
     throw createError({
       statusCode: 404,
-      message: 'Request not found or not open for waiting list (only MATCHED requests)',
+      message: 'Request not found or not open for waiting list (only MATCHED requests with waiting list enabled)',
     })
   }
 
@@ -68,6 +69,27 @@ export default defineEventHandler(async (event) => {
       body: 'Ich möchte auf die Warteliste für spontane Flüge gesetzt werden. Bitte melden Sie sich, falls sich etwas ergibt.',
     },
   })
+
+  // Automatische Antwort der Organisation an den Nutzer (wenn Vorlage 1 gesetzt ist)
+  const org = await prisma.organization.findUnique({
+    where: { id: request.organizationId },
+    select: { automatedMessageTemplate1: true, createdByUserId: true, name: true },
+  })
+  if (org?.automatedMessageTemplate1?.trim()) {
+    const autoBody = org.automatedMessageTemplate1
+      .replace(/\{\{orgName\}\}/g, org.name)
+      .replace(/\{\{organisation\}\}/g, org.name)
+      .trim()
+    if (autoBody) {
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          senderUserId: org.createdByUserId,
+          body: autoBody,
+        },
+      })
+    }
+  }
 
   return { application, conversation }
 })

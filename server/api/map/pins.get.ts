@@ -141,6 +141,70 @@ export default defineEventHandler(async (event) => {
     enrichedList = enrichedList.filter((r) => r.matchType === 'DIRECT')
   }
 
+  // "Gemeinsam fliegen" / Partner-Requests für die Map-Karten.
+  // Wir ergänzen pro Request ein `group`-Objekt mit allen Partner-Requests (alle ausser dem aktuellen Request).
+  const groupIds = Array.from(
+    new Set(
+      enrichedList
+        .map((r) => (r as { groupId?: string | null }).groupId ?? null)
+        .filter((gid): gid is string => typeof gid === 'string' && gid.length > 0),
+    ),
+  )
+
+  const groupTitlesById = new Map<string, string>()
+  const groupRequestsByGroupId = new Map<
+    string,
+    Array<{
+      id: string
+      title: string
+      status: string
+      earliestDate: Date
+      latestDate: Date
+      originAirport: string
+      destAirport: string
+    }>
+  >()
+
+  if (groupIds.length > 0) {
+    const groups = await prisma.transportRequestGroup.findMany({
+      where: { id: { in: groupIds } },
+      select: { id: true, title: true },
+    })
+    for (const g of groups) groupTitlesById.set(g.id, g.title)
+
+    const groupRequests = await prisma.transportRequest.findMany({
+      where: {
+        groupId: { in: groupIds },
+        status: { in: ['OPEN', 'MATCHED'] },
+      },
+      select: {
+        id: true,
+        groupId: true,
+        title: true,
+        status: true,
+        earliestDate: true,
+        latestDate: true,
+        originAirport: true,
+        destAirport: true,
+      },
+    })
+
+    for (const r of groupRequests) {
+      if (!r.groupId) continue
+      const arr = groupRequestsByGroupId.get(r.groupId) ?? []
+      arr.push({
+        id: r.id,
+        title: r.title,
+        status: r.status,
+        earliestDate: r.earliestDate,
+        latestDate: r.latestDate,
+        originAirport: r.originAirport,
+        destAirport: r.destAirport,
+      })
+      groupRequestsByGroupId.set(r.groupId, arr)
+    }
+  }
+
   type Pin = {
     id: string
     type: 'request'
@@ -202,6 +266,19 @@ export default defineEventHandler(async (event) => {
     destLng: r.destLng,
     organization: r.organization,
     animal: r.animal,
+    animalCanFlyInCargo: r.animalCanFlyInCargo,
+    animalCanFlyInCabin: r.animalCanFlyInCabin,
+    group: (() => {
+      const groupId = (r as { groupId?: string | null }).groupId ?? null
+      if (!groupId) return null
+      const partners = (groupRequestsByGroupId.get(groupId) ?? []).filter((p) => p.id !== r.id)
+      if (partners.length === 0) return null
+      return {
+        id: groupId,
+        title: groupTitlesById.get(groupId) ?? '',
+        partners,
+      }
+    })(),
     matchType: r.matchType,
     distanceKm: r.distanceKm,
   }))

@@ -37,7 +37,7 @@ useHead(
 
 <template>
   <section v-if="faqs.length" class="flugpaten-faq">
-    <h2 class="text-2xl font-semibold text-slate-900 mb-4">
+    <h2 class="text-xl sm:text-2xl font-semibold text-slate-900 mb-4 break-words">
       {{ title || t('flugpate.faqTitle') }}
     </h2>
     <ul class="space-y-2">

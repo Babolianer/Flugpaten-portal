@@ -16,6 +16,11 @@ const schema = z.object({
   destLng: z.number().optional().nullable(),
   status: z.enum(['OPEN', 'MATCHED', 'COMPLETED', 'CANCELLED']).optional(),
   animalId: z.string().optional().nullable(),
+  waitingListEnabled: z.boolean().optional(),
+  animalCanFlyInCargo: z.boolean().optional(),
+  animalCanFlyInCabin: z.boolean().optional(),
+  groupId: z.string().optional().nullable(),
+  groupTitle: z.string().optional().nullable(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -37,6 +42,19 @@ export default defineEventHandler(async (event) => {
 
   await ensureOrgAccess(event, req.organizationId)
 
+  // Determine final animal transport flags including mutual exclusivity.
+  const existingCargo = !!req.animalCanFlyInCargo
+  const existingCabin = !!req.animalCanFlyInCabin
+  let finalCargo = existingCargo
+  let finalCabin = existingCabin
+
+  if (parsed.data.animalCanFlyInCargo !== undefined) finalCargo = parsed.data.animalCanFlyInCargo
+  if (parsed.data.animalCanFlyInCabin !== undefined) finalCabin = parsed.data.animalCanFlyInCabin
+
+  // Mutually exclusive: cargo XOR cabin (prefer cargo if both were set).
+  if (finalCargo) finalCabin = false
+  else if (finalCabin) finalCargo = false
+
   const data: Record<string, unknown> = {}
   if (parsed.data.title != null) data.title = parsed.data.title
   if (parsed.data.details !== undefined) data.details = parsed.data.details
@@ -50,6 +68,31 @@ export default defineEventHandler(async (event) => {
   if (parsed.data.destLng !== undefined) data.destLng = parsed.data.destLng
   if (parsed.data.status != null) data.status = parsed.data.status
   if (parsed.data.animalId !== undefined) data.animalId = parsed.data.animalId
+  if (parsed.data.waitingListEnabled !== undefined) data.waitingListEnabled = parsed.data.waitingListEnabled
+  if (parsed.data.animalCanFlyInCargo !== undefined || parsed.data.animalCanFlyInCabin !== undefined) {
+    // Only write if one of the fields was present in the payload (or normalization changed it).
+    data.animalCanFlyInCargo = finalCargo
+    data.animalCanFlyInCabin = finalCabin
+  }
+
+  if (parsed.data.groupTitle !== undefined || parsed.data.groupId !== undefined) {
+    if (parsed.data.groupTitle && parsed.data.groupTitle.trim().length > 0) {
+      const g = await prisma.transportRequestGroup.create({
+        data: { organizationId: req.organizationId, title: parsed.data.groupTitle.trim() },
+        select: { id: true },
+      })
+      data.groupId = g.id
+    } else if (parsed.data.groupId) {
+      const g = await prisma.transportRequestGroup.findFirst({
+        where: { id: parsed.data.groupId, organizationId: req.organizationId },
+        select: { id: true },
+      })
+      if (!g) throw createError({ statusCode: 400, message: 'Ungültige Gruppen-ID' })
+      data.groupId = g.id
+    } else {
+      data.groupId = null
+    }
+  }
 
   const updated = await prisma.transportRequest.update({
     where: { id },

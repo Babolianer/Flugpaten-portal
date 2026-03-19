@@ -187,7 +187,7 @@ const reviewsTotalPages = ref(0)
 const reviewsPageSize = ref(15)
 const reviewsSearch = ref('')
 const reviewsHasReports = ref(false)
-const stats = ref<{ orgsCount: number; transportsCount: number; usersCount: number } | null>(null)
+const stats = ref<{ orgsCount: number; transportsCount: number; activeTransportsCount: number; usersCount: number } | null>(null)
 const loadingStats = ref(false)
 
 const { getRequestStatusLabel } = useRequestStatus()
@@ -695,7 +695,7 @@ async function sendTestMail() {
 async function loadStats() {
   loadingStats.value = true
   try {
-    stats.value = await $fetch<{ orgsCount: number; transportsCount: number; usersCount: number }>('/api/admin/stats')
+    stats.value = await $fetch<{ orgsCount: number; transportsCount: number; activeTransportsCount: number; usersCount: number }>('/api/admin/stats')
   } catch {
     stats.value = null
   } finally {
@@ -768,14 +768,26 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto w-4/5 max-w-full px-4 sm:px-6 py-6 sm:py-8 overflow-x-hidden">
+  <div class="container mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
     <h1 class="text-xl sm:text-2xl font-bold text-slate-900 mb-4 sm:mb-6">{{ t('admin.title') }}</h1>
     <div v-if="message" class="mb-4 p-3 rounded bg-red-50 text-red-700 text-sm">
       {{ message }}
     </div>
 
     <!-- Tab navigation -->
-    <nav class="flex flex-wrap gap-2 mb-6 border-b border-slate-200" aria-label="Admin-Bereiche">
+    <div class="sm:hidden mb-4">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Bereich</label>
+      <select v-model="activeTab" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+        <option value="overview">{{ t('admin.tabOverview') }}</option>
+        <option value="organizations">{{ t('admin.tabOrganizations') }}</option>
+        <option value="requests">{{ t('admin.tabTransportRequests') }}</option>
+        <option value="acquise">{{ t('admin.tabAcquise') }}</option>
+        <option value="reviews">{{ t('admin.tabReviews') }}</option>
+        <option value="settings">{{ t('admin.tabSettings') }}</option>
+      </select>
+    </div>
+
+    <nav class="hidden sm:flex flex-wrap gap-2 mb-6 border-b border-slate-200" aria-label="Admin-Bereiche">
       <button
         type="button"
         class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
@@ -832,14 +844,18 @@ onMounted(() => {
       <section class="p-4 sm:p-6 rounded-xl border border-slate-200 bg-white">
         <h2 class="text-lg font-semibold text-slate-800 mb-4">{{ t('admin.statsTitle') }}</h2>
         <div v-if="loadingStats" class="text-slate-500 text-sm">{{ t('admin.loading') }}</div>
-        <div v-else-if="stats" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div v-else-if="stats" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
             <p class="text-2xl font-bold text-slate-900">{{ stats.orgsCount }}</p>
             <p class="text-sm text-slate-600">{{ t('admin.statsOrgs') }}</p>
           </div>
           <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
             <p class="text-2xl font-bold text-slate-900">{{ stats.transportsCount }}</p>
-            <p class="text-sm text-slate-600">{{ t('admin.statsTransports') }}</p>
+            <p class="text-sm text-slate-600">{{ t('admin.statsTransportsTotal') }}</p>
+          </div>
+          <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
+            <p class="text-2xl font-bold text-slate-900">{{ stats.activeTransportsCount }}</p>
+            <p class="text-sm text-slate-600">{{ t('admin.statsTransportsActive') }}</p>
           </div>
           <div class="p-4 rounded-lg bg-slate-50 border border-slate-100">
             <p class="text-2xl font-bold text-slate-900">{{ stats.usersCount }}</p>
@@ -964,40 +980,69 @@ onMounted(() => {
         <div v-else-if="approvedOrgs.length === 0" class="p-5 rounded-xl bg-white border border-slate-200">
           {{ t('admin.noApproved') }}
         </div>
-        <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table class="w-full min-w-[400px] text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableContact') }}</th>
-                <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="org in approvedOrgs" :key="org.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                <td class="py-3 px-4 text-slate-900">{{ org.name }}</td>
-                <td class="py-3 px-4 text-slate-600">{{ org.contactEmail }}</td>
-                <td class="py-3 px-4 text-right">
-                  <div class="flex flex-wrap items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      class="inline-flex items-center px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors"
-                      @click="viewAsOrg(org.id)"
-                    >
-                      {{ t('admin.viewAsOrg') }}
-                    </button>
-                    <button
-                      type="button"
-                      class="inline-flex items-center px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-sm transition-colors"
-                      @click="blockOrg(org.id)"
-                    >
-                      {{ t('admin.block') }}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else>
+          <!-- Mobile: Cards -->
+          <div class="sm:hidden space-y-3">
+            <div v-for="org in approvedOrgs" :key="org.id" class="rounded-xl border border-slate-200 bg-white p-4">
+              <div class="min-w-0">
+                <div class="font-semibold text-slate-900 break-words">{{ org.name }}</div>
+                <div class="text-sm text-slate-600 break-all mt-1">{{ org.contactEmail }}</div>
+              </div>
+              <div class="mt-3 flex flex-col gap-2">
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center px-3 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors min-h-[44px]"
+                  @click="viewAsOrg(org.id)"
+                >
+                  {{ t('admin.viewAsOrg') }}
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center px-3 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-sm transition-colors min-h-[44px]"
+                  @click="blockOrg(org.id)"
+                >
+                  {{ t('admin.block') }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop: Table -->
+          <div class="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[400px] text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableContact') }}</th>
+                  <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="org in approvedOrgs" :key="org.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                  <td class="py-3 px-4 text-slate-900">{{ org.name }}</td>
+                  <td class="py-3 px-4 text-slate-600">{{ org.contactEmail }}</td>
+                  <td class="py-3 px-4 text-right">
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        class="inline-flex items-center px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors"
+                        @click="viewAsOrg(org.id)"
+                      >
+                        {{ t('admin.viewAsOrg') }}
+                      </button>
+                      <button
+                        type="button"
+                        class="inline-flex items-center px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-sm transition-colors"
+                        @click="blockOrg(org.id)"
+                      >
+                        {{ t('admin.block') }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
         <div v-if="approvedTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
           <p class="text-sm text-slate-600">{{ t('admin.acquise.pageInfo', { from: (approvedPage - 1) * approvedPageSize + 1, to: Math.min(approvedPage * approvedPageSize, approvedTotal), total: approvedTotal }) }}</p>
@@ -1040,40 +1085,70 @@ onMounted(() => {
         <div v-else-if="blockedOrgs.length === 0" class="p-5 rounded-xl bg-white border border-slate-200">
           {{ t('admin.noBlocked') }}
         </div>
-        <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table class="w-full min-w-[400px] text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableStatus') }}</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableContact') }}</th>
-                <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="org in blockedOrgs" :key="org.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                <td class="py-3 px-4 text-slate-900">{{ org.name }}</td>
-                <td class="py-3 px-4">
-                  <span
-                    class="inline-flex px-2 py-0.5 rounded text-xs font-medium"
-                    :class="org.status === 'REJECTED' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700'"
-                  >
-                    {{ org.status === 'REJECTED' ? t('admin.statusRejected') : t('admin.statusBlocked') }}
-                  </span>
-                </td>
-                <td class="py-3 px-4 text-slate-600">{{ org.contactEmail }}</td>
-                <td class="py-3 px-4 text-right">
-                  <button
-                    type="button"
-                    class="inline-flex items-center px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition-colors"
-                    @click="unblockOrg(org.id)"
-                  >
-                    {{ t('admin.unblock') }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else>
+          <!-- Mobile: Cards -->
+          <div class="sm:hidden space-y-3">
+            <div v-for="org in blockedOrgs" :key="org.id" class="rounded-xl border border-slate-200 bg-white p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-semibold text-slate-900 break-words">{{ org.name }}</div>
+                  <div class="text-sm text-slate-600 break-all mt-1">{{ org.contactEmail }}</div>
+                </div>
+                <span
+                  class="inline-flex px-2 py-0.5 rounded text-xs font-medium shrink-0"
+                  :class="org.status === 'REJECTED' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700'"
+                >
+                  {{ org.status === 'REJECTED' ? t('admin.statusRejected') : t('admin.statusBlocked') }}
+                </span>
+              </div>
+              <div class="mt-3">
+                <button
+                  type="button"
+                  class="w-full inline-flex items-center justify-center px-3 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition-colors min-h-[44px]"
+                  @click="unblockOrg(org.id)"
+                >
+                  {{ t('admin.unblock') }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop: Table -->
+          <div class="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[400px] text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableStatus') }}</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableContact') }}</th>
+                  <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="org in blockedOrgs" :key="org.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                  <td class="py-3 px-4 text-slate-900">{{ org.name }}</td>
+                  <td class="py-3 px-4">
+                    <span
+                      class="inline-flex px-2 py-0.5 rounded text-xs font-medium"
+                      :class="org.status === 'REJECTED' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700'"
+                    >
+                      {{ org.status === 'REJECTED' ? t('admin.statusRejected') : t('admin.statusBlocked') }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-slate-600">{{ org.contactEmail }}</td>
+                  <td class="py-3 px-4 text-right">
+                    <button
+                      type="button"
+                      class="inline-flex items-center px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition-colors"
+                      @click="unblockOrg(org.id)"
+                    >
+                      {{ t('admin.unblock') }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
         <div v-if="blockedTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
           <p class="text-sm text-slate-600">{{ t('admin.acquise.pageInfo', { from: (blockedPage - 1) * blockedPageSize + 1, to: Math.min(blockedPage * blockedPageSize, blockedTotal), total: blockedTotal }) }}</p>
@@ -1121,51 +1196,90 @@ onMounted(() => {
         <div v-else-if="requests.length === 0" class="p-5 rounded-xl bg-white border border-slate-200">
           {{ t('admin.noRequests') }}
         </div>
-        <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table class="w-full min-w-[560px] text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableRequest') }}</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableRoute') }}</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.acquise.status') }}</th>
-                <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tablePeriod') }}</th>
-                <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in requests" :key="r.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                <td class="py-3 px-4 text-slate-900">{{ r.title }}</td>
-                <td class="py-3 px-4 text-slate-600">{{ r.organizationName }}</td>
-                <td class="py-3 px-4 text-slate-600">{{ r.originAirport }} → {{ r.destAirport }}</td>
-                <td class="py-3 px-4">
-                  <span
-                    class="inline-flex px-2 py-0.5 rounded text-xs font-medium"
-                    :class="{
-                      'bg-emerald-50 text-emerald-700': r.status === 'OPEN',
-                      'bg-blue-50 text-blue-700': r.status === 'MATCHED',
-                      'bg-slate-100 text-slate-600': r.status === 'COMPLETED',
-                      'bg-red-50 text-red-700': r.status === 'CANCELLED',
-                    }"
-                  >
-                    {{ getRequestStatusLabel(r.status) }}
-                  </span>
-                </td>
-                <td class="py-3 px-4 text-slate-600">
-                  {{ new Date(r.earliestDate).toLocaleDateString(locale) }} – {{ new Date(r.latestDate).toLocaleDateString(locale) }}
-                </td>
-                <td class="py-3 px-4 text-right">
-                  <button
-                    type="button"
-                    class="inline-flex items-center px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors"
-                    @click="viewAsOrg(r.organizationId)"
-                  >
-                    {{ t('admin.viewAsOrg') }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else>
+          <!-- Mobile: Cards -->
+          <div class="sm:hidden space-y-3">
+            <div v-for="r in requests" :key="r.id" class="rounded-xl border border-slate-200 bg-white p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-semibold text-slate-900 break-words">{{ r.title }}</div>
+                  <div class="text-sm text-slate-600 mt-1 break-words">{{ r.organizationName }}</div>
+                  <div class="text-sm text-slate-600 mt-1">{{ r.originAirport }} → {{ r.destAirport }}</div>
+                  <div class="text-xs text-slate-500 mt-2">
+                    {{ new Date(r.earliestDate).toLocaleDateString(locale) }} – {{ new Date(r.latestDate).toLocaleDateString(locale) }}
+                  </div>
+                </div>
+                <span
+                  class="inline-flex px-2 py-0.5 rounded text-xs font-medium shrink-0"
+                  :class="{
+                    'bg-emerald-50 text-emerald-700': r.status === 'OPEN',
+                    'bg-blue-50 text-blue-700': r.status === 'MATCHED',
+                    'bg-slate-100 text-slate-600': r.status === 'COMPLETED',
+                    'bg-red-50 text-red-700': r.status === 'CANCELLED',
+                  }"
+                >
+                  {{ getRequestStatusLabel(r.status) }}
+                </span>
+              </div>
+              <div class="mt-3">
+                <button
+                  type="button"
+                  class="w-full inline-flex items-center justify-center px-3 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors min-h-[44px]"
+                  @click="viewAsOrg(r.organizationId)"
+                >
+                  {{ t('admin.viewAsOrg') }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop: Table -->
+          <div class="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[560px] text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableRequest') }}</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableRoute') }}</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.acquise.status') }}</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tablePeriod') }}</th>
+                  <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in requests" :key="r.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                  <td class="py-3 px-4 text-slate-900">{{ r.title }}</td>
+                  <td class="py-3 px-4 text-slate-600">{{ r.organizationName }}</td>
+                  <td class="py-3 px-4 text-slate-600">{{ r.originAirport }} → {{ r.destAirport }}</td>
+                  <td class="py-3 px-4">
+                    <span
+                      class="inline-flex px-2 py-0.5 rounded text-xs font-medium"
+                      :class="{
+                        'bg-emerald-50 text-emerald-700': r.status === 'OPEN',
+                        'bg-blue-50 text-blue-700': r.status === 'MATCHED',
+                        'bg-slate-100 text-slate-600': r.status === 'COMPLETED',
+                        'bg-red-50 text-red-700': r.status === 'CANCELLED',
+                      }"
+                    >
+                      {{ getRequestStatusLabel(r.status) }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-slate-600">
+                    {{ new Date(r.earliestDate).toLocaleDateString(locale) }} – {{ new Date(r.latestDate).toLocaleDateString(locale) }}
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button
+                      type="button"
+                      class="inline-flex items-center px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors"
+                      @click="viewAsOrg(r.organizationId)"
+                    >
+                      {{ t('admin.viewAsOrg') }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
         <div v-if="requests.length > 0" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
           <p class="text-sm text-slate-600">{{ t('admin.acquise.pageInfo', { from: (requestsPage - 1) * requestsPageSize + 1, to: Math.min(requestsPage * requestsPageSize, requestsTotal), total: requestsTotal }) }}</p>
@@ -1188,7 +1302,16 @@ onMounted(() => {
 
     <!-- Tab: Acquise -->
     <div v-show="activeTab === 'acquise'" class="space-y-6">
-      <div class="flex gap-2 border-b border-slate-200 pb-2">
+      <div class="sm:hidden">
+        <label class="block text-sm font-medium text-slate-700 mb-1">Acquise</label>
+        <select v-model="acquiseSubTab" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+          <option value="contacts">{{ t('admin.acquise.tabContacts') }}</option>
+          <option value="users">{{ t('admin.acquise.tabUsers') }}</option>
+          <option value="registeredOrgs">{{ t('admin.acquise.tabRegisteredOrgs') }}</option>
+        </select>
+      </div>
+
+      <div class="hidden sm:flex gap-2 border-b border-slate-200 pb-2">
         <button
           type="button"
           :class="acquiseSubTab === 'contacts' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
@@ -1345,8 +1468,64 @@ onMounted(() => {
         <div v-else-if="acquisitionContacts.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
           {{ t('admin.acquise.empty') }}
         </div>
-        <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table class="w-full min-w-[900px] text-sm">
+        <div v-else>
+          <!-- Mobile: Cards -->
+          <div class="sm:hidden space-y-3">
+            <div v-for="c in acquisitionContacts" :key="c.id" class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-semibold text-slate-900 break-words">{{ c.name }}</div>
+                  <div class="text-sm text-slate-600 mt-1">{{ c.country }} · {{ c.websiteLanguage }}</div>
+                  <div class="text-sm text-slate-600 mt-1 break-all">
+                    <a v-if="c.email" :href="`mailto:${c.email}`" class="text-amber-600 hover:underline">{{ c.email }}</a>
+                    <span v-else class="text-slate-400">–</span>
+                  </div>
+                </div>
+                <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 shrink-0">
+                  {{ acquisitionStatusLabel(c.status) }}
+                </span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-medium min-h-[44px]"
+                  :class="c.noted ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-slate-100 border-slate-200 text-slate-600'"
+                  :disabled="savingId === c.id"
+                  @click="toggleNoted(c)"
+                >
+                  {{ t('admin.acquise.noted') }}: {{ c.noted ? '✓' : '–' }}
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-medium min-h-[44px]"
+                  :class="c.emailSent ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-slate-100 border-slate-200 text-slate-600'"
+                  :disabled="savingId === c.id"
+                  @click="toggleEmailSent(c)"
+                >
+                  {{ t('admin.acquise.emailSent') }}: {{ c.emailSent ? '✓' : '–' }}
+                </button>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">{{ t('admin.acquise.status') }}</label>
+                <select
+                  :value="c.status"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  :disabled="savingId === c.id"
+                  @change="setStatus(c, ($event.target as HTMLSelectElement).value as AcquisitionStatus)"
+                >
+                  <option value="OPEN">{{ t('admin.acquise.statusOpen') }}</option>
+                  <option value="CONTACTED">{{ t('admin.acquise.statusContacted') }}</option>
+                  <option value="REPLIED">{{ t('admin.acquise.statusReplied') }}</option>
+                  <option value="REGISTERED">{{ t('admin.acquise.statusRegistered') }}</option>
+                  <option value="REJECTED">{{ t('admin.acquise.statusRejected') }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop: Table -->
+          <div class="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[900px] text-sm">
             <thead class="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.name') }}</th>
@@ -1432,7 +1611,8 @@ onMounted(() => {
                 </td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
         <!-- Paginierung -->
         <div v-if="acquiseTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
@@ -1484,8 +1664,52 @@ onMounted(() => {
           <div v-else-if="adminUsers.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
             {{ t('admin.acquise.usersEmpty') }}
           </div>
-          <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="w-full min-w-[800px] text-sm">
+          <div v-else>
+            <!-- Mobile: Cards -->
+            <div class="sm:hidden space-y-3">
+              <div v-for="u in adminUsers" :key="u.id" class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <NuxtLink :to="`/user/${u.id}`" class="text-amber-600 hover:underline font-semibold break-words">{{ u.displayName }}</NuxtLink>
+                    <div class="text-sm text-slate-600 break-all mt-1">{{ u.email }}</div>
+                    <div class="text-xs text-slate-500 mt-2">
+                      {{ t('admin.acquise.userFlights') }}: {{ u.completedFlightsCount }} ·
+                      {{ t('admin.acquise.userCreated') }}: {{ new Date(u.createdAt).toLocaleDateString(locale) }}
+                    </div>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span v-if="u.emailVerified" class="inline-flex px-2 py-0.5 rounded text-xs bg-green-100 text-green-800">E-Mail ✓</span>
+                    <button
+                      v-else
+                      type="button"
+                      :disabled="verifyingUserId === u.id"
+                      class="inline-flex px-2 py-1 rounded text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium disabled:opacity-50 min-h-[32px]"
+                      @click="verifyUser(u)"
+                    >
+                      {{ verifyingUserId === u.id ? '…' : t('admin.acquise.verifyButton') }}
+                    </button>
+                    <span class="inline-flex px-2 py-0.5 rounded text-xs" :class="u.profileComplete ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'">
+                      Profil: {{ u.profileComplete ? '✓' : '–' }}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">{{ t('admin.acquise.userNotes') }}</label>
+                  <input
+                    type="text"
+                    :value="u.adminNotes ?? ''"
+                    :disabled="savingUserNotesId === u.id"
+                    class="w-full py-2 px-3 rounded-lg border border-slate-300 text-slate-800 text-sm min-h-[44px]"
+                    :placeholder="t('admin.acquise.userNotesPlaceholder')"
+                    @blur="saveUserNotes(u, ($event.target as HTMLInputElement).value)"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Desktop: Table -->
+            <div class="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table class="w-full min-w-[800px] text-sm">
               <thead class="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userName') }}</th>
@@ -1535,7 +1759,8 @@ onMounted(() => {
                   </td>
                 </tr>
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
           <div v-if="adminUsersTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
             <p class="text-sm text-slate-600">
@@ -1677,8 +1902,40 @@ onMounted(() => {
         <div v-else-if="adminReviews.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
           {{ t('admin.reviews.empty') }}
         </div>
-        <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table class="w-full min-w-[700px] text-sm">
+        <div v-else>
+          <!-- Mobile: Cards -->
+          <div class="sm:hidden space-y-3">
+            <div v-for="r in adminReviews" :key="r.id" class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1">
+                    <span v-for="i in 5" :key="i" class="text-amber-500">{{ i <= r.rating ? '★' : '☆' }}</span>
+                  </div>
+                  <p v-if="r.comment" class="text-slate-700 mt-1 break-words">{{ r.comment }}</p>
+                  <p class="text-xs text-slate-500 mt-1 break-words">{{ r.reviewerName }} · {{ r.requestTitle }}</p>
+                  <div class="text-sm text-slate-600 mt-2">
+                    <NuxtLink v-if="r.orgSlug" :to="`/org/${r.orgSlug}`" class="text-amber-600 hover:underline">{{ r.orgName }}</NuxtLink>
+                    <span v-else>{{ r.orgName ?? '–' }}</span>
+                  </div>
+                </div>
+                <span v-if="r.reportsCount > 0" class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 shrink-0">
+                  {{ r.reportsCount }} {{ t('admin.reviews.reports') }}
+                </span>
+              </div>
+              <button
+                type="button"
+                :disabled="deletingReviewId === r.id"
+                class="w-full inline-flex items-center justify-center px-3 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-sm transition-colors disabled:opacity-50 min-h-[44px]"
+                @click="deleteReview(r.id)"
+              >
+                {{ deletingReviewId === r.id ? '…' : t('admin.reviews.delete') }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Desktop: Table -->
+          <div class="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full min-w-[700px] text-sm">
             <thead class="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.reviews.tableReview') }}</th>
@@ -1720,7 +1977,8 @@ onMounted(() => {
                 </td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
         <!-- Paginierung Bewertungen -->
         <div v-if="reviewsTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">

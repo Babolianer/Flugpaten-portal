@@ -145,7 +145,15 @@ function openBypassModal() {
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
         @click.self="showBypassModal = false"
       >
-        <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm border border-slate-200" role="dialog" aria-labelledby="bypass-title">
+        <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm border border-slate-200 relative" role="dialog" aria-labelledby="bypass-title">
+          <button
+            type="button"
+            class="absolute top-3 right-3 inline-flex items-center justify-center h-10 w-10 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            :aria-label="t('common.close')"
+            @click="showBypassModal = false"
+          >
+            <span class="text-2xl leading-none">×</span>
+          </button>
           <h2 id="bypass-title" class="text-base font-medium text-slate-800 mb-4">{{ t('maintenance.bypassTitle') }}</h2>
           <form @submit.prevent="submitBypass" class="space-y-4">
             <div v-if="bypassError" class="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">

@@ -17,6 +17,7 @@ const { data: latestData } = await useFetch<{
   }[]
 }>('/api/requests/latest')
 const latestRequests = computed(() => latestData.value?.requests ?? [])
+const exampleNote = computed(() => t('home.exampleNote'))
 
 function formatDateRange(earliest: string, latest: string) {
   const d1 = new Date(earliest)
@@ -43,7 +44,7 @@ useHead({
     >
       <div class="absolute inset-0 bg-slate-900/65" aria-hidden="true" />
       <div class="relative z-10 text-center max-w-4xl mx-auto">
-        <h1 class="text-[3.2rem] font-bold tracking-tight mb-4 sm:mb-6 leading-tight">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-[3.2rem] font-bold tracking-tight mb-4 sm:mb-6 leading-tight px-1 sm:px-0 break-words">
           {{ t('home.heroTitle') }}
         </h1>
         <p class="text-lg md:text-xl text-slate-200 mb-10 max-w-2xl mx-auto leading-relaxed">
@@ -195,8 +196,8 @@ useHead({
             Zur Karte
           </NuxtLink>
         </div>
-        <p v-if="latestRequests.length" class="mt-6 text-sm text-slate-500 text-center max-w-xl mx-auto">
-          {{ t('home.exampleNote') }}
+        <p v-if="latestRequests.length && exampleNote" class="mt-6 text-sm text-slate-500 text-center max-w-xl mx-auto">
+          {{ exampleNote }}
         </p>
         <div v-if="latestRequests.length" class="mt-8 text-center">
           <NuxtLink

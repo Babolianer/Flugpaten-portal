@@ -32,6 +32,8 @@ interface Request {
   destLng: number | null
   organization?: { name: string; slug: string }
   animal?: { name: string; species: string; imageUrl?: string | null } | null
+  animalCanFlyInCargo?: boolean
+  animalCanFlyInCabin?: boolean
   matchType?: MatchType
   distanceKm?: number
 }

@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
         },
       },
       animal: true,
+      group: { select: { id: true, title: true } },
     },
   })
 
@@ -122,28 +123,36 @@ export default defineEventHandler(async (event) => {
 
   // Warteliste-Info für MATCHED Requests
   let waitingListInfo: { count: number; isOnWaitingList: boolean; canJoin: boolean } | null = null
-  if (request.status === 'MATCHED') {
-    const waitingCount = await prisma.requestApplication.count({
-      where: { requestId: id!, status: 'WAITING_LIST' },
-    })
-    let isOnWaitingList = false
-    let canJoin = waitingCount < 2
+  if (request.status === 'MATCHED' && (request as { waitingListEnabled?: boolean }).waitingListEnabled) {
     try {
-      const user = await getUserFromEvent(event)
-      if (user?.role === 'USER' || user?.role === 'ADMIN') {
-        const myApp = await prisma.requestApplication.findUnique({
-          where: { requestId_userId: { requestId: id!, userId: user.id } },
-          select: { status: true },
-        })
-        if (myApp) {
-          isOnWaitingList = myApp.status === 'WAITING_LIST'
-          canJoin = false
+      const waitingCount = await prisma.requestApplication.count({
+        where: { requestId: id!, status: 'WAITING_LIST' },
+      })
+      let isOnWaitingList = false
+      let canJoin = waitingCount < 2
+
+      try {
+        const user = await getUserFromEvent(event)
+        if (user?.role === 'USER' || user?.role === 'ADMIN') {
+          const myApp = await prisma.requestApplication.findUnique({
+            where: { requestId_userId: { requestId: id!, userId: user.id } },
+            select: { status: true },
+          })
+          if (myApp) {
+            isOnWaitingList = myApp.status === 'WAITING_LIST'
+            canJoin = false
+          }
         }
+      } catch {
+        canJoin = false
       }
-    } catch {
-      canJoin = false
+
+      waitingListInfo = { count: waitingCount, isOnWaitingList, canJoin }
+    } catch (e) {
+      // Wenn der DB-Enum-Wert 'WAITING_LIST' noch nicht existiert (Migration ausstehend),
+      // soll die Request-Seite trotzdem funktionieren.
+      waitingListInfo = null
     }
-    waitingListInfo = { count: waitingCount, isOnWaitingList, canJoin }
   }
 
   // Für eingeloggte Flugpaten: Prüfen ob sie der zugewiesene Teilnehmer bei abgeschlossenem Transport sind
@@ -170,12 +179,55 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  let groupInfo:
+    | {
+        id: string
+        title: string
+        requests: Array<{
+          id: string
+          title: string
+          status: string
+          earliestDate: Date
+          latestDate: Date
+          originAirport: string
+          destAirport: string
+          animalCanFlyInCargo: boolean
+          animalCanFlyInCabin: boolean
+          animal: { name: string; species: string; imageUrl: string | null } | null
+        }>
+      }
+    | null = null
+  if (request.groupId && request.group) {
+    const groupRequests = await prisma.transportRequest.findMany({
+      where: { groupId: request.groupId, organization: { status: 'APPROVED' } },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        earliestDate: true,
+        latestDate: true,
+        originAirport: true,
+        destAirport: true,
+          animalCanFlyInCargo: true,
+          animalCanFlyInCabin: true,
+        animal: { select: { name: true, species: true, imageUrl: true } },
+      },
+      orderBy: { earliestDate: 'asc' },
+    })
+    groupInfo = {
+      id: request.group.id,
+      title: request.group.title,
+      requests: groupRequests,
+    }
+  }
+
   return {
     request: {
       ...request,
       title: reqTitle,
       details: reqDetails,
       organization,
+      group: groupInfo,
     },
     participantInfo,
     waitingListInfo,

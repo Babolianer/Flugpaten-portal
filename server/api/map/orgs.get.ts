@@ -55,6 +55,22 @@ export default defineEventHandler(async (event) => {
       },
     })
 
+    // "Aktiv Flugpaten suchen" interpretieren wir als:
+    // Organisation hat mindestens eine offene Transport-Anfrage (`status: 'OPEN'`).
+    // So passt es zur Org-Detailseite, die "Aktive Transport-Anfragen" ebenfalls nur für OPEN anzeigt.
+    const orgIds = orgs.map((o) => o.id)
+    const activeOrgIds = new Set<string>()
+    if (orgIds.length > 0) {
+      const activeRows = await prisma.transportRequest.findMany({
+        where: {
+          status: 'OPEN',
+          organizationId: { in: orgIds },
+        },
+        select: { organizationId: true },
+      })
+      for (const r of activeRows) activeOrgIds.add(r.organizationId)
+    }
+
     const organizations: OrgListItem[] = []
     const pins: Pin[] = []
 
@@ -118,6 +134,15 @@ export default defineEventHandler(async (event) => {
         }
       }
     }
+
+    // Sortierung für die Seitenliste: zuerst aktiv suchende Organisationen,
+    // danach die restlichen Organisationen alphabetisch.
+    organizations.sort((a, b) => {
+      const aActive = activeOrgIds.has(a.id)
+      const bActive = activeOrgIds.has(b.id)
+      if (aActive !== bActive) return aActive ? -1 : 1
+      return a.name.localeCompare(b.name, locale)
+    })
 
     return { organizations, pins }
   } catch (err) {

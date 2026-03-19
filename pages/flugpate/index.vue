@@ -18,12 +18,12 @@ useHead({
 <template>
   <div class="bg-slate-50 min-h-screen">
     <!-- Hero -->
-    <section class="bg-slate-800 text-white py-16 px-4">
+    <section class="bg-slate-800 text-white py-12 sm:py-16 px-4">
       <div class="container mx-auto max-w-4xl text-center">
-        <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 break-words">
           {{ t('flugpate.heroTitle') }}
         </h1>
-        <p class="text-xl text-slate-200 leading-relaxed max-w-2xl mx-auto">
+        <p class="text-base sm:text-lg md:text-xl text-slate-200 leading-relaxed max-w-2xl mx-auto">
           {{ t('flugpate.heroSubtitle') }}
         </p>
       </div>
@@ -31,10 +31,10 @@ useHead({
 
     <!-- Content Cards -->
     <section class="container mx-auto px-4 py-12 max-w-6xl">
-      <h2 class="text-2xl font-semibold text-slate-900 mb-8 text-center">
+      <h2 class="text-xl sm:text-2xl font-semibold text-slate-900 mb-6 sm:mb-8 text-center">
         {{ t('flugpate.overviewTitle') }}
       </h2>
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <NuxtLink
           v-for="topic in topics"
           :key="topic.slug"
@@ -51,16 +51,16 @@ useHead({
       </div>
 
       <!-- CTAs -->
-      <div class="mt-16 grid md:grid-cols-2 gap-6">
+      <div class="mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <NuxtLink
           to="/register"
-          class="flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold transition-colors"
+          class="flex items-center justify-center gap-2 py-3.5 sm:py-4 px-6 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold transition-colors min-h-[48px] text-center"
         >
           {{ t('flugpate.ctaRegisterPatron') }}
         </NuxtLink>
         <NuxtLink
           to="/org/register"
-          class="flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold transition-colors"
+          class="flex items-center justify-center gap-2 py-3.5 sm:py-4 px-6 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold transition-colors min-h-[48px] text-center"
         >
           {{ t('flugpate.ctaRegisterOrg') }}
         </NuxtLink>

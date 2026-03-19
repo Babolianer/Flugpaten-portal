@@ -2,11 +2,58 @@
 import logoImg from '~/assets/images/logo.png'
 
 definePageMeta({ layout: false })
-const { t } = useI18n()
+const { locale, locales, t, setLocale } = useI18n()
+const langDropdownOpen = ref(false)
+const langDropdownRef = ref<HTMLElement | null>(null)
+
+watch(langDropdownOpen, (isOpen) => {
+  if (!import.meta.client || !isOpen) return
+  const handler = (e: MouseEvent) => {
+    const target = e.target as Node
+    if (langDropdownRef.value && !langDropdownRef.value.contains(target)) {
+      langDropdownOpen.value = false
+      document.removeEventListener('click', handler)
+    }
+  }
+  setTimeout(() => document.addEventListener('click', handler), 0)
+})
+
+const flagEmoji: Record<string, string> = { de: '🇩🇪', gb: '🇬🇧', fr: '🇫🇷', es: '🇪🇸', it: '🇮🇹', pl: '🇵🇱' }
 </script>
 
 <template>
   <div class="min-h-screen bg-gradient-to-b from-amber-50/80 via-white to-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <!-- Sprachauswahl oben rechts -->
+    <div ref="langDropdownRef" class="absolute top-4 right-4 z-20">
+      <div class="relative">
+        <button
+          type="button"
+          class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white/80 hover:bg-white text-slate-700 text-sm font-medium shadow-sm"
+          :aria-expanded="langDropdownOpen"
+          :aria-haspopup="true"
+          @click="langDropdownOpen = !langDropdownOpen"
+        >
+          <span>{{ locales.find(l => l.code === locale)?.name ?? 'Deutsch' }}</span>
+          <span class="text-slate-400">▾</span>
+        </button>
+        <div
+          v-if="langDropdownOpen"
+          class="absolute right-0 mt-1 py-1 w-40 rounded-lg border border-slate-200 bg-white shadow-lg"
+        >
+          <button
+            v-for="loc in locales"
+            :key="loc.code"
+            type="button"
+            class="w-full text-left px-4 py-2 text-sm hover:bg-amber-50 flex items-center gap-2"
+            :class="locale === loc.code ? 'bg-amber-50 text-amber-800 font-medium' : 'text-slate-700'"
+            @click="setLocale(loc.code); langDropdownOpen = false"
+          >
+            <span class="text-base">{{ flagEmoji[loc.flagCountry] || '🌐' }}</span>
+            {{ loc.name }}
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- Dekorative Hintergrund-Kreise -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-200/20 blur-3xl animate-pulse-slow" />

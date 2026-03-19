@@ -110,6 +110,7 @@ model Organization {
   locations     OrgLocation[]
   animals       Animal[]
   requests      TransportRequest[]
+  requestGroups TransportRequestGroup[]
   conversations Conversation[]       @relation("ConversationOrg")
   reviews       Review[]
 }
@@ -164,9 +165,13 @@ model TransportRequest {
   id             String        @id @default(cuid())
   organizationId String        @map("organization_id")
   animalId       String?       @map("animal_id")
+  groupId        String?       @map("group_id")
   title          String
   details        String?
   status         RequestStatus @default(OPEN)
+  waitingListEnabled Boolean   @default(false) @map("waiting_list_enabled")
+  animalCanFlyInCargo Boolean  @default(false) @map("animal_can_fly_in_cargo")
+  animalCanFlyInCabin Boolean  @default(false) @map("animal_can_fly_in_cabin")
   earliestDate   DateTime      @map("earliest_date")
   latestDate     DateTime      @map("latest_date")
   originAirport  String        @map("origin_airport")
@@ -180,9 +185,26 @@ model TransportRequest {
 
   organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   animal       Animal?              @relation(fields: [animalId], references: [id], onDelete: SetNull)
+  group        TransportRequestGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   applications RequestApplication[]
   conversations Conversation[]      @relation("ConversationRequest")
   reviews      Review[]
+
+  @@index([groupId])
+}
+
+model TransportRequestGroup {
+  id             String        @id @default(cuid())
+  organizationId String        @map("organization_id")
+  title          String
+  note           String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requests      TransportRequest[]
+
+  @@index([organizationId])
 }
 
 model VolunteerTrip {
@@ -207,6 +229,7 @@ model RequestApplication {
   id             String            @id @default(cuid())
   requestId      String            @map("request_id")
   userId         String            @map("user_id")
+  groupId        String?           @map("group_id")
   status         ApplicationStatus @default(PENDING)
   message        String?
   applicationData Json?            @map("application_data")
@@ -218,6 +241,7 @@ model RequestApplication {
   user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([requestId, userId])
+  @@index([groupId])
 }
 
 model Conversation {

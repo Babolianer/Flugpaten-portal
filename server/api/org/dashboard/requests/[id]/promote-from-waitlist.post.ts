@@ -6,6 +6,9 @@ const bodySchema = z.object({
   applicationId: z.string().min(1),
 })
 
+/**
+ * Wartelisten-Platz annehmen: gleiche Wirkung wie normales Annehmen, Ausgang aber WAITING_LIST.
+ */
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['ORG_USER', 'ADMIN'])
   const requestId = getRouterParam(event, 'id')
@@ -24,7 +27,7 @@ export default defineEventHandler(async (event) => {
   })
   if (!transportRequest) throw createError({ statusCode: 404, message: 'Anfrage nicht gefunden' })
   if (transportRequest.status !== 'OPEN') {
-    throw createError({ statusCode: 400, message: 'Diese Anfrage ist bereits geschlossen.' })
+    throw createError({ statusCode: 400, message: 'Nur offene Anfragen erlauben ein Nachrücken von der Warteliste.' })
   }
 
   if (user.role !== 'ADMIN') {
@@ -45,18 +48,15 @@ export default defineEventHandler(async (event) => {
     where: { id: applicationId, requestId },
   })
   if (!application) throw createError({ statusCode: 404, message: 'Bewerbung nicht gefunden' })
-
-  if (!['PENDING', 'REJECTED', 'WAITING_LIST'].includes(application.status)) {
-    throw createError({
-      statusCode: 400,
-      message: 'Nur offene, abgelehnte oder Wartelisten-Bewerbungen können bei freier Anfrage angenommen werden.',
-    })
+  if (application.status !== 'WAITING_LIST') {
+    throw createError({ statusCode: 400, message: 'Nur Wartelisten-Einträge können nachrücken.' })
   }
 
-  const groupId = (application as { groupId?: string | null }).groupId ?? null
+  const groupId = application.groupId ?? transportRequest.groupId ?? null
   const isGroup = !!groupId
   const acceptedUserId = application.userId
   let targetRequestIds: string[] = [requestId]
+
   if (isGroup) {
     const reqs = await prisma.transportRequest.findMany({
       where: { groupId },
@@ -72,11 +72,7 @@ export default defineEventHandler(async (event) => {
   await prisma.$transaction(async (tx) => {
     if (isGroup) {
       await tx.requestApplication.updateMany({
-        where: {
-          groupId,
-          userId: acceptedUserId,
-          status: { in: ['PENDING', 'REJECTED', 'WAITING_LIST'] },
-        },
+        where: { groupId, userId: acceptedUserId, status: 'WAITING_LIST' },
         data: { status: 'ACCEPTED' },
       })
       await tx.transportRequest.updateMany({
@@ -111,7 +107,6 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // Chat-Nachricht beim Annehmen hinzufügen
   const conversations = await prisma.conversation.findMany({
     where: { requestId: { in: targetRequestIds }, userId: acceptedUserId },
     select: { id: true },
@@ -121,7 +116,7 @@ export default defineEventHandler(async (event) => {
       data: {
         conversationId: c.id,
         senderUserId: user.id,
-        body: 'Die Bewerbung wurde angenommen. Der Transport ist bestätigt.',
+        body: 'Du rückst von der Warteliste nach – der Transport ist reserviert. Danke!',
       },
     })
     await prisma.conversation.update({

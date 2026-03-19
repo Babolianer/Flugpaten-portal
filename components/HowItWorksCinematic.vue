@@ -79,31 +79,31 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="how-it-works-cinematic" aria-label="So funktioniert's">
+  <div class="how-it-works-cinematic overflow-x-hidden" aria-label="So funktioniert's">
     <!-- Page 1: Step 1 – Map (dark) -->
     <section
       ref="block1Ref"
       data-block="1"
-      class="how-block min-h-screen flex flex-col px-6 py-16 md:py-24 bg-gradient-step1"
+      class="how-block min-h-screen flex flex-col px-4 sm:px-6 py-12 sm:py-16 md:py-24 bg-gradient-step1"
     >
       <div class="text-center mb-8 md:mb-12">
-        <h2 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-4">
+        <h2 class="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-4 break-words px-1">
           {{ t('home.howItWorksTitle') }}
         </h2>
-        <p class="text-xl md:text-2xl text-slate-200 max-w-2xl mx-auto">
+        <p class="text-base sm:text-xl md:text-2xl text-slate-200 max-w-2xl mx-auto px-1">
           {{ t('home.howItWorksSubtitle') }}
         </p>
       </div>
       <div class="flex-1 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 min-h-0">
         <div class="flex flex-col justify-center order-2 md:order-1 text-center md:text-left max-w-md">
           <h3
-            class="text-2xl md:text-4xl font-bold text-white mb-2 transition-all duration-700"
+            class="text-xl sm:text-2xl md:text-4xl font-bold text-white mb-2 transition-all duration-700 break-words"
             :class="step1Revealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'"
           >
             {{ t('home.step1Title') }}
           </h3>
           <p
-            class="text-slate-200 text-lg transition-all duration-700 delay-150"
+            class="text-slate-200 text-base sm:text-lg transition-all duration-700 delay-150"
             :class="step1Revealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
           >
             {{ t('home.step1Description') }}
@@ -125,26 +125,26 @@ onUnmounted(() => {
     <section
       ref="block2Ref"
       data-block="2"
-      class="how-block min-h-screen flex flex-col px-6 py-16 md:py-24 bg-gradient-to-b from-slate-100 to-white"
+      class="how-block min-h-screen flex flex-col px-4 sm:px-6 py-12 sm:py-16 md:py-24 bg-gradient-to-b from-slate-100 to-white"
     >
       <div class="text-center mb-8 md:mb-12">
-        <h2 class="text-4xl md:text-6xl font-bold tracking-tight text-slate-900 mb-4">
+        <h2 class="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-slate-900 mb-4 break-words px-1">
           {{ t('home.howItWorksTitle') }}
         </h2>
-        <p class="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto">
+        <p class="text-base sm:text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto px-1">
           {{ t('home.howItWorksSubtitle') }}
         </p>
       </div>
       <div class="flex-1 flex flex-col items-center justify-center gap-8 min-h-0">
         <div class="text-center mb-6">
           <h3
-            class="text-2xl md:text-4xl font-bold text-slate-900 mb-2 transition-all duration-700"
+            class="text-xl sm:text-2xl md:text-4xl font-bold text-slate-900 mb-2 transition-all duration-700 break-words"
             :class="step2CardVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'"
           >
             {{ t('home.step2Title') }}
           </h3>
           <p
-            class="text-slate-600 text-lg transition-all duration-700 delay-150"
+            class="text-slate-600 text-base sm:text-lg transition-all duration-700 delay-150"
             :class="step2CardVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
           >
             {{ t('home.step2Description') }}
@@ -162,26 +162,26 @@ onUnmounted(() => {
     <section
       ref="block3Ref"
       data-block="3"
-      class="how-block min-h-screen flex flex-col px-6 py-16 md:py-24 bg-gradient-warm"
+      class="how-block min-h-screen flex flex-col px-4 sm:px-6 py-12 sm:py-16 md:py-24 bg-gradient-warm"
     >
       <div class="text-center mb-8 md:mb-12">
-        <h2 class="text-4xl md:text-6xl font-bold tracking-tight text-slate-900 mb-4">
+        <h2 class="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-slate-900 mb-4 break-words px-1">
           {{ t('home.howItWorksTitle') }}
         </h2>
-        <p class="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto">
+        <p class="text-base sm:text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto px-1">
           {{ t('home.howItWorksSubtitle') }}
         </p>
       </div>
       <div class="flex-1 flex flex-col items-center justify-center gap-8 min-h-0">
         <div class="text-center mb-6">
           <h3
-            class="text-2xl md:text-4xl font-bold text-slate-900 mb-2 transition-all duration-700"
+            class="text-xl sm:text-2xl md:text-4xl font-bold text-slate-900 mb-2 transition-all duration-700 break-words"
             :class="step3Family ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'"
           >
             {{ t('home.step3Title') }}
           </h3>
           <p
-            class="text-slate-600 text-lg transition-all duration-700 delay-150"
+            class="text-slate-600 text-base sm:text-lg transition-all duration-700 delay-150"
             :class="step3Family ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
           >
             {{ t('home.step3Description') }}

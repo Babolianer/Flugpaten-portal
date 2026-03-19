@@ -155,7 +155,15 @@ async function registerOrg() {
     <!-- Modal: AGB kurz -->
     <Teleport to="body">
       <div v-if="showTermsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col relative">
+          <button
+            type="button"
+            class="absolute top-3 right-3 inline-flex items-center justify-center h-10 w-10 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            :aria-label="t('common.close')"
+            @click="showTermsModal = false"
+          >
+            <span class="text-2xl leading-none">×</span>
+          </button>
           <div class="p-6 overflow-y-auto flex-1">
             <h3 class="text-lg font-bold text-slate-900 mb-3">{{ t('terms.title') }}</h3>
             <p class="text-sm text-slate-700 whitespace-pre-line mb-4">{{ t('terms.shortSummary') }}</p>
@@ -175,7 +183,15 @@ async function registerOrg() {
     <!-- Modal: Datenschutz kurz -->
     <Teleport to="body">
       <div v-if="showPrivacyModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col relative">
+          <button
+            type="button"
+            class="absolute top-3 right-3 inline-flex items-center justify-center h-10 w-10 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            :aria-label="t('common.close')"
+            @click="showPrivacyModal = false"
+          >
+            <span class="text-2xl leading-none">×</span>
+          </button>
           <div class="p-6 overflow-y-auto flex-1">
             <h3 class="text-lg font-bold text-slate-900 mb-3">{{ t('privacy.title') }}</h3>
             <p class="text-sm text-slate-700 whitespace-pre-line mb-4">{{ t('privacy.shortSummary') }}</p>
