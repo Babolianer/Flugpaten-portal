@@ -77,12 +77,12 @@ function formatRoute(request: Request): string {
 
 <template>
   <div
-    class="p-3 sm:p-4 rounded-lg border-2 transition-all cursor-pointer hover:border-amber-400 flex gap-3 sm:gap-4 min-w-0 overflow-hidden sm:overflow-visible"
+    class="p-2 sm:p-3 rounded-lg border-2 transition-all cursor-pointer hover:border-amber-400 flex gap-2 sm:gap-3 min-w-0 overflow-hidden sm:overflow-visible"
     :class="selected ? 'border-amber-500 bg-amber-50' : 'border-slate-200 bg-white'"
     @click="$emit('click')"
   >
-    <!-- Tierbild oder Platzhalter -->
-    <div class="relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+    <!-- Tierbild oder Platzhalter – streckt sich mit der Kartenhöhe -->
+    <div class="relative shrink-0 w-28 sm:w-40 min-h-20 self-stretch rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
       <!-- Wasserzeichen „Reserviert“ -->
       <div
         v-if="isReserved"
@@ -107,7 +107,7 @@ function formatRoute(request: Request): string {
     </div>
 
     <div class="min-w-0 flex-1">
-      <div class="flex flex-wrap gap-2 mb-2">
+      <div class="flex flex-wrap gap-1.5 mb-1.5">
         <span
           v-if="request.status"
           class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
@@ -185,26 +185,26 @@ function formatRoute(request: Request): string {
         </span>
       </div>
       <h3 class="font-semibold text-slate-900">{{ request.title }}</h3>
-      <p v-if="request.animal" class="text-sm text-slate-600 mt-1">
+      <p v-if="request.animal" class="text-sm text-slate-600 mt-0.5">
         {{ request.animal.name }} ({{ getSpeciesLabel(request.animal.species) }})
       </p>
-      <p v-if="hasAnimalTransportOptions" class="text-xs text-slate-500 mt-1">
+      <p v-if="hasAnimalTransportOptions" class="text-xs text-slate-500 mt-0.5">
         {{ animalTransportLabel }}
       </p>
-      <p class="text-sm text-slate-600 mt-1">
+      <p class="text-sm text-slate-600 mt-0.5">
         {{ formatRoute(request) }}
       </p>
-      <p class="text-xs text-slate-500 mt-2">
+      <p class="text-xs text-slate-500 mt-1">
         {{ new Date(request.earliestDate).toLocaleDateString(locale) }} –
         {{ new Date(request.latestDate).toLocaleDateString(locale) }}
       </p>
       <p
         v-if="request.matchType === 'COUNTRY'"
-        class="text-xs text-slate-600 mt-2 italic"
+        class="text-xs text-slate-600 mt-1 italic"
       >
         {{ t('map.countryHint') }}
       </p>
-      <div class="flex flex-wrap gap-2 mt-3">
+      <div class="flex flex-wrap gap-1.5 mt-2">
         <NuxtLink
           v-if="request.organization"
           :to="`/org/${request.organization.slug}`"

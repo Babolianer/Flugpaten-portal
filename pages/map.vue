@@ -253,12 +253,12 @@ watch(mapExpanded, (expanded) => {
       </div>
     </section>
 
-    <MapFilterBar v-model="filters" class="mb-4 sm:mb-6" @filter="onFilter" />
+    <MapFilterBar v-model="filters" class="mb-2 sm:mb-3" @filter="onFilter" />
 
-    <!-- Mobile-first: Karte oben volle Breite, Liste unten; ab lg: 2/3 Karte, 1/3 Liste -->
+    <!-- Mobile-first: Karte oben volle Breite, Liste unten; ab lg: 60% Karte, 40% Liste -->
     <!-- NUR AM HANDY: Karte als kleines Banner mit Expand-Button -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-      <div class="lg:col-span-2 rounded-xl overflow-hidden shadow-lg order-1 min-w-0 relative">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-2 sm:gap-3">
+      <div class="lg:col-span-3 rounded-xl overflow-hidden shadow-lg order-1 min-w-0 relative">
         <ClientOnly>
           <MapView
             ref="mapRef"
@@ -320,13 +320,13 @@ watch(mapExpanded, (expanded) => {
             </button>
           </div>
         </Teleport>
-        <p class="mt-3 text-xs sm:text-sm text-slate-600 bg-slate-50 rounded-b-xl px-3 sm:px-4 py-2 sm:py-3 border border-t-0 border-slate-200">
+        <p class="mt-2 text-xs sm:text-sm text-slate-600 bg-slate-50 rounded-b-xl px-2 sm:px-3 py-1.5 sm:py-2 border border-t-0 border-slate-200">
           <strong class="text-slate-700">{{ t('map.transparencyTitle') }}</strong><br />
           {{ t('map.transparencyText') }}
         </p>
       </div>
 
-      <div class="space-y-4 order-2 min-w-0">
+      <div class="space-y-2 order-2 min-w-0 lg:col-span-2">
         <div v-if="loading" class="text-slate-500 text-sm">
           Suche läuft...
         </div>
@@ -350,12 +350,12 @@ watch(mapExpanded, (expanded) => {
             </button>
           </div>
 
-          <div ref="requestListRef" class="space-y-4 sm:space-y-6 lg:max-h-[520px] lg:overflow-y-auto overflow-x-hidden">
-            <section v-if="groupedRequests.direct.length" class="space-y-2">
+          <div ref="requestListRef" class="space-y-2 sm:space-y-3 lg:max-h-[520px] lg:overflow-y-auto overflow-x-hidden">
+            <section v-if="groupedRequests.direct.length" class="space-y-1.5">
               <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">
                 {{ t('map.groupDirect') }}
               </h3>
-              <div class="space-y-3">
+              <div class="space-y-2">
                 <div v-for="req in groupedRequests.direct" :key="req.id" :data-request-id="req.id">
                   <RequestCard
                     :request="req"
@@ -365,11 +365,11 @@ watch(mapExpanded, (expanded) => {
                 </div>
               </div>
             </section>
-            <section v-if="groupedRequests.radius.length" class="space-y-2">
+            <section v-if="groupedRequests.radius.length" class="space-y-1.5">
               <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">
                 {{ t('map.groupRadius') }}
               </h3>
-              <div class="space-y-3">
+              <div class="space-y-2">
                 <div v-for="req in groupedRequests.radius" :key="req.id" :data-request-id="req.id">
                   <RequestCard
                     :request="req"
@@ -379,11 +379,11 @@ watch(mapExpanded, (expanded) => {
                 </div>
               </div>
             </section>
-            <section v-if="groupedRequests.country.length" class="space-y-2">
+            <section v-if="groupedRequests.country.length" class="space-y-1.5">
               <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">
                 {{ t('map.groupCountry') }}
               </h3>
-              <div class="space-y-3">
+              <div class="space-y-2">
                 <div v-for="req in groupedRequests.country" :key="req.id" :data-request-id="req.id">
                   <RequestCard
                     :request="req"
@@ -393,8 +393,8 @@ watch(mapExpanded, (expanded) => {
                 </div>
               </div>
             </section>
-            <section v-if="groupedRequests.other.length" class="space-y-2">
-              <div class="space-y-3">
+            <section v-if="groupedRequests.other.length" class="space-y-1.5">
+              <div class="space-y-2">
                 <div v-for="req in groupedRequests.other" :key="req.id" :data-request-id="req.id">
                   <RequestCard
                     :request="req"

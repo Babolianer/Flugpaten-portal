@@ -659,6 +659,7 @@
   },
   "request": {
     "backToMap": "← Torna alla mappa",
+    "enlargeImage": "Ingrandisci immagine",
     "route": "Percorso",
     "departure": "Partenza",
     "destination": "Destinazione",

@@ -659,6 +659,7 @@
   },
   "request": {
     "backToMap": "← Powrót do mapy",
+    "enlargeImage": "Powiększ zdjęcie",
     "route": "Trasa",
     "departure": "Odlot",
     "destination": "Cel",

@@ -17,6 +17,17 @@ interface ApprovedOrg {
   name: string
   slug: string
   contactEmail: string
+  createdAt: string
+  createdByUser: {
+    id: string
+    email: string
+    displayName: string
+    emailVerified: boolean
+    lastLoginAt: string | null
+    adminNotes: string | null
+  } | null
+  profileComplete: boolean
+  transportsCount: number
 }
 
 interface BlockedOrg extends ApprovedOrg {
@@ -162,6 +173,7 @@ const adminUsersFilterUnverified = ref(false)
 const adminUsersFilterActive = ref(false)
 const adminUsersSearch = ref('')
 const savingUserNotesId = ref<string | null>(null)
+const savingOrgUserNotesId = ref<string | null>(null)
 const verifyingUserId = ref<string | null>(null)
 
 interface ReportedReviewRow {
@@ -460,6 +472,23 @@ async function saveUserNotes(u: AdminUserRow, notes: string) {
   }
 }
 
+async function saveOrgUserNotes(org: ApprovedOrg, notes: string) {
+  const userId = org.createdByUser?.id
+  if (!userId) return
+  savingOrgUserNotesId.value = org.id
+  try {
+    await $fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      body: { adminNotes: notes || null },
+    })
+    if (org.createdByUser) org.createdByUser.adminNotes = notes || null
+  } catch {
+    message.value = 'Notiz konnte nicht gespeichert werden'
+  } finally {
+    savingOrgUserNotesId.value = null
+  }
+}
+
 async function verifyUser(u: AdminUserRow) {
   if (u.emailVerified) return
   verifyingUserId.value = u.id
@@ -467,6 +496,22 @@ async function verifyUser(u: AdminUserRow) {
   try {
     await $fetch(`/api/admin/users/${u.id}/verify`, { method: 'PATCH' })
     u.emailVerified = true
+    message.value = t('admin.acquise.verifySuccess')
+  } catch {
+    message.value = t('admin.acquise.verifyError')
+  } finally {
+    verifyingUserId.value = null
+  }
+}
+
+async function verifyOrgUser(org: ApprovedOrg) {
+  const userId = org.createdByUser?.id
+  if (!userId || org.createdByUser?.emailVerified) return
+  verifyingUserId.value = userId
+  message.value = ''
+  try {
+    await $fetch(`/api/admin/users/${userId}/verify`, { method: 'PATCH' })
+    if (org.createdByUser) org.createdByUser.emailVerified = true
     message.value = t('admin.acquise.verifySuccess')
   } catch {
     message.value = t('admin.acquise.verifyError')
@@ -1799,40 +1844,143 @@ onMounted(() => {
           <div v-else-if="approvedOrgs.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
             {{ t('admin.noApproved') }}
           </div>
-          <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="w-full min-w-[400px] text-sm">
-              <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
-                  <th class="text-left py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableContact') }}</th>
-                  <th class="text-right py-3 px-4 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="org in approvedOrgs" :key="org.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                  <td class="py-3 px-4 text-slate-900">{{ org.name }}</td>
-                  <td class="py-3 px-4 text-slate-600">{{ org.contactEmail }}</td>
-                  <td class="py-3 px-4 text-right">
-                    <div class="flex flex-wrap items-center justify-end gap-2">
-                      <NuxtLink
-                        v-if="org.slug"
-                        :to="`/org/${org.slug}`"
-                        class="inline-flex items-center px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-sm transition-colors"
-                      >
-                        {{ t('admin.viewProfile') }}
-                      </NuxtLink>
-                      <button
-                        type="button"
-                        class="inline-flex items-center px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors"
-                        @click="viewAsOrg(org.id)"
-                      >
-                        {{ t('admin.viewAsOrg') }}
-                      </button>
+          <div v-else>
+            <!-- Mobile: Cards -->
+            <div class="sm:hidden space-y-3">
+              <div v-for="org in approvedOrgs" :key="org.id" class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <NuxtLink v-if="org.slug" :to="`/org/${org.slug}`" class="text-amber-600 hover:underline font-semibold break-words">{{ org.name }}</NuxtLink>
+                    <span v-else class="font-semibold text-slate-900 break-words">{{ org.name }}</span>
+                    <div class="text-sm text-slate-600 break-all mt-1">{{ org.createdByUser?.email ?? org.contactEmail }}</div>
+                    <div class="text-xs text-slate-500 mt-2">
+                      {{ t('admin.acquise.userFlights') }}: {{ org.transportsCount }} ·
+                      {{ t('admin.acquise.userCreated') }}: {{ new Date(org.createdAt).toLocaleDateString(locale) }}
                     </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span v-if="org.createdByUser?.emailVerified" class="inline-flex px-2 py-0.5 rounded text-xs bg-green-100 text-green-800">E-Mail ✓</span>
+                    <button
+                      v-else-if="org.createdByUser"
+                      type="button"
+                      :disabled="verifyingUserId === org.createdByUser.id"
+                      class="inline-flex px-2 py-1 rounded text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium disabled:opacity-50 min-h-[32px]"
+                      @click="verifyOrgUser(org)"
+                    >
+                      {{ verifyingUserId === org.createdByUser.id ? '…' : t('admin.acquise.verifyButton') }}
+                    </button>
+                    <span class="inline-flex px-2 py-0.5 rounded text-xs" :class="org.profileComplete ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'">
+                      Profil: {{ org.profileComplete ? '✓' : '–' }}
+                    </span>
+                  </div>
+                </div>
+                <div v-if="org.createdByUser">
+                  <label class="block text-xs font-medium text-slate-600 mb-1">{{ t('admin.acquise.userNotes') }}</label>
+                  <input
+                    type="text"
+                    :value="org.createdByUser.adminNotes ?? ''"
+                    :disabled="savingOrgUserNotesId === org.id"
+                    class="w-full py-2 px-3 rounded-lg border border-slate-300 text-slate-800 text-sm min-h-[44px]"
+                    :placeholder="t('admin.acquise.userNotesPlaceholder')"
+                    @blur="saveOrgUserNotes(org, ($event.target as HTMLInputElement).value)"
+                  />
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <NuxtLink
+                    v-if="org.slug"
+                    :to="`/org/${org.slug}`"
+                    class="inline-flex items-center px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-sm"
+                  >
+                    {{ t('admin.viewProfile') }}
+                  </NuxtLink>
+                  <button
+                    type="button"
+                    class="inline-flex items-center px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm"
+                    @click="viewAsOrg(org.id)"
+                  >
+                    {{ t('admin.viewAsOrg') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Desktop: Table -->
+            <div class="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table class="w-full min-w-[900px] text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.tableOrg') }}</th>
+                    <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.email') }}</th>
+                    <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userEmailVerified') }}</th>
+                    <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userProfileComplete') }}</th>
+                    <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userFlights') }}</th>
+                    <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userCreated') }}</th>
+                    <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userLastLogin') }}</th>
+                    <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userNotes') }}</th>
+                    <th class="text-right py-3 px-3 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="org in approvedOrgs" :key="org.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                    <td class="py-3 px-3">
+                      <NuxtLink v-if="org.slug" :to="`/org/${org.slug}`" class="text-amber-600 hover:underline font-medium">{{ org.name }}</NuxtLink>
+                      <span v-else class="font-medium text-slate-900">{{ org.name }}</span>
+                    </td>
+                    <td class="py-3 px-3 text-slate-600">{{ org.createdByUser?.email ?? org.contactEmail }}</td>
+                    <td class="py-3 px-3 text-center">
+                      <span v-if="org.createdByUser?.emailVerified" class="inline-flex px-2 py-0.5 rounded text-xs bg-green-100 text-green-800">✓</span>
+                      <button
+                        v-else-if="org.createdByUser"
+                        type="button"
+                        :disabled="verifyingUserId === org.createdByUser.id"
+                        class="inline-flex px-2 py-1 rounded text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 font-medium disabled:opacity-50"
+                        @click="verifyOrgUser(org)"
+                      >
+                        {{ verifyingUserId === org.createdByUser.id ? '…' : t('admin.acquise.verifyButton') }}
+                      </button>
+                      <span v-else class="text-slate-400">–</span>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                      <span v-if="org.profileComplete" class="text-green-600">✓</span>
+                      <span v-else class="text-slate-400">–</span>
+                    </td>
+                    <td class="py-3 px-3 text-center text-slate-600">{{ org.transportsCount }}</td>
+                    <td class="py-3 px-3 text-slate-600">{{ new Date(org.createdAt).toLocaleDateString(locale) }}</td>
+                    <td class="py-3 px-3 text-slate-600">{{ org.createdByUser?.lastLoginAt ? new Date(org.createdByUser.lastLoginAt).toLocaleDateString(locale) : '–' }}</td>
+                    <td class="py-3 px-3">
+                      <input
+                        v-if="org.createdByUser"
+                        type="text"
+                        :value="org.createdByUser.adminNotes ?? ''"
+                        :disabled="savingOrgUserNotesId === org.id"
+                        class="w-full max-w-[200px] py-1.5 px-2 rounded border border-slate-300 text-slate-800 text-xs"
+                        :placeholder="t('admin.acquise.userNotesPlaceholder')"
+                        @blur="saveOrgUserNotes(org, ($event.target as HTMLInputElement).value)"
+                      />
+                      <span v-else class="text-slate-400">–</span>
+                    </td>
+                    <td class="py-3 px-3 text-right">
+                      <div class="flex flex-wrap items-center justify-end gap-2">
+                        <NuxtLink
+                          v-if="org.slug"
+                          :to="`/org/${org.slug}`"
+                          class="inline-flex items-center px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium text-sm"
+                        >
+                          {{ t('admin.viewProfile') }}
+                        </NuxtLink>
+                        <button
+                          type="button"
+                          class="inline-flex items-center px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm"
+                          @click="viewAsOrg(org.id)"
+                        >
+                          {{ t('admin.viewAsOrg') }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           <div v-if="approvedTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
             <p class="text-sm text-slate-600">{{ t('admin.acquise.pageInfo', { from: (approvedPage - 1) * approvedPageSize + 1, to: Math.min(approvedPage * approvedPageSize, approvedTotal), total: approvedTotal }) }}</p>

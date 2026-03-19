@@ -851,6 +851,7 @@
   },
   "request": {
     "backToMap": "← Back to map",
+    "enlargeImage": "Enlarge image",
     "route": "Route",
     "departure": "Departure",
     "destination": "Destination",

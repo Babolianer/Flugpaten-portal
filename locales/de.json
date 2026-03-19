@@ -881,6 +881,7 @@
   },
   "request": {
     "backToMap": "← Zurück zur Karte",
+    "enlargeImage": "Bild vergrößern",
     "route": "Route",
     "departure": "Abflug",
     "destination": "Ziel",

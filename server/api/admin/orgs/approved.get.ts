@@ -27,6 +27,19 @@ export default defineEventHandler(async (event) => {
         name: true,
         slug: true,
         contactEmail: true,
+        description: true,
+        createdAt: true,
+        createdByUser: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            emailVerified: true,
+            lastLoginAt: true,
+            adminNotes: true,
+          },
+        },
+        _count: { select: { requests: true, locations: true } },
       },
       orderBy: { name: 'asc' },
       skip,
@@ -36,7 +49,25 @@ export default defineEventHandler(async (event) => {
   ])
 
   return {
-    organizations: orgs,
+    organizations: orgs.map((o) => ({
+      id: o.id,
+      name: o.name,
+      slug: o.slug,
+      contactEmail: o.contactEmail,
+      createdAt: o.createdAt.toISOString(),
+      createdByUser: o.createdByUser
+        ? {
+            id: o.createdByUser.id,
+            email: o.createdByUser.email,
+            displayName: o.createdByUser.displayName,
+            emailVerified: o.createdByUser.emailVerified,
+            lastLoginAt: o.createdByUser.lastLoginAt?.toISOString() ?? null,
+            adminNotes: o.createdByUser.adminNotes,
+          }
+        : null,
+      profileComplete: !!(o.description?.trim() && (o._count?.locations ?? 0) > 0),
+      transportsCount: o._count?.requests ?? 0,
+    })),
     pagination: {
       page,
       pageSize,

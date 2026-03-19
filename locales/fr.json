@@ -873,6 +873,7 @@
   },
   "request": {
     "backToMap": "← Retour à la carte",
+    "enlargeImage": "Agrandir l'image",
     "route": "Trajet",
     "departure": "Départ",
     "destination": "Destination",
