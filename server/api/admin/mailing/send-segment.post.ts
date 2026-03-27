@@ -3,6 +3,7 @@ import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 import { sendEmail } from '~~/server/utils/sendEmail'
 import { buildEmailHtml } from '~~/server/utils/emailTemplate'
+import { loadMailFooterSettings, pickFooterForLocale } from '~~/server/utils/mailFooterSettings'
 
 const segmentSchema = z.enum([
   'ACQUISITION_CONTACTS',
@@ -48,6 +49,7 @@ const bodySchema = z.object({
 type Recipient = {
   email: string
   name: string
+  locale?: string | null
   acquisitionContactId?: string
   userId?: string
   organizationId?: string
@@ -133,11 +135,12 @@ async function loadRecipients(
           email: { not: null, notIn: [''] },
           ...(language ? { websiteLanguage: { equals: language, mode: 'insensitive' } } : {}),
         },
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true, websiteLanguage: true },
       })
       return rows.map((c) => ({
         email: c.email!,
         name: c.name,
+        locale: c.websiteLanguage,
         acquisitionContactId: c.id,
       }))
     }
@@ -148,9 +151,9 @@ async function loadRecipients(
           ...baseUserWhere,
           ...(language ? { preferredLanguage: language } : {}),
         },
-        select: { id: true, email: true, displayName: true },
+        select: { id: true, email: true, displayName: true, preferredLanguage: true },
       })
-      return rows.map((u) => ({ email: u.email, name: u.displayName, userId: u.id }))
+      return rows.map((u) => ({ email: u.email, name: u.displayName, locale: u.preferredLanguage, userId: u.id }))
     }
     case 'ORG_ACCOUNT_HOLDERS': {
       const orgRestriction = excludedOrganizationIds.size > 0
@@ -163,9 +166,9 @@ async function loadRecipients(
           ...orgRestriction,
           ...(language ? { preferredLanguage: language } : {}),
         },
-        select: { id: true, email: true, displayName: true },
+        select: { id: true, email: true, displayName: true, preferredLanguage: true },
       })
-      return rows.map((u) => ({ email: u.email, name: u.displayName, userId: u.id }))
+      return rows.map((u) => ({ email: u.email, name: u.displayName, locale: u.preferredLanguage, userId: u.id }))
     }
     case 'APPROVED_ORG_CONTACT_EMAILS': {
       const rows = await prisma.organization.findMany({
@@ -175,11 +178,12 @@ async function loadRecipients(
           ...(excludedOrganizationIds.size > 0 ? { id: { notIn: [...excludedOrganizationIds] } } : {}),
           ...(language ? { preferredLanguage: language } : {}),
         },
-        select: { id: true, name: true, contactEmail: true },
+        select: { id: true, name: true, contactEmail: true, preferredLanguage: true },
       })
       return rows.map((o) => ({
         email: o.contactEmail,
         name: o.name,
+        locale: o.preferredLanguage,
         organizationId: o.id,
       }))
     }
@@ -191,9 +195,9 @@ async function loadRecipients(
           ...baseUserWhere,
           ...(language ? { preferredLanguage: language } : {}),
         },
-        select: { id: true, email: true, displayName: true },
+        select: { id: true, email: true, displayName: true, preferredLanguage: true },
       })
-      return rows.map((u) => ({ email: u.email, name: u.displayName, userId: u.id }))
+      return rows.map((u) => ({ email: u.email, name: u.displayName, locale: u.preferredLanguage, userId: u.id }))
     }
     case 'NEWSLETTER_ORG_USERS': {
       const orgRestriction = excludedOrganizationIds.size > 0
@@ -207,9 +211,9 @@ async function loadRecipients(
           ...orgRestriction,
           ...(language ? { preferredLanguage: language } : {}),
         },
-        select: { id: true, email: true, displayName: true },
+        select: { id: true, email: true, displayName: true, preferredLanguage: true },
       })
-      return rows.map((u) => ({ email: u.email, name: u.displayName, userId: u.id }))
+      return rows.map((u) => ({ email: u.email, name: u.displayName, locale: u.preferredLanguage, userId: u.id }))
     }
     default:
       return []
@@ -252,19 +256,24 @@ export default defineEventHandler(async (event) => {
   const subject = subjectRaw.trim()
   const bodyText = bodyRaw
 
-  let footerText: string | null = footerFromBody?.trim() || null
-  let footerHtml: string | null = footerHtmlFromBody && footerHtmlFromBody.trim().length > 0
-    ? footerHtmlFromBody
-    : null
-  if (footerText === '') footerText = null
-  if (footerText === null || footerText === undefined) {
-    try {
-      const mailSettings = await prisma.acquisitionMailSettings.findUnique({ where: { id: 'default' } })
-      footerText = mailSettings?.footerText ?? null
-      if (!footerHtml) footerHtml = mailSettings?.footerHtml ?? null
-    } catch {
-      // ignore
+  let footerSettings = {
+    footerTextDe: footerFromBody?.trim() || null,
+    footerTextEn: footerFromBody?.trim() || null,
+    footerHtmlDe: footerHtmlFromBody && footerHtmlFromBody.trim().length > 0 ? footerHtmlFromBody : null,
+    footerHtmlEn: footerHtmlFromBody && footerHtmlFromBody.trim().length > 0 ? footerHtmlFromBody : null,
+  }
+  try {
+    const persisted = await loadMailFooterSettings()
+    if (!footerSettings.footerTextDe && !footerSettings.footerTextEn) {
+      footerSettings = persisted
+    } else {
+      if (!footerSettings.footerHtmlDe && !footerSettings.footerHtmlEn) {
+        footerSettings.footerHtmlDe = persisted.footerHtmlDe
+        footerSettings.footerHtmlEn = persisted.footerHtmlEn
+      }
     }
+  } catch {
+    // ignore
   }
 
   const triggerKey = segment ? `MANUAL_SEGMENT_${segment}` : 'MANUAL_AUDIENCE'
@@ -272,7 +281,13 @@ export default defineEventHandler(async (event) => {
   if (testTo) {
     const name = (testName && testName.trim()) || 'Test'
     const bodyWithPlaceholders = replacePlaceholders(bodyText, name)
-    const html = buildEmailHtml(bodyWithPlaceholders, name, { appUrl, logoUrl: mailLogoUrl, footerText, footerHtml })
+    const selectedFooter = pickFooterForLocale(language ?? 'de', footerSettings)
+    const html = buildEmailHtml(bodyWithPlaceholders, name, {
+      appUrl,
+      logoUrl: mailLogoUrl,
+      footerText: selectedFooter.footerText,
+      footerHtml: selectedFooter.footerHtml,
+    })
     const { messageId } = await sendEmail({
       from: mailFrom,
       to: testTo,
@@ -320,7 +335,13 @@ export default defineEventHandler(async (event) => {
 
   for (const r of recipients) {
     const bodyWithPlaceholders = replacePlaceholders(bodyText, r.name)
-    const html = buildEmailHtml(bodyWithPlaceholders, r.name, { appUrl, logoUrl: mailLogoUrl, footerText, footerHtml })
+    const selectedFooter = pickFooterForLocale(r.locale ?? language ?? 'de', footerSettings)
+    const html = buildEmailHtml(bodyWithPlaceholders, r.name, {
+      appUrl,
+      logoUrl: mailLogoUrl,
+      footerText: selectedFooter.footerText,
+      footerHtml: selectedFooter.footerHtml,
+    })
     const subj = replacePlaceholders(subject, r.name)
     try {
       const { messageId } = await sendEmail({

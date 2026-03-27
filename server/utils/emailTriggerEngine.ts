@@ -4,6 +4,7 @@ import { buildEmailHtml } from '~~/server/utils/emailTemplate'
 import { EMAIL_TRIGGER_DEFAULTS, toPrismaCreateInput } from '~~/server/utils/emailTriggerDefaults'
 import { sendVerificationEmail } from '~~/server/utils/sendVerificationEmail'
 import { sendPasswordResetEmail } from '~~/server/utils/sendPasswordResetEmail'
+import { loadMailFooterSettings, pickFooterForLocale } from '~~/server/utils/mailFooterSettings'
 
 export type OrgRegistrationPayload = {
   orgName: string
@@ -22,6 +23,7 @@ export type EmailTriggerPayload = {
   verifyUrl?: string
   resetUrl?: string
   loginAtIso?: string
+  locale?: string
 }
 
 export function applyTemplate(template: string, vars: Record<string, string>): string {
@@ -66,7 +68,7 @@ async function buildVars(triggerKey: string, payload: EmailTriggerPayload): Prom
       }),
       prisma.user.findUnique({
         where: { id: userId },
-        select: { email: true, displayName: true },
+        select: { email: true, displayName: true, preferredLanguage: true },
       }),
     ])
     if (!org || !req || !user) return null
@@ -76,6 +78,7 @@ async function buildVars(triggerKey: string, payload: EmailTriggerPayload): Prom
       orgName: org.name,
       userDisplayName: user.displayName,
       userEmail: user.email,
+      locale: user.preferredLanguage,
       requestTitle: req.title,
       originAirport: req.originAirport,
       destAirport: req.destAirport,
@@ -128,13 +131,14 @@ async function buildVars(triggerKey: string, payload: EmailTriggerPayload): Prom
     if (!payload.userId) return null
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { email: true, displayName: true },
+      select: { email: true, displayName: true, preferredLanguage: true },
     })
     if (!user) return null
     const vars: Record<string, string> = {
       ...base,
       userDisplayName: user.displayName,
       userEmail: user.email,
+      locale: payload.locale || user.preferredLanguage,
     }
     if (triggerKey === 'EMAIL_VERIFICATION_USE_CUSTOM' && payload.verifyUrl) {
       vars.verifyUrl = payload.verifyUrl
@@ -249,7 +253,19 @@ export async function processEmailTrigger(triggerKey: string, payload: EmailTrig
   const subject = applyTemplate(rule.subjectTemplate, vars)
   const bodyPlain = applyTemplate(rule.bodyTemplate, vars)
   const orgLabel = vars.orgName || 'PawTransfer'
-  const bodyHtml = buildEmailHtml(bodyPlain, orgLabel, { appUrl: vars.appUrl, logoUrl: mailLogoUrl, footerText: null })
+  let footer = { footerText: null as string | null, footerHtml: null as string | null }
+  try {
+    const footerSettings = await loadMailFooterSettings()
+    footer = pickFooterForLocale(vars.locale, footerSettings)
+  } catch {
+    // Fallback auf buildEmailHtml-Default
+  }
+  const bodyHtml = buildEmailHtml(bodyPlain, orgLabel, {
+    appUrl: vars.appUrl,
+    logoUrl: mailLogoUrl,
+    footerText: footer.footerText,
+    footerHtml: footer.footerHtml,
+  })
 
   const row = await prisma.outboundEmail.create({
     data: {
@@ -286,7 +302,11 @@ export async function dispatchVerificationEmail(
 
   const config = useRuntimeConfig()
   const from = config.mailFrom || 'PawTransfer <noreply@pawtransfer.net>'
-  await sendVerificationEmail(to, displayName, verifyUrl, { from })
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { preferredLanguage: true },
+  })
+  await sendVerificationEmail(to, displayName, verifyUrl, { from, locale: user?.preferredLanguage ?? 'de' })
   await prisma.outboundEmail.create({
     data: {
       triggerKey: 'SYSTEM_EMAIL_VERIFICATION',
@@ -316,7 +336,11 @@ export async function dispatchPasswordResetEmail(
 
   const config = useRuntimeConfig()
   const from = config.mailFrom || 'PawTransfer <noreply@pawtransfer.net>'
-  await sendPasswordResetEmail(to, displayName, resetUrl, { from })
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { preferredLanguage: true },
+  })
+  await sendPasswordResetEmail(to, displayName, resetUrl, { from, locale: user?.preferredLanguage ?? 'de' })
   await prisma.outboundEmail.create({
     data: {
       triggerKey: 'SYSTEM_PASSWORD_RESET',

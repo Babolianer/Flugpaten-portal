@@ -403,6 +403,10 @@ model AcquisitionMailSettings {
   body       String?  @map("body")  // E-Mail-Text – im Frontend bearbeitbar
   footerText String?  @map("footer_text")  // Footer-Text (Name, E-Mail, Telefon) – im Frontend bearbeitbar
   footerHtml String?  @map("footer_html") @db.Text // Optionaler globaler HTML-Footer
+  footerTextDe String? @map("footer_text_de")
+  footerTextEn String? @map("footer_text_en")
+  footerHtmlDe String? @map("footer_html_de") @db.Text
+  footerHtmlEn String? @map("footer_html_en") @db.Text
   updatedAt  DateTime @updatedAt @map("updated_at")
 }
 

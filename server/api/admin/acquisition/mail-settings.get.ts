@@ -13,5 +13,9 @@ export default defineEventHandler(async (event) => {
     body: settings?.body ?? '',
     footerText: settings?.footerText ?? '',
     footerHtml: settings?.footerHtml ?? '',
+    footerTextDe: settings?.footerTextDe ?? settings?.footerText ?? '',
+    footerTextEn: settings?.footerTextEn ?? settings?.footerText ?? '',
+    footerHtmlDe: settings?.footerHtmlDe ?? settings?.footerHtml ?? '',
+    footerHtmlEn: settings?.footerHtmlEn ?? settings?.footerHtml ?? '',
   }
 })

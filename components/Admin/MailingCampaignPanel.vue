@@ -34,6 +34,10 @@ const mailSubject = ref(DEFAULT_SUBJECT)
 const mailBody = ref(DEFAULT_BODY)
 const mailFooterText = ref('Aaron Löchner · aaron.loechner@gmx.de · 015224822057')
 const mailFooterHtml = ref('')
+const mailFooterTextDe = ref('Aaron Löchner · aaron.loechner@gmx.de · 015224822057')
+const mailFooterTextEn = ref('Aaron Löchner · aaron.loechner@gmx.de · +49 …')
+const mailFooterHtmlDe = ref('')
+const mailFooterHtmlEn = ref('')
 const loadingMailSettings = ref(false)
 const savingMailSettings = ref(false)
 const mailSettingsSaved = ref(false)
@@ -125,13 +129,26 @@ const segments: { value: Segment; labelKey: string }[] = [
 async function loadMailSettings() {
   loadingMailSettings.value = true
   try {
-    const res = await $fetch<{ subject: string; body: string; footerText: string; footerHtml?: string }>(
+    const res = await $fetch<{
+      subject: string
+      body: string
+      footerText: string
+      footerHtml?: string
+      footerTextDe?: string
+      footerTextEn?: string
+      footerHtmlDe?: string
+      footerHtmlEn?: string
+    }>(
       '/api/admin/acquisition/mail-settings'
     )
     if (res.subject) mailSubject.value = res.subject
     if (res.body) mailBody.value = res.body
     mailFooterText.value = res.footerText || mailFooterText.value
     mailFooterHtml.value = res.footerHtml || ''
+    mailFooterTextDe.value = res.footerTextDe || res.footerText || mailFooterTextDe.value
+    mailFooterTextEn.value = res.footerTextEn || res.footerText || mailFooterTextEn.value
+    mailFooterHtmlDe.value = res.footerHtmlDe || res.footerHtml || ''
+    mailFooterHtmlEn.value = res.footerHtmlEn || res.footerHtml || ''
   } catch {
     // Tabelle ggf. noch nicht vorhanden
   } finally {
@@ -150,6 +167,10 @@ async function saveMailSettings() {
         body: mailBody.value,
         footerText: mailFooterText.value,
         footerHtml: mailFooterHtml.value,
+        footerTextDe: mailFooterTextDe.value,
+        footerTextEn: mailFooterTextEn.value,
+        footerHtmlDe: mailFooterHtmlDe.value,
+        footerHtmlEn: mailFooterHtmlEn.value,
       },
     })
     mailSettingsSaved.value = true
@@ -224,6 +245,10 @@ async function sendBulk() {
         body: mailBody.value,
         footerText: mailFooterText.value,
         footerHtml: mailFooterHtml.value,
+        footerTextDe: mailFooterTextDe.value,
+        footerTextEn: mailFooterTextEn.value,
+        footerHtmlDe: mailFooterHtmlDe.value,
+        footerHtmlEn: mailFooterHtmlEn.value,
       },
     })
     if (res.total === 0 && res.message) {
@@ -307,6 +332,10 @@ async function sendTest() {
         body: mailBody.value,
         footerText: mailFooterText.value,
         footerHtml: mailFooterHtml.value,
+        footerTextDe: mailFooterTextDe.value,
+        footerTextEn: mailFooterTextEn.value,
+        footerHtmlDe: mailFooterHtmlDe.value,
+        footerHtmlEn: mailFooterHtmlEn.value,
         testTo: email,
         testName: testName.value.trim() || 'Test-Empfänger',
       },
@@ -935,7 +964,25 @@ watch(manualAudienceText, () => {
         <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
           <p class="text-sm font-semibold text-slate-800">Globaler E-Mail-Footer</p>
           <label class="block">
-            <span class="text-sm font-medium text-slate-700">{{ t('admin.acquise.mailFooter') }}</span>
+            <span class="text-sm font-medium text-slate-700">{{ t('admin.acquise.mailFooter') }} (DE)</span>
+            <textarea
+              v-model="mailFooterTextDe"
+              rows="2"
+              class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 text-sm"
+              :placeholder="t('admin.acquise.mailFooterPlaceholder')"
+            />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">{{ t('admin.acquise.mailFooter') }} (EN)</span>
+            <textarea
+              v-model="mailFooterTextEn"
+              rows="2"
+              class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 text-sm"
+              placeholder="e.g. Your Name · your.email@example.com · +49 ..."
+            />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">Legacy / Fallback Footer-Text</span>
             <textarea
               v-model="mailFooterText"
               rows="2"
@@ -945,7 +992,25 @@ watch(manualAudienceText, () => {
           </label>
           <p class="mt-1 text-xs text-slate-500">{{ t('admin.acquise.mailFooterHint') }}</p>
           <label class="block">
-            <span class="text-sm font-medium text-slate-700">Footer als HTML (optional, überschreibt Footer-Text)</span>
+            <span class="text-sm font-medium text-slate-700">Footer als HTML (DE, optional)</span>
+            <textarea
+              v-model="mailFooterHtmlDe"
+              rows="5"
+              class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 text-sm font-mono"
+              placeholder="<p><strong>Dein Team</strong><br><a href='mailto:mail@domain.de'>mail@domain.de</a></p>"
+            />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">Footer als HTML (EN, optional)</span>
+            <textarea
+              v-model="mailFooterHtmlEn"
+              rows="5"
+              class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 text-sm font-mono"
+              placeholder="<p><strong>Your Team</strong><br><a href='mailto:mail@domain.com'>mail@domain.com</a></p>"
+            />
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">Legacy / Fallback Footer-HTML (optional)</span>
             <textarea
               v-model="mailFooterHtml"
               rows="5"

@@ -2,6 +2,7 @@ import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 import { sendEmail } from '~~/server/utils/sendEmail'
 import { buildEmailHtml } from '~~/server/utils/emailTemplate'
+import { loadMailFooterSettings, pickFooterForLocale } from '~~/server/utils/mailFooterSettings'
 
 function replacePlaceholders(text: string, name: string): string {
   return text
@@ -39,12 +40,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  let footerText: string | null = null
+  let footerSettings: Awaited<ReturnType<typeof loadMailFooterSettings>> | null = null
   try {
-    const mailSettings = await prisma.acquisitionMailSettings.findUnique({
-      where: { id: 'default' },
-    })
-    footerText = mailSettings?.footerText ?? null
+    footerSettings = await loadMailFooterSettings()
   } catch {
     // Tabelle ggf. noch nicht migriert
   }
@@ -56,7 +54,18 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: 'Ungültige E-Mail-Adresse.' })
     }
     const bodyWithPlaceholders = replacePlaceholders(bodyText, testName)
-    const html = buildEmailHtml(bodyWithPlaceholders, testName, { appUrl, logoUrl: mailLogoUrl, footerText })
+    const selectedFooter = pickFooterForLocale('de', footerSettings ?? {
+      footerTextDe: null,
+      footerTextEn: null,
+      footerHtmlDe: null,
+      footerHtmlEn: null,
+    })
+    const html = buildEmailHtml(bodyWithPlaceholders, testName, {
+      appUrl,
+      logoUrl: mailLogoUrl,
+      footerText: selectedFooter.footerText,
+      footerHtml: selectedFooter.footerHtml,
+    })
     await sendEmail({
       from: mailFrom,
       to: email,
@@ -70,7 +79,7 @@ export default defineEventHandler(async (event) => {
     where: {
       email: { not: null, notIn: [''] },
     },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, websiteLanguage: true },
   })
 
   let sent = 0
@@ -79,7 +88,18 @@ export default defineEventHandler(async (event) => {
   for (const c of contacts) {
     const email = c.email!
     const bodyWithPlaceholders = replacePlaceholders(bodyText, c.name)
-    const html = buildEmailHtml(bodyWithPlaceholders, c.name, { appUrl, logoUrl: mailLogoUrl, footerText })
+    const selectedFooter = pickFooterForLocale(c.websiteLanguage, footerSettings ?? {
+      footerTextDe: null,
+      footerTextEn: null,
+      footerHtmlDe: null,
+      footerHtmlEn: null,
+    })
+    const html = buildEmailHtml(bodyWithPlaceholders, c.name, {
+      appUrl,
+      logoUrl: mailLogoUrl,
+      footerText: selectedFooter.footerText,
+      footerHtml: selectedFooter.footerHtml,
+    })
 
     try {
       await sendEmail({
