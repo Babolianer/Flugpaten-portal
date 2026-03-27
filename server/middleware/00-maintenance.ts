@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
     '/maintenance',
     '/api/site/maintenance',
     '/api/auth/login',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
     '/api/auth/register-org',
     '/api/auth/maintenance-login',
     '/api/auth/logout',
