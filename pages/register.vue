@@ -9,6 +9,7 @@ const termsAndPrivacyAccepted = ref(false)
 const newsletterOptIn = ref(false)
 const showTermsModal = ref(false)
 const showPrivacyModal = ref(false)
+const preferredLanguage = ref('')
 const redirectTo = computed(() => (route.query.redirect as string) || '/dashboard')
 const orgDescription = ref('')
 const orgWebsite = ref('')
@@ -33,6 +34,7 @@ async function submit() {
           termsAccepted: termsAndPrivacyAccepted.value,
           privacyAccepted: termsAndPrivacyAccepted.value,
           newsletterOptIn: newsletterOptIn.value,
+          preferredLanguage: preferredLanguage.value,
         },
       })
       await navigateTo('/org/dashboard?registered=1')
@@ -48,6 +50,7 @@ async function submit() {
           termsAccepted: termsAndPrivacyAccepted.value,
           privacyAccepted: termsAndPrivacyAccepted.value,
           newsletterOptIn: newsletterOptIn.value,
+          preferredLanguage: preferredLanguage.value,
         },
       })
       await navigateTo(redirectTo.value)
@@ -114,6 +117,22 @@ async function submit() {
             class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           />
         </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.preferredLanguage') }}</label>
+          <select
+            v-model="preferredLanguage"
+            required
+            class="w-full min-h-[44px] border border-slate-300 rounded px-3 py-2 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+          >
+            <option value="" disabled>{{ t('register.preferredLanguagePlaceholder') }}</option>
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+            <option value="it">Italiano</option>
+            <option value="pl">Polski</option>
+          </select>
+        </div>
         <div class="mb-4 space-y-3">
           <label class="flex items-start gap-2 cursor-pointer">
             <input v-model="termsAndPrivacyAccepted" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300 shrink-0" />
@@ -162,7 +181,7 @@ async function submit() {
         </template>
         <button
           type="submit"
-          :disabled="loading || !termsAndPrivacyAccepted"
+          :disabled="loading || !termsAndPrivacyAccepted || !preferredLanguage"
           class="w-full py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium disabled:opacity-50 transition-colors min-h-[48px]"
         >
           {{ loading ? t('register.submitting') : t('register.submit') }}

@@ -66,6 +66,7 @@ interface Org {
   description: string | null
   landingContent?: string | null
   website: string | null
+  preferredLanguage?: string
   contactEmail: string
   status?: string
   logoUrl?: string | null
@@ -192,6 +193,7 @@ const formSettings = reactive({
   description: '',
   landingContent: '',
   website: '',
+  preferredLanguage: 'de',
   contactEmail: '',
   contactPhone: '',
   contactInstagram: '',
@@ -306,6 +308,7 @@ async function load() {
         formSettings.description = o.description ?? ''
         formSettings.landingContent = o.landingContent ?? ''
         formSettings.website = o.website ?? ''
+        formSettings.preferredLanguage = o.preferredLanguage ?? 'de'
         formSettings.contactEmail = o.contactEmail ?? ''
         formSettings.logoUrl = o.logoUrl ?? ''
         formSettings.automatedMessageTemplate1 = (o as { automatedMessageTemplate1?: string | null }).automatedMessageTemplate1 ?? ''
@@ -452,6 +455,7 @@ async function loadSettingsForTab() {
       description: string | null
       landingContent: string | null
       website: string | null
+      preferredLanguage: string | null
       contactEmail: string
       contactPhone: string | null
       contactInstagram: string | null
@@ -464,6 +468,7 @@ async function loadSettingsForTab() {
     formSettings.description = res.description ?? ''
     formSettings.landingContent = res.landingContent ?? ''
     formSettings.website = res.website ?? ''
+    formSettings.preferredLanguage = res.preferredLanguage ?? 'de'
     formSettings.contactEmail = res.contactEmail ?? ''
     formSettings.contactPhone = res.contactPhone ?? ''
     formSettings.contactInstagram = res.contactInstagram ?? ''
@@ -478,6 +483,7 @@ async function loadSettingsForTab() {
       formSettings.description = o.description ?? ''
       formSettings.landingContent = (o as { landingContent?: string }).landingContent ?? ''
       formSettings.website = o.website ?? ''
+      formSettings.preferredLanguage = o.preferredLanguage ?? 'de'
       formSettings.contactEmail = o.contactEmail ?? ''
       formSettings.contactPhone = (o as { contactPhone?: string }).contactPhone ?? ''
       formSettings.contactInstagram = (o as { contactInstagram?: string }).contactInstagram ?? ''
@@ -904,6 +910,7 @@ watch(selectedOrgId, (id) => {
     formSettings.description = o.description ?? ''
     formSettings.landingContent = o.landingContent ?? ''
     formSettings.website = o.website ?? ''
+    formSettings.preferredLanguage = o.preferredLanguage ?? 'de'
     formSettings.contactEmail = o.contactEmail ?? ''
     formSettings.contactPhone = (o as { contactPhone?: string }).contactPhone ?? ''
     formSettings.contactInstagram = (o as { contactInstagram?: string }).contactInstagram ?? ''
@@ -1435,6 +1442,17 @@ onUnmounted(() => {
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.website') }}</label>
             <input v-model="formSettings.website" type="url" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm" placeholder="https://…" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.preferredLanguage') }}</label>
+            <select v-model="formSettings.preferredLanguage" class="border border-slate-300 rounded-lg px-3 py-2 w-full text-sm bg-white">
+              <option value="de">Deutsch</option>
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="it">Italiano</option>
+              <option value="pl">Polski</option>
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('orgDashboard.contactEmail') }}</label>

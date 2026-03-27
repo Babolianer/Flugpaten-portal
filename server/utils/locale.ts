@@ -5,7 +5,7 @@ import { getCookie, getHeader, getQuery } from 'h3'
  * Cookie pawbridge_locale hat Priorität (wird vom Frontend gesetzt).
  */
 const COOKIE_KEY = 'pawbridge_locale'
-const SUPPORTED = ['de', 'en', 'fr', 'es'] as const
+const SUPPORTED = ['de', 'en', 'fr', 'es', 'it', 'pl'] as const
 
 export function getRequestLocale(event: Parameters<typeof getCookie>[0]): string {
   try {

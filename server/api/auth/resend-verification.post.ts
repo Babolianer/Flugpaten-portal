@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { z } from 'zod'
 import { prisma } from '~~/server/utils/prisma'
-import { sendVerificationEmail } from '~~/server/utils/sendVerificationEmail'
+import { dispatchVerificationEmail } from '~~/server/utils/emailTriggerEngine'
 
 const schema = z.object({
   email: z.string().email(),
@@ -37,10 +37,7 @@ export default defineEventHandler(async (event) => {
   const appUrl = (config.public?.appUrl || 'http://localhost:3000').replace(/\/$/, '')
   const verifyUrl = `${appUrl}/auth/verify-email?token=${token}`
 
-  await sendVerificationEmail(user.email, user.displayName, verifyUrl, {
-    apiKey: config.resendApiKey || '',
-    from: config.mailFrom || 'PawBridge <onboarding@resend.dev>',
-  })
+  await dispatchVerificationEmail(user.email, user.displayName, verifyUrl, user.id)
 
   return { ok: true }
 })

@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const wasIstEinFlugpateContent: FlugpatePageContent = {
   meta: {
-    title: 'Was ist ein Flugpate? Definition & Bedeutung | PawBridge',
+    title: 'Was ist ein Flugpate? Definition & Bedeutung | PawTransfer',
     description:
       'Ein Flugpate bringt Tiere aus dem Ausland in sichere Hände – ehrenamtlich und rechtlich abgesichert. Erfahren Sie, was eine Flugpatenschaft ausmacht und warum sie im Tierschutz unverzichtbar ist.',
-    ogTitle: 'Was ist ein Flugpate? | PawBridge Wissensdatenbank',
+    ogTitle: 'Was ist ein Flugpate? | PawTransfer Wissensdatenbank',
     ogDescription:
       'Definition, Bedeutung und Abgrenzung: Was einen Flugpaten ausmacht und warum Flugpatenschaften für den Tierschutz so wichtig sind.',
   },

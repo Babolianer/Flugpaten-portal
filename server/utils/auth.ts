@@ -79,6 +79,7 @@ export async function getUserFromEvent(event: H3Event): Promise<(User & { member
   })
 
   if (!user || user.role !== payload.role) return null
+  if (user.role === 'USER' && user.blockedAt) return null
   return user as User & { memberships?: { organization: { id: string; name: string; slug: string } }[] }
 }
 

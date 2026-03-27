@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { t } = useI18n()
+const { t, setLocale } = useI18n()
 const email = ref('')
 const password = ref('')
 const error = ref('')
@@ -18,6 +18,8 @@ async function submit() {
       body: { email: email.value, password: password.value },
     })
     await fetchUser()
+    const preferredLanguage = user.value?.preferredLanguage
+    if (preferredLanguage) setLocale(preferredLanguage)
     const target = redirect.value
     const role = user.value?.role
     if (role === 'ADMIN' && (target === '/dashboard' || !route.query.redirect)) {
@@ -56,7 +58,10 @@ async function submit() {
           />
         </div>
         <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('login.password') }}</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-sm font-medium text-slate-700">{{ t('login.password') }}</label>
+            <NuxtLink to="/auth/forgot-password" class="text-sm text-amber-600 hover:underline">{{ t('login.forgotPassword') }}</NuxtLink>
+          </div>
           <input
             v-model="password"
             type="password"

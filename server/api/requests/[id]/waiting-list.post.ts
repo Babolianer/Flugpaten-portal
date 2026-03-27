@@ -1,5 +1,6 @@
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
+import { fireEmailTrigger } from '~~/server/utils/emailTriggerEngine'
 
 const MAX_WAITING_LIST_SIZE = 2
 
@@ -90,6 +91,15 @@ export default defineEventHandler(async (event) => {
       })
     }
   }
+
+  fireEmailTrigger('WAITING_LIST_ORG', {
+    organizationId: request.organizationId,
+    requestId,
+    userId: user.id,
+    conversationId: conversation.id,
+    applicantMessage:
+      'Ich möchte auf die Warteliste für spontane Flüge gesetzt werden. Bitte melden Sie sich, falls sich etwas ergibt.',
+  })
 
   return { application, conversation }
 })

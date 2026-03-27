@@ -8,6 +8,7 @@ const schema = z.object({
   description: z.string().optional().nullable(),
   landingContent: z.string().optional().nullable(),
   website: z.union([z.string().url(), z.literal('')]).optional().nullable().transform((v) => v === '' ? null : v),
+  preferredLanguage: z.enum(['de', 'en', 'fr', 'es', 'it', 'pl']).optional(),
   contactEmail: z
     .string()
     .optional()
@@ -44,6 +45,7 @@ export default defineEventHandler(async (event) => {
   if (parsed.data.description !== undefined) data.description = parsed.data.description ?? null
   if (parsed.data.landingContent !== undefined) data.landingContent = parsed.data.landingContent ?? null
   if (parsed.data.website !== undefined) data.website = parsed.data.website ?? null
+  if (parsed.data.preferredLanguage !== undefined) data.preferredLanguage = parsed.data.preferredLanguage
   if (parsed.data.contactEmail !== undefined && parsed.data.contactEmail !== '') data.contactEmail = parsed.data.contactEmail
   if (parsed.data.contactPhone !== undefined) data.contactPhone = parsed.data.contactPhone ?? null
   if (parsed.data.contactInstagram !== undefined) data.contactInstagram = parsed.data.contactInstagram ?? null
@@ -69,6 +71,7 @@ export default defineEventHandler(async (event) => {
       const dataSafe: Record<string, unknown> = {}
       if (parsed.data.description !== undefined) dataSafe.description = parsed.data.description || null
       if (parsed.data.website !== undefined) dataSafe.website = parsed.data.website || null
+      if (parsed.data.preferredLanguage !== undefined) dataSafe.preferredLanguage = parsed.data.preferredLanguage
       if (parsed.data.contactEmail != null) dataSafe.contactEmail = parsed.data.contactEmail
       await prisma.organization.update({
         where: { id },

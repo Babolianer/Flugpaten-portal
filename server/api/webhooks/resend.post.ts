@@ -68,13 +68,26 @@ export default defineEventHandler(async (event) => {
     return { received: true, processed: false, eventType }
   }
 
-  // Log-Eintrag aktualisieren
+  // Log-Einträge aktualisieren (Akquise + allgemeines Archiv)
   try {
-    const updated = await prisma.acquisitionMailLog.updateMany({
-      where: { resendId },
-      data: { status },
-    })
-    return { received: true, processed: true, eventType, status, updated: updated.count }
+    const [acquisitionUpdated, outboundUpdated] = await Promise.all([
+      prisma.acquisitionMailLog.updateMany({
+        where: { resendId },
+        data: { status },
+      }),
+      prisma.outboundEmail.updateMany({
+        where: { providerMessageId: resendId },
+        data: { deliveryStatus: status },
+      }),
+    ])
+    return {
+      received: true,
+      processed: true,
+      eventType,
+      status,
+      acquisitionUpdated: acquisitionUpdated.count,
+      outboundUpdated: outboundUpdated.count,
+    }
   } catch (e) {
     console.error('[webhooks/resend] Fehler beim Update:', e)
     return { received: true, processed: false, error: String(e) }

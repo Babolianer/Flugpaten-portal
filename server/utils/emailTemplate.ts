@@ -8,7 +8,7 @@ const DEFAULT_FOOTER = 'Aaron Löchner · aaron.loechner@gmx.de · 015224822057'
 export function buildEmailHtml(
   bodyPlain: string,
   _organisationName: string,
-  config: { appUrl: string; logoUrl?: string; footerText?: string | null }
+  config: { appUrl: string; logoUrl?: string; footerText?: string | null; footerHtml?: string | null }
 ): string {
   const paragraphs = bodyPlain
     .split(/\n\n+/)
@@ -27,7 +27,12 @@ export function buildEmailHtml(
     : ''
 
   const footerRaw = (config.footerText && config.footerText.trim()) || DEFAULT_FOOTER
-  const footerHtml = `<p style="margin: 2em 0 0 0; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">${escapeHtml(footerRaw).replace(/\n/g, '<br>')}</p>`
+  const footerCustomHtml = config.footerHtml && config.footerHtml.trim().length > 0
+    ? config.footerHtml
+    : null
+  const footerHtml = footerCustomHtml
+    ? `<div style="margin: 2em 0 0 0; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">${footerCustomHtml}</div>`
+    : `<p style="margin: 2em 0 0 0; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">${escapeHtml(footerRaw).replace(/\n/g, '<br>')}</p>`
 
   return `<!DOCTYPE html>
 <html lang="de">

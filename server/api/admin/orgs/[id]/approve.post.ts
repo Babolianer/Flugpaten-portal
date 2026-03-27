@@ -1,5 +1,6 @@
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
+import { syncOrgaAquiseRegisteredStatus } from '~~/server/utils/syncOrgaAquiseRegisteredStatus'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
@@ -14,5 +15,10 @@ export default defineEventHandler(async (event) => {
 
   if (!org) throw createError({ statusCode: 404, message: 'Organization not found' })
 
-  return { organization: org }
+  const syncedCount = await syncOrgaAquiseRegisteredStatus()
+
+  return {
+    organization: org,
+    orgaAquiseSynced: syncedCount,
+  }
 })

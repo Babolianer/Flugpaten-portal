@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
         name: true,
         slug: true,
         contactEmail: true,
+        preferredLanguage: true,
         description: true,
         createdAt: true,
         createdByUser: {
@@ -54,6 +55,7 @@ export default defineEventHandler(async (event) => {
       name: o.name,
       slug: o.slug,
       contactEmail: o.contactEmail,
+      preferredLanguage: o.preferredLanguage,
       createdAt: o.createdAt.toISOString(),
       createdByUser: o.createdByUser
         ? {

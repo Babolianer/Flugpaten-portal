@@ -4,18 +4,27 @@ import { requireRole } from '~~/server/utils/auth'
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
 
-  const body = await readBody<{ subject?: string; body?: string; footerText?: string }>(event)
+  const body = await readBody<{ subject?: string; body?: string; footerText?: string; footerHtml?: string }>(event)
   const subject = typeof body?.subject === 'string' ? body.subject.trim() || null : undefined
   const bodyText = typeof body?.body === 'string' ? body.body.trim() || null : undefined
   const footerText = typeof body?.footerText === 'string' ? body.footerText.trim() || null : undefined
+  const footerHtml = typeof body?.footerHtml === 'string'
+    ? (body.footerHtml.trim().length > 0 ? body.footerHtml : null)
+    : undefined
 
-  const updateData: { subject?: string | null; body?: string | null; footerText?: string | null } = {}
+  const updateData: {
+    subject?: string | null
+    body?: string | null
+    footerText?: string | null
+    footerHtml?: string | null
+  } = {}
   if (subject !== undefined) updateData.subject = subject
   if (bodyText !== undefined) updateData.body = bodyText
   if (footerText !== undefined) updateData.footerText = footerText
+  if (footerHtml !== undefined) updateData.footerHtml = footerHtml
 
   if (Object.keys(updateData).length === 0) {
-    throw createError({ statusCode: 400, message: 'Mindestens ein Feld (subject, body, footerText) erwartet.' })
+    throw createError({ statusCode: 400, message: 'Mindestens ein Feld (subject, body, footerText, footerHtml) erwartet.' })
   }
 
   await prisma.acquisitionMailSettings.upsert({

@@ -48,13 +48,17 @@ model User {
   firstName             String?   @map("first_name")
   lastName              String?   @map("last_name")
   phone                 String?
+  preferredLanguage     String    @default("de") @map("preferred_language")
   emailVerified         Boolean   @default(false) @map("email_verified")
   emailVerifyToken      String?   @map("email_verify_token")
   emailVerifyTokenExpires DateTime? @map("email_verify_token_expires")
+  passwordResetToken    String?   @map("password_reset_token")
+  passwordResetTokenExpires DateTime? @map("password_reset_token_expires")
   phoneVerified         Boolean   @default(false) @map("phone_verified")
   lastLoginAt           DateTime? @map("last_login_at")
   adminNotes            String?   @map("admin_notes")
   newsletterOptIn       Boolean   @default(false) @map("newsletter_opt_in")
+  blockedAt             DateTime? @map("blocked_at")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
@@ -67,6 +71,8 @@ model User {
   profile          UserProfile?
   reviewsGiven     Review[]              @relation("Reviewer")
   reviewsReceived  Review[]              @relation("Reviewee")
+
+  @@index([blockedAt])
 }
 
 model UserProfile {
@@ -92,6 +98,7 @@ model Organization {
   description     String?
   landingContent  String?   @map("landing_content")
   website         String?
+  preferredLanguage String  @default("de") @map("preferred_language")
   contactEmail    String    @map("contact_email")
   contactPhone    String?   @map("contact_phone")
   contactInstagram String?  @map("contact_instagram")
@@ -113,6 +120,8 @@ model Organization {
   requestGroups TransportRequestGroup[]
   conversations Conversation[]       @relation("ConversationOrg")
   reviews       Review[]
+  adminCrmNotes AdminOrganizationNote[]
+  adminCrmTasks AdminOrganizationTask[]
 }
 
 model OrganizationMember {
@@ -393,6 +402,7 @@ model AcquisitionMailSettings {
   subject    String?  @map("subject")  // E-Mail-Betreff – im Frontend bearbeitbar
   body       String?  @map("body")  // E-Mail-Text – im Frontend bearbeitbar
   footerText String?  @map("footer_text")  // Footer-Text (Name, E-Mail, Telefon) – im Frontend bearbeitbar
+  footerHtml String?  @map("footer_html") @db.Text // Optionaler globaler HTML-Footer
   updatedAt  DateTime @updatedAt @map("updated_at")
 }
 
@@ -400,4 +410,127 @@ model AcquisitionMailSettings {
 model SiteSetting {
   key   String @id
   value String
+}
+
+// Orga Aquise: Instagram Outreach / Organisationen-Kontakte
+model OrgaAquise {
+  id                     String    @id @default(cuid())
+  name                   String
+  instagramHandle        String?   @map("instagram_handle")
+  kontaktStatus          String    @default("nicht kontaktiert") @map("kontakt_status")
+  letzteKontaktaufnahme  DateTime? @map("letzte_kontaktaufnahme")
+  naechsteKontaktaufnahme DateTime? @map("naechste_kontaktaufnahme")
+  notizen                String?
+  createdAt              DateTime  @default(now()) @map("created_at")
+
+  tasks OrgaAquiseTask[]
+}
+
+// Tasks für Follow-Ups (automatisch generiert)
+model OrgaAquiseTask {
+  id          String    @id @default(cuid())
+  orgaId      String    @map("orga_id")
+  titel       String
+  beschreibung String?
+  dueDate     DateTime  @map("due_date")
+  status      String    @default("offen")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  orga OrgaAquise @relation(fields: [orgaId], references: [id], onDelete: Cascade)
+
+  @@unique([orgaId, dueDate])
+  @@index([orgaId])
+  @@index([status])
+}
+
+// —— Admin: konfigurierbare E-Mail-Trigger + Archiv ——
+
+enum EmailDeliveryMode {
+  IMMEDIATE // sofort versenden
+  QUEUED    // nur in Warteschlange; Versand im Admin
+}
+
+enum EmailRecipientKind {
+  ORG_CONTACT_EMAIL // Kontakt-E-Mail der Organisation
+  USER_SELF         // betroffener Nutzer (userId / Kontext)
+  ADMIN_EMAIL       // ADMIN_NOTIFY_EMAIL aus Runtime-Config
+}
+
+enum OutboundEmailStatus {
+  QUEUED
+  SENT
+  FAILED
+  CANCELLED
+}
+
+model EmailNotificationRule {
+  triggerKey      String            @id @map("trigger_key")
+  labelDe         String            @map("label_de")
+  descriptionDe   String?           @map("description_de")
+  enabled         Boolean           @default(true)
+  deliveryMode    EmailDeliveryMode @default(IMMEDIATE) @map("delivery_mode")
+  recipientKind   EmailRecipientKind @map("recipient_kind")
+  subjectTemplate String            @map("subject_template") @db.Text
+  bodyTemplate    String            @map("body_template") @db.Text
+  sortOrder       Int               @default(0) @map("sort_order")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  @@map("email_notification_rules")
+}
+
+model OutboundEmail {
+  id                String              @id @default(cuid())
+  triggerKey        String              @map("trigger_key")
+  status            OutboundEmailStatus @default(QUEUED)
+  toEmail           String              @map("to_email")
+  subject           String
+  bodyHtml          String              @map("body_html") @db.Text
+  bodyPlain         String?             @map("body_plain") @db.Text
+  metadata          Json?
+  organizationId    String?             @map("organization_id")
+  requestId         String?             @map("request_id")
+  userId            String?             @map("user_id")
+  providerMessageId String?             @map("provider_message_id")
+  deliveryStatus    MailStatus?         @map("delivery_status")
+  errorMessage      String?             @map("error_message") @db.Text
+  sentAt            DateTime?           @map("sent_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  @@index([triggerKey, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("outbound_emails")
+}
+
+model AdminOrganizationNote {
+  id               String   @id @default(cuid())
+  organizationId   String   @map("organization_id")
+  content          String   @db.Text
+  createdByAdminId String?  @map("created_by_admin_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@map("admin_organization_notes")
+}
+
+model AdminOrganizationTask {
+  id               String   @id @default(cuid())
+  organizationId   String   @map("organization_id")
+  title            String
+  description      String?  @db.Text
+  dueDate          DateTime? @map("due_date")
+  status           String   @default("offen")
+  createdByAdminId String?  @map("created_by_admin_id")
+  completedAt      DateTime? @map("completed_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status, dueDate])
+  @@map("admin_organization_tasks")
 }

@@ -7,6 +7,7 @@ const orgSelect = {
   slug: true,
   description: true,
   website: true,
+  preferredLanguage: true,
   contactEmail: true,
   status: true,
   logoUrl: true,

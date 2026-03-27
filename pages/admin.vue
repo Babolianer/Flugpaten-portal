@@ -17,6 +17,7 @@ interface ApprovedOrg {
   name: string
   slug: string
   contactEmail: string
+  preferredLanguage: string
   createdAt: string
   createdByUser: {
     id: string
@@ -49,34 +50,6 @@ interface TransportRequestRow {
   createdAt: string
 }
 
-type AcquisitionStatus = 'OPEN' | 'CONTACTED' | 'REPLIED' | 'REGISTERED' | 'REJECTED'
-type MediationType = 'ANIMALS' | 'HUMANITARIAN' | 'MEDICAL' | 'MIXED'
-type MediatesGermany = 'YES' | 'NO' | 'UNKNOWN'
-
-type MailStatus = 'SENT' | 'DELIVERED' | 'BOUNCED' | 'FAILED' | 'COMPLAINED' | null
-
-interface AcquisitionContactRow {
-  id: string
-  name: string
-  country: string
-  continent: string
-  websiteLanguage: string
-  websiteUrl: string | null
-  email: string | null
-  contactFormUrl: string | null
-  mediationType: MediationType
-  mediatesToGermany: MediatesGermany
-  mediatesFromGermany: MediatesGermany
-  notes: string | null
-  noted: boolean
-  emailSent: boolean
-  status: AcquisitionStatus
-  lastMailStatus: MailStatus
-  lastMailSentAt: string | null
-  createdAt: string
-  updatedAt: string
-}
-
 const { t, locale } = useI18n()
 const pendingOrgs = ref<PendingOrg[]>([])
 const pendingPage = ref(1)
@@ -104,62 +77,60 @@ const requestsTotalPages = ref(0)
 const requestsPageSize = ref(15)
 const requestsSearch = ref('')
 const requestsStatusFilter = ref<string>('')
-const acquisitionContacts = ref<AcquisitionContactRow[]>([])
-const acquisePage = ref(1)
-const acquiseTotal = ref(0)
-const acquiseTotalPages = ref(0)
-const acquisePageSize = ref(15)
-const acquiseSearch = ref('')
-const acquiseStatusFilter = ref<string>('')
 const loading = ref(true)
 const loadingApproved = ref(true)
 const loadingBlocked = ref(true)
 const loadingRequests = ref(true)
-const loadingAcquise = ref(true)
 const message = ref('')
-const activeTab = ref<'overview' | 'organizations' | 'requests' | 'acquise' | 'reviews' | 'settings'>('overview')
-const savingId = ref<string | null>(null)
-const sendingMail = ref(false)
-const mailResult = ref<{ type: 'success' | 'error'; text: string } | null>(null)
-const showTestPanel = ref(false)
-const testRecipient = ref('')
-const testEmailCustom = ref('')
+const activeTab = ref<'overview' | 'organizations' | 'requests' | 'acquise' | 'reviews' | 'mailing' | 'settings'>('overview')
+const sidebarCollapsed = ref(false)
+const sidebarMobileOpen = ref(false)
+const acquiseMenuOpen = ref(true)
+const organizationsMenuOpen = ref(true)
+const mailingMenuOpen = ref(true)
+const mailingSubTab = ref<'flows' | 'archive'>('flows')
+const mailflowMode = ref<'oneTime' | 'workflows'>('oneTime')
 
-const DEFAULT_MAIL_SUBJECT = 'Beta-Tester gesucht: Flugpaten-Portal'
-const DEFAULT_MAIL_BODY = `Hallo {{Tierschutzorga.}},
+const pageHeading = computed(() => {
+  if (activeTab.value === 'overview') return t('admin.tabOverview')
+  if (activeTab.value === 'organizations') return t('admin.tabOrganizations')
+  if (activeTab.value === 'requests')
+    return `${t('admin.tabOrganizations')} – ${t('admin.orgNav.transportRequests')}`
+  if (activeTab.value === 'acquise') {
+    const subKey: Record<typeof acquiseSubTab.value, string> = {
+      users: 'admin.acquise.tabUsers',
+      registeredOrgs: 'admin.acquise.tabRegisteredOrgs',
+      orgaAquise: 'admin.orgaAquise.tabOrgaAquise',
+    }
+    return `${t('admin.tabAcquise')} – ${t(subKey[acquiseSubTab.value])}`
+  }
+  if (activeTab.value === 'reviews') return t('admin.tabReviews')
+  if (activeTab.value === 'mailing') {
+    const subKey: Record<typeof mailingSubTab.value, string> = {
+      flows: 'admin.mailing.subTabFlows',
+      archive: 'admin.mailing.subTabArchive',
+    }
+    return `${t('admin.tabMailing')} – ${t(subKey[mailingSubTab.value])}`
+  }
+  if (activeTab.value === 'settings') return t('admin.tabSettings')
+  return ''
+})
 
-mein Name ist Aaron und ich beschäftige mich aktuell intensiv mit dem Thema Tierschutz. Dabei ist mir aufgefallen, dass es bislang kein modernes, internationales Portal gibt, über das Flugpaten und Tierschutzorganisationen unkompliziert zusammenfinden können.
-
-Aus dieser Überlegung heraus habe ich eine Beta-Version einer Plattform entwickelt, auf der sich sowohl Flugpaten als auch Organisationen registrieren können. Flugpaten können ihre Flugdaten eintragen und erhalten passende Vermittlungsanfragen zu weltweit hinterlegten Flügen. Ziel ist es, den Prozess transparenter, einfacher und international zugänglich zu machen.
-
-Aktuell suche ich engagierte Organisationen, die Interesse hätten, die Plattform als Beta-Tester auszuprobieren, Feedback zu geben und aktiv mitzugestalten. Langfristig plane ich, das Portal über Social Media gezielt zu bewerben, um möglichst viele Flugpaten zu erreichen und so die Reichweite für teilnehmende Organisationen deutlich zu erhöhen.
-
-Ich würde mich sehr freuen, wenn ihr euch vorstellen könntet, Teil dieses Projekts zu werden. Eure Meinung und euer Feedback wären für mich unglaublich wertvoll.
-
-Ihr leistet großartige Arbeit – vielleicht können wir hier gemeinsam etwas bewegen.
-
-Herzliche Grüße
-Aaron`
-
-const mailSubject = ref(DEFAULT_MAIL_SUBJECT)
-const mailBody = ref(DEFAULT_MAIL_BODY)
-const mailFooterText = ref('Aaron Löchner · aaron.loechner@gmx.de · 015224822057')
-const loadingMailSettings = ref(false)
-const savingMailSettings = ref(false)
-const mailSettingsSaved = ref(false)
 const maintenanceMode = ref(false)
 const loadingMaintenance = ref(false)
 const savingMaintenance = ref(false)
-const acquiseSubTab = ref<'contacts' | 'users' | 'registeredOrgs'>('contacts')
+const acquiseSubTab = ref<'users' | 'registeredOrgs' | 'orgaAquise'>('users')
 
 interface AdminUserRow {
   id: string
   email: string
   displayName: string
+  preferredLanguage: string
   emailVerified: boolean
   createdAt: string
   lastLoginAt: string | null
   adminNotes: string | null
+  blockedAt: string | null
   profileComplete: boolean
   completedFlightsCount: number
 }
@@ -171,10 +142,25 @@ const loadingAdminUsers = ref(false)
 const adminUsersFilterNew = ref(false)
 const adminUsersFilterUnverified = ref(false)
 const adminUsersFilterActive = ref(false)
+const adminUsersFilterProfileComplete = ref(false)
+const adminUsersFilterLastLoginFrom = ref('')
+const adminUsersFilterLastLoginTo = ref('')
 const adminUsersSearch = ref('')
 const savingUserNotesId = ref<string | null>(null)
 const savingOrgUserNotesId = ref<string | null>(null)
+const savingUserLanguageId = ref<string | null>(null)
+const savingOrgLanguageId = ref<string | null>(null)
 const verifyingUserId = ref<string | null>(null)
+const blockingUserId = ref<string | null>(null)
+const adminUsersListBlocked = ref(false)
+const languageOptions = [
+  { value: 'de', label: 'Deutsch' },
+  { value: 'en', label: 'English' },
+  { value: 'fr', label: 'Français' },
+  { value: 'es', label: 'Español' },
+  { value: 'it', label: 'Italiano' },
+  { value: 'pl', label: 'Polski' },
+] as const
 
 interface ReportedReviewRow {
   id: string
@@ -338,72 +324,6 @@ async function loadRequests(page = 1) {
   }
 }
 
-async function loadMailSettings() {
-  loadingMailSettings.value = true
-  try {
-    const res = await $fetch<{ subject: string; body: string; footerText: string }>('/api/admin/acquisition/mail-settings')
-    if (res.subject) mailSubject.value = res.subject
-    if (res.body) mailBody.value = res.body
-    mailFooterText.value = res.footerText || 'Aaron Löchner · aaron.loechner@gmx.de · 015224822057'
-  } catch {
-    // Tabelle ggf. noch nicht vorhanden
-  } finally {
-    loadingMailSettings.value = false
-  }
-}
-
-async function saveMailSettings() {
-  savingMailSettings.value = true
-  mailSettingsSaved.value = false
-  try {
-    await $fetch('/api/admin/acquisition/mail-settings', {
-      method: 'PATCH',
-      body: {
-        subject: mailSubject.value,
-        body: mailBody.value,
-        footerText: mailFooterText.value,
-      },
-    })
-    mailSettingsSaved.value = true
-    setTimeout(() => { mailSettingsSaved.value = false }, 3000)
-  } catch {
-    message.value = 'Fehler beim Speichern der E-Mail-Einstellungen'
-  } finally {
-    savingMailSettings.value = false
-  }
-}
-
-async function loadAcquise(page = 1) {
-  loadingAcquise.value = true
-  if (activeTab.value === 'acquise') message.value = ''
-  try {
-    const query: Record<string, string | number> = { page, pageSize: acquisePageSize.value }
-    if (acquiseSearch.value.trim()) query.search = acquiseSearch.value.trim()
-    if (acquiseStatusFilter.value) query.status = acquiseStatusFilter.value
-    const [res] = await Promise.all([
-      $fetch<{
-        contacts: AcquisitionContactRow[]
-        pagination: { page: number; pageSize: number; total: number; totalPages: number }
-      }>('/api/admin/acquisition', { query }),
-      loadMailSettings(),
-    ])
-    acquisitionContacts.value = res.contacts
-    acquisePage.value = res.pagination.page
-    acquiseTotal.value = res.pagination.total
-    acquiseTotalPages.value = res.pagination.totalPages
-  } catch (e: unknown) {
-    if ((e as { statusCode?: number })?.statusCode === 403) await navigateTo('/login')
-    else if (activeTab.value === 'acquise') message.value = (e as { data?: { message?: string } })?.data?.message ?? 'Fehler beim Laden der Acquise-Kontakte'
-  } finally {
-    loadingAcquise.value = false
-  }
-}
-
-function goToAcquisePage(p: number) {
-  if (p < 1 || p > acquiseTotalPages.value) return
-  loadAcquise(p)
-}
-
 function goToPendingPage(p: number) {
   if (p < 1 || p > pendingTotalPages.value) return
   loadPending(p)
@@ -433,7 +353,11 @@ async function loadAdminUsers(page = 1) {
     if (adminUsersFilterNew.value) params.set('filterNew', 'true')
     if (adminUsersFilterUnverified.value) params.set('filterUnverified', 'true')
     if (adminUsersFilterActive.value) params.set('filterActive', 'true')
+    if (adminUsersFilterProfileComplete.value) params.set('filterProfileComplete', 'true')
+    if (adminUsersFilterLastLoginFrom.value) params.set('lastLoginFrom', adminUsersFilterLastLoginFrom.value)
+    if (adminUsersFilterLastLoginTo.value) params.set('lastLoginTo', adminUsersFilterLastLoginTo.value)
     if (adminUsersSearch.value.trim()) params.set('search', adminUsersSearch.value.trim())
+    if (adminUsersListBlocked.value) params.set('list', 'blocked')
     const res = await $fetch<{
       users: AdminUserRow[]
       total: number
@@ -489,6 +413,52 @@ async function saveOrgUserNotes(org: ApprovedOrg, notes: string) {
   }
 }
 
+async function saveUserLanguage(u: AdminUserRow, preferredLanguage: string) {
+  savingUserLanguageId.value = u.id
+  try {
+    await $fetch(`/api/admin/users/${u.id}`, {
+      method: 'PATCH',
+      body: { preferredLanguage },
+    })
+    u.preferredLanguage = preferredLanguage
+  } catch {
+    message.value = 'Sprache konnte nicht gespeichert werden'
+  } finally {
+    savingUserLanguageId.value = null
+  }
+}
+
+async function saveOrgLanguage(org: ApprovedOrg, preferredLanguage: string) {
+  savingOrgLanguageId.value = org.id
+  try {
+    await $fetch(`/api/admin/orgs/${org.id}`, {
+      method: 'PATCH',
+      body: { preferredLanguage },
+    })
+    org.preferredLanguage = preferredLanguage
+  } catch {
+    message.value = 'Orga-Sprache konnte nicht gespeichert werden'
+  } finally {
+    savingOrgLanguageId.value = null
+  }
+}
+
+async function setUserBlocked(u: AdminUserRow, blocked: boolean) {
+  const msg = blocked ? t('admin.acquise.confirmBlockUser') : t('admin.acquise.confirmUnblockUser')
+  if (!confirm(msg)) return
+  blockingUserId.value = u.id
+  message.value = ''
+  try {
+    await $fetch(`/api/admin/users/${u.id}`, { method: 'PATCH', body: { blocked } })
+    await loadAdminUsers(adminUsersPage.value)
+    await loadStats()
+  } catch {
+    message.value = blocked ? t('admin.acquise.blockUserError') : t('admin.acquise.unblockUserError')
+  } finally {
+    blockingUserId.value = null
+  }
+}
+
 async function verifyUser(u: AdminUserRow) {
   if (u.emailVerified) return
   verifyingUserId.value = u.id
@@ -520,26 +490,12 @@ async function verifyOrgUser(org: ApprovedOrg) {
   }
 }
 
-function shortenUrl(url: string | null): string {
-  if (!url) return ''
-  try {
-    const u = new URL(url)
-    const host = u.hostname.replace(/^www\./, '')
-    const path = u.pathname === '/' ? '' : u.pathname
-    const s = host + path
-    return s.length > 45 ? s.slice(0, 42) + '…' : s
-  } catch {
-    return url.length > 45 ? url.slice(0, 42) + '…' : url
-  }
-}
-
 async function load() {
   loading.value = true
   loadingApproved.value = true
   loadingBlocked.value = true
   loadingRequests.value = true
-  loadingAcquise.value = true
-  await Promise.all([loadPending(), loadApproved(), loadBlocked(), loadRequests(), loadAcquise()])
+  await Promise.all([loadPending(), loadApproved(), loadBlocked(), loadRequests()])
 }
 
 async function approve(id: string) {
@@ -564,6 +520,14 @@ function viewAsOrg(orgId: string) {
   navigateTo({ path: '/org/dashboard', query: { asOrg: orgId } })
 }
 
+function openOrgCrm(orgId: string) {
+  const target = `/admin-crm/${orgId}`
+  navigateTo(target)
+  if (process.client) {
+    window.location.assign(target)
+  }
+}
+
 async function blockOrg(id: string) {
   if (!confirm(t('admin.confirmBlock'))) return
   try {
@@ -585,155 +549,6 @@ async function unblockOrg(id: string) {
   } catch (e: unknown) {
     const err = e as { data?: { message?: string } }
     message.value = err?.data?.message ?? 'Fehler beim Entsperren'
-  }
-}
-
-function acquisitionStatusLabel(s: AcquisitionStatus | string): string {
-  const key: Record<string, string> = {
-    OPEN: 'admin.acquise.statusOpen',
-    CONTACTED: 'admin.acquise.statusContacted',
-    REPLIED: 'admin.acquise.statusReplied',
-    REGISTERED: 'admin.acquise.statusRegistered',
-    REJECTED: 'admin.acquise.statusRejected',
-  }
-  return key[s] ? t(key[s]) : String(s)
-}
-
-function mediationTypeLabel(m: MediationType | string): string {
-  const key: Record<string, string> = {
-    ANIMALS: 'admin.acquise.typeAnimals',
-    HUMANITARIAN: 'admin.acquise.typeHumanitarian',
-    MEDICAL: 'admin.acquise.typeMedical',
-    MIXED: 'admin.acquise.typeMixed',
-  }
-  return key[m] ? t(key[m]) : String(m)
-}
-
-function mediatesLabel(m: MediatesGermany | string): string {
-  const key: Record<string, string> = {
-    YES: 'admin.acquise.mediatesYes',
-    NO: 'admin.acquise.mediatesNo',
-    UNKNOWN: 'admin.acquise.mediatesUnknown',
-  }
-  return key[m] ? t(key[m]) : String(m)
-}
-
-function mailStatusLabel(status: MailStatus): string {
-  if (!status) return t('admin.acquise.mailStatusNone')
-  const key: Record<string, string> = {
-    SENT: 'admin.acquise.mailStatusSent',
-    DELIVERED: 'admin.acquise.mailStatusDelivered',
-    BOUNCED: 'admin.acquise.mailStatusBounced',
-    FAILED: 'admin.acquise.mailStatusFailed',
-    COMPLAINED: 'admin.acquise.mailStatusComplained',
-  }
-  return key[status] ? t(key[status]) : String(status)
-}
-
-function mailStatusColor(status: MailStatus): string {
-  if (!status) return 'bg-slate-100 text-slate-600'
-  const colors: Record<string, string> = {
-    SENT: 'bg-blue-100 text-blue-700',
-    DELIVERED: 'bg-emerald-100 text-emerald-700',
-    BOUNCED: 'bg-red-100 text-red-700',
-    FAILED: 'bg-red-100 text-red-700',
-    COMPLAINED: 'bg-orange-100 text-orange-700',
-  }
-  return colors[status] || 'bg-slate-100 text-slate-600'
-}
-
-async function updateAcquisition(
-  id: string,
-  patch: { noted?: boolean; emailSent?: boolean; status?: AcquisitionStatus; notes?: string | null }
-) {
-  savingId.value = id
-  try {
-    await $fetch(`/api/admin/acquisition/${id}`, {
-      method: 'PATCH',
-      body: patch,
-    })
-    const idx = acquisitionContacts.value.findIndex((c) => c.id === id)
-    if (idx !== -1) {
-      if (patch.noted !== undefined) acquisitionContacts.value[idx].noted = patch.noted
-      if (patch.emailSent !== undefined) acquisitionContacts.value[idx].emailSent = patch.emailSent
-      if (patch.status !== undefined) acquisitionContacts.value[idx].status = patch.status
-      if ('notes' in patch) acquisitionContacts.value[idx].notes = patch.notes ?? null
-    }
-  } catch {
-    message.value = 'Fehler beim Speichern'
-  } finally {
-    savingId.value = null
-  }
-}
-
-function toggleNoted(c: AcquisitionContactRow) {
-  updateAcquisition(c.id, { noted: !c.noted })
-}
-
-function toggleEmailSent(c: AcquisitionContactRow) {
-  updateAcquisition(c.id, { emailSent: !c.emailSent })
-}
-
-function setStatus(c: AcquisitionContactRow, status: AcquisitionStatus) {
-  updateAcquisition(c.id, { status })
-}
-
-const contactsWithEmail = computed(() => acquisitionContacts.value.filter((c) => c.email))
-
-async function sendBulkMail() {
-  if (sendingMail.value) return
-  mailResult.value = null
-  sendingMail.value = true
-  try {
-    const res = await $fetch<{ sent: number; failed: number; total: number; errors?: string[] }>('/api/admin/acquisition/send-mail', {
-      method: 'POST',
-      body: { subject: mailSubject.value, body: mailBody.value },
-    })
-    mailResult.value = res.failed === 0
-      ? { type: 'success', text: t('admin.acquise.mailSuccess', { count: res.sent }) }
-      : { type: 'error', text: `${res.sent} versendet, ${res.failed} fehlgeschlagen.${res.errors?.length ? ' ' + res.errors.slice(0, 3).join('; ') : ''}` }
-    await loadAcquise(acquisePage.value)
-  } catch (e: unknown) {
-    const err = e as { data?: { message?: string } }
-    mailResult.value = { type: 'error', text: err?.data?.message ?? t('admin.acquise.mailError') }
-  } finally {
-    sendingMail.value = false
-  }
-}
-
-function openTestPanel() {
-  showTestPanel.value = true
-  mailResult.value = null
-  testRecipient.value = ''
-  testEmailCustom.value = ''
-}
-
-async function sendTestMail() {
-  const email = testRecipient.value === '__other__' ? testEmailCustom.value.trim() : testRecipient.value
-  if (!email) {
-    mailResult.value = { type: 'error', text: t('admin.acquise.mailTestSelectOrEnter') }
-    return
-  }
-  if (testRecipient.value === '__other__' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    mailResult.value = { type: 'error', text: t('admin.acquise.mailTestInvalidEmail') }
-    return
-  }
-  const name = testRecipient.value === '__other__' ? 'Test-Organisation' : (contactsWithEmail.value.find((c) => c.email === testRecipient.value)?.name ?? 'Test-Organisation')
-  if (sendingMail.value) return
-  mailResult.value = null
-  sendingMail.value = true
-  try {
-    await $fetch('/api/admin/acquisition/send-mail', {
-      method: 'POST',
-      body: { subject: mailSubject.value, body: mailBody.value, testTo: email, testName: name },
-    })
-    mailResult.value = { type: 'success', text: t('admin.acquise.mailTestSent') }
-    showTestPanel.value = false
-  } catch (e: unknown) {
-    const err = e as { data?: { message?: string } }
-    mailResult.value = { type: 'error', text: err?.data?.message ?? t('admin.acquise.mailError') }
-  } finally {
-    sendingMail.value = false
   }
 }
 
@@ -801,9 +616,34 @@ watch([activeTab, acquiseSubTab], ([tab, sub]) => {
   if (tab === 'overview') loadStats()
 })
 
-watch([adminUsersFilterNew, adminUsersFilterUnverified, adminUsersFilterActive, adminUsersSearch], () => {
-  if (activeTab.value === 'acquise' && acquiseSubTab.value === 'users') loadAdminUsers(1)
+watch(
+  [
+    adminUsersFilterNew,
+    adminUsersFilterUnverified,
+    adminUsersFilterActive,
+    adminUsersFilterProfileComplete,
+    adminUsersFilterLastLoginFrom,
+    adminUsersFilterLastLoginTo,
+    adminUsersSearch,
+    adminUsersListBlocked,
+  ],
+  () => {
+    if (activeTab.value === 'acquise' && acquiseSubTab.value === 'users') loadAdminUsers(1)
+  },
+)
+
+watch(activeTab, (tab) => {
+  if (tab === 'acquise') acquiseMenuOpen.value = true
+  if (tab === 'organizations' || tab === 'requests') organizationsMenuOpen.value = true
+  if (tab === 'mailing') mailingMenuOpen.value = true
 })
+
+function toggleOrganizationsNav() {
+  organizationsMenuOpen.value = !organizationsMenuOpen.value
+  if (activeTab.value !== 'organizations' && activeTab.value !== 'requests') {
+    activeTab.value = 'organizations'
+  }
+}
 
 onMounted(() => {
   load()
@@ -813,78 +653,391 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
-    <h1 class="text-xl sm:text-2xl font-bold text-slate-900 mb-4 sm:mb-6">{{ t('admin.title') }}</h1>
-    <div v-if="message" class="mb-4 p-3 rounded bg-red-50 text-red-700 text-sm">
-      {{ message }}
-    </div>
+  <div class="container mx-auto w-full max-w-[100rem] px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
+    <div class="flex gap-6">
+      <!-- Desktop Sidebar -->
+      <aside
+        class="hidden md:flex flex-col border-r border-slate-200/80 bg-slate-50 shrink-0"
+        :class="sidebarCollapsed ? 'w-[4.25rem]' : 'w-64'"
+      >
+        <div class="px-3 py-3 flex items-center justify-between gap-2 border-b border-slate-200/80">
+          <div class="flex items-center gap-2 min-w-0" :class="sidebarCollapsed ? 'justify-center w-full' : ''">
+            <span class="inline-flex items-center justify-center h-9 w-9 rounded-md text-slate-500 [&_svg]:h-5 [&_svg]:w-5" aria-hidden="true">
+              <AdminSidebarGlyph name="overview" />
+            </span>
+            <span v-if="!sidebarCollapsed" class="text-sm font-bold text-slate-900 tracking-tight truncate">Admin</span>
+          </div>
+          <button
+            v-if="!sidebarCollapsed"
+            type="button"
+            class="inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-500 hover:bg-slate-200/80 hover:text-slate-800 transition-colors shrink-0"
+            aria-label="Sidebar einklappen"
+            @click="sidebarCollapsed = true"
+          >
+            <span class="text-lg leading-none" aria-hidden="true">‹</span>
+          </button>
+          <button
+            v-else
+            type="button"
+            class="inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-500 hover:bg-slate-200/80 hover:text-slate-800 transition-colors mx-auto"
+            aria-label="Sidebar ausklappen"
+            @click="sidebarCollapsed = false"
+          >
+            <span class="text-lg leading-none" aria-hidden="true">›</span>
+          </button>
+        </div>
 
-    <!-- Tab navigation -->
-    <div class="sm:hidden mb-4">
-      <label class="block text-sm font-medium text-slate-700 mb-1">Bereich</label>
-      <select v-model="activeTab" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-        <option value="overview">{{ t('admin.tabOverview') }}</option>
-        <option value="organizations">{{ t('admin.tabOrganizations') }}</option>
-        <option value="requests">{{ t('admin.tabTransportRequests') }}</option>
-        <option value="acquise">{{ t('admin.tabAcquise') }}</option>
-        <option value="reviews">{{ t('admin.tabReviews') }}</option>
-        <option value="settings">{{ t('admin.tabSettings') }}</option>
-      </select>
-    </div>
+        <nav class="flex-1 overflow-y-auto py-4 px-2 flex flex-col gap-6" aria-label="Admin Navigation">
+          <!-- Übersicht -->
+          <div>
+            <button
+              type="button"
+              :title="sidebarCollapsed ? t('admin.tabOverview') : undefined"
+              class="w-full flex items-center gap-2.5 rounded-md py-2 text-left text-sm font-semibold border-l-[3px] transition-colors"
+              :class="[
+                sidebarCollapsed ? 'justify-center px-0' : 'pl-2 pr-2',
+                activeTab === 'overview'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900'
+                  : 'border-transparent text-slate-700 hover:bg-slate-100/90',
+              ]"
+              @click="activeTab = 'overview'; loadStats()"
+            >
+              <AdminSidebarGlyph
+                name="overview"
+                class="shrink-0"
+                :class="activeTab === 'overview' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span v-if="!sidebarCollapsed" class="truncate">{{ t('admin.tabOverview') }}</span>
+            </button>
+          </div>
 
-    <nav class="hidden sm:flex flex-wrap gap-2 mb-6 border-b border-slate-200" aria-label="Admin-Bereiche">
-      <button
-        type="button"
-        class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
-        :class="activeTab === 'overview' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-        @click="activeTab = 'overview'; loadStats()"
-      >
-        {{ t('admin.tabOverview') }}
-      </button>
-      <button
-        type="button"
-        class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
-        :class="activeTab === 'organizations' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-        @click="activeTab = 'organizations'"
-      >
-        {{ t('admin.tabOrganizations') }}
-      </button>
-      <button
-        type="button"
-        class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
-        :class="activeTab === 'requests' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-        @click="activeTab = 'requests'"
-      >
-        {{ t('admin.tabTransportRequests') }}
-      </button>
-      <button
-        type="button"
-        class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
-        :class="activeTab === 'acquise' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-        @click="activeTab = 'acquise'"
-      >
-        {{ t('admin.tabAcquise') }}
-      </button>
-      <button
-        type="button"
-        class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
-        :class="activeTab === 'reviews' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-        @click="activeTab = 'reviews'; loadAdminReviews(1)"
-      >
-        {{ t('admin.tabReviews') }}
-      </button>
-      <button
-        type="button"
-        class="px-4 py-2.5 rounded-t-lg font-medium transition-colors -mb-px"
-        :class="activeTab === 'settings' ? 'bg-slate-100 text-slate-900 border border-slate-200 border-b-white' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-        @click="activeTab = 'settings'"
-      >
-        {{ t('admin.tabSettings') }}
-      </button>
-    </nav>
+          <!-- Organisationen -->
+          <div>
+            <p
+              v-if="!sidebarCollapsed"
+              class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+            >
+              {{ t('admin.tabOrganizations') }}
+            </p>
+            <button
+              type="button"
+              :title="sidebarCollapsed ? t('admin.tabOrganizations') : undefined"
+              class="w-full flex items-center gap-2.5 rounded-md py-2 text-left text-sm font-semibold border-l-[3px] border-transparent text-slate-800 hover:bg-slate-100/90 transition-colors"
+              :class="sidebarCollapsed ? 'justify-center px-0' : 'pl-2 pr-2'"
+              @click="toggleOrganizationsNav()"
+            >
+              <AdminSidebarGlyph name="building" class="shrink-0 text-slate-400" />
+              <span v-if="!sidebarCollapsed" class="truncate min-w-0 flex-1 text-left">{{ t('admin.tabOrganizations') }}</span>
+              <AdminSidebarGlyph
+                v-if="!sidebarCollapsed"
+                name="chevron-down"
+                class="shrink-0 text-slate-400 transition-transform duration-200"
+                :class="organizationsMenuOpen ? 'rotate-180' : ''"
+              />
+            </button>
+            <Transition
+              enter-active-class="transition-[opacity,transform] duration-200 ease-out"
+              enter-from-class="opacity-0 -translate-y-0.5"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition-opacity duration-150 ease-in"
+              leave-from-class="opacity-100"
+              leave-to-class="opacity-0"
+            >
+              <div
+                v-show="organizationsMenuOpen && !sidebarCollapsed"
+                class="mt-0.5 flex flex-col gap-0.5 border-l border-slate-200 ml-3 pl-2"
+              >
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+                  :class="
+                    activeTab === 'organizations'
+                      ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                      : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+                  "
+                  @click="activeTab = 'organizations'"
+                >
+                  <AdminSidebarGlyph
+                    name="building"
+                    class="shrink-0"
+                    :class="activeTab === 'organizations' ? 'text-indigo-600' : 'text-slate-400'"
+                  />
+                  <span class="truncate">{{ t('admin.orgNav.manageOrgs') }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+                  :class="
+                    activeTab === 'requests'
+                      ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                      : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+                  "
+                  @click="activeTab = 'requests'"
+                >
+                  <AdminSidebarGlyph
+                    name="truck"
+                    class="shrink-0"
+                    :class="activeTab === 'requests' ? 'text-indigo-600' : 'text-slate-400'"
+                  />
+                  <span class="truncate">{{ t('admin.orgNav.transportRequests') }}</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
 
-    <!-- Tab: Übersicht (Dashboard) -->
-    <div v-show="activeTab === 'overview'" class="space-y-10">
+          <!-- Akquise -->
+          <div>
+            <p
+              v-if="!sidebarCollapsed"
+              class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+            >
+              {{ t('admin.tabAcquise') }}
+            </p>
+            <button
+              type="button"
+              :title="sidebarCollapsed ? t('admin.tabAcquise') : undefined"
+              class="w-full flex items-center gap-2.5 rounded-md py-2 text-left text-sm font-semibold border-l-[3px] border-transparent text-slate-800 hover:bg-slate-100/90 transition-colors"
+              :class="sidebarCollapsed ? 'justify-center px-0' : 'pl-2 pr-2'"
+              @click="acquiseMenuOpen = !acquiseMenuOpen; if (activeTab !== 'acquise') activeTab = 'acquise'"
+            >
+              <AdminSidebarGlyph name="megaphone" class="shrink-0 text-slate-400" />
+              <span v-if="!sidebarCollapsed" class="truncate min-w-0 flex-1 text-left">{{ t('admin.tabAcquise') }}</span>
+              <AdminSidebarGlyph
+                v-if="!sidebarCollapsed"
+                name="chevron-down"
+                class="shrink-0 text-slate-400 transition-transform duration-200"
+                :class="acquiseMenuOpen ? 'rotate-180' : ''"
+              />
+            </button>
+            <Transition
+              enter-active-class="transition-[opacity,transform] duration-200 ease-out"
+              enter-from-class="opacity-0 -translate-y-0.5"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition-opacity duration-150 ease-in"
+              leave-from-class="opacity-100"
+              leave-to-class="opacity-0"
+            >
+              <div
+                v-show="acquiseMenuOpen && !sidebarCollapsed"
+                class="mt-0.5 flex flex-col gap-0.5 border-l border-slate-200 ml-3 pl-2"
+              >
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+                  :class="
+                    activeTab === 'acquise' && acquiseSubTab === 'users'
+                      ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                      : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+                  "
+                  @click="activeTab = 'acquise'; acquiseSubTab = 'users'; loadAdminUsers(1)"
+                >
+                  <AdminSidebarGlyph
+                    name="users"
+                    class="shrink-0"
+                    :class="activeTab === 'acquise' && acquiseSubTab === 'users' ? 'text-indigo-600' : 'text-slate-400'"
+                  />
+                  <span class="truncate">{{ t('admin.acquise.tabUsers') }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+                  :class="
+                    activeTab === 'acquise' && acquiseSubTab === 'registeredOrgs'
+                      ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                      : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+                  "
+                  @click="activeTab = 'acquise'; acquiseSubTab = 'registeredOrgs'"
+                >
+                  <AdminSidebarGlyph
+                    name="building-plus"
+                    class="shrink-0"
+                    :class="activeTab === 'acquise' && acquiseSubTab === 'registeredOrgs' ? 'text-indigo-600' : 'text-slate-400'"
+                  />
+                  <span class="truncate">{{ t('admin.acquise.tabRegisteredOrgs') }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+                  :class="
+                    activeTab === 'acquise' && acquiseSubTab === 'orgaAquise'
+                      ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                      : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+                  "
+                  @click="activeTab = 'acquise'; acquiseSubTab = 'orgaAquise'"
+                >
+                  <AdminSidebarGlyph
+                    name="table"
+                    class="shrink-0"
+                    :class="activeTab === 'acquise' && acquiseSubTab === 'orgaAquise' ? 'text-indigo-600' : 'text-slate-400'"
+                  />
+                  <span class="truncate">{{ t('admin.orgaAquise.tabOrgaAquise') }}</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- Moderation -->
+          <div>
+            <p
+              v-if="!sidebarCollapsed"
+              class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+            >
+              {{ t('admin.tabReviews') }}
+            </p>
+            <button
+              type="button"
+              :title="sidebarCollapsed ? t('admin.tabReviews') : undefined"
+              class="w-full flex items-center gap-2.5 rounded-md py-2 text-left text-sm font-semibold border-l-[3px] transition-colors"
+              :class="[
+                sidebarCollapsed ? 'justify-center px-0' : 'pl-2 pr-2',
+                activeTab === 'reviews'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900'
+                  : 'border-transparent text-slate-700 hover:bg-slate-100/90',
+              ]"
+              @click="activeTab = 'reviews'; loadAdminReviews(1)"
+            >
+              <AdminSidebarGlyph
+                name="star"
+                class="shrink-0"
+                :class="activeTab === 'reviews' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span v-if="!sidebarCollapsed" class="truncate">{{ t('admin.tabReviews') }}</span>
+            </button>
+          </div>
+
+          <!-- Mailing -->
+          <div>
+            <p
+              v-if="!sidebarCollapsed"
+              class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+            >
+              {{ t('admin.tabMailing') }}
+            </p>
+            <button
+              type="button"
+              :title="sidebarCollapsed ? t('admin.tabMailing') : undefined"
+              class="w-full flex items-center gap-2.5 rounded-md py-2 text-left text-sm font-semibold border-l-[3px] border-transparent text-slate-800 hover:bg-slate-100/90 transition-colors"
+              :class="sidebarCollapsed ? 'justify-center px-0' : 'pl-2 pr-2'"
+              @click="mailingMenuOpen = !mailingMenuOpen; if (activeTab !== 'mailing') activeTab = 'mailing'"
+            >
+              <AdminSidebarGlyph name="mail" class="shrink-0 text-slate-400" />
+              <span v-if="!sidebarCollapsed" class="truncate min-w-0 flex-1 text-left">{{ t('admin.tabMailing') }}</span>
+              <AdminSidebarGlyph
+                v-if="!sidebarCollapsed"
+                name="chevron-down"
+                class="shrink-0 text-slate-400 transition-transform duration-200"
+                :class="mailingMenuOpen ? 'rotate-180' : ''"
+              />
+            </button>
+            <Transition
+              enter-active-class="transition-[opacity,transform] duration-200 ease-out"
+              enter-from-class="opacity-0 -translate-y-0.5"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition-opacity duration-150 ease-in"
+              leave-from-class="opacity-100"
+              leave-to-class="opacity-0"
+            >
+              <div
+                v-show="mailingMenuOpen && !sidebarCollapsed"
+                class="mt-0.5 flex flex-col gap-0.5 border-l border-slate-200 ml-3 pl-2"
+              >
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+                  :class="
+                    activeTab === 'mailing' && mailingSubTab === 'flows'
+                      ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                      : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+                  "
+                  @click="activeTab = 'mailing'; mailingSubTab = 'flows'"
+                >
+                  <AdminSidebarGlyph
+                    name="cog"
+                    class="shrink-0"
+                    :class="activeTab === 'mailing' && mailingSubTab === 'flows' ? 'text-indigo-600' : 'text-slate-400'"
+                  />
+                  <span class="truncate">{{ t('admin.mailing.subTabFlows') }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+                  :class="
+                    activeTab === 'mailing' && mailingSubTab === 'archive'
+                      ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                      : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+                  "
+                  @click="activeTab = 'mailing'; mailingSubTab = 'archive'"
+                >
+                  <AdminSidebarGlyph
+                    name="inbox"
+                    class="shrink-0"
+                    :class="activeTab === 'mailing' && mailingSubTab === 'archive' ? 'text-indigo-600' : 'text-slate-400'"
+                  />
+                  <span class="truncate">{{ t('admin.mailing.subTabArchive') }}</span>
+                </button>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- Einstellungen -->
+          <div>
+            <p
+              v-if="!sidebarCollapsed"
+              class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+            >
+              {{ t('admin.tabSettings') }}
+            </p>
+            <button
+              type="button"
+              :title="sidebarCollapsed ? t('admin.tabSettings') : undefined"
+              class="w-full flex items-center gap-2.5 rounded-md py-2 text-left text-sm font-semibold border-l-[3px] transition-colors"
+              :class="[
+                sidebarCollapsed ? 'justify-center px-0' : 'pl-2 pr-2',
+                activeTab === 'settings'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900'
+                  : 'border-transparent text-slate-700 hover:bg-slate-100/90',
+              ]"
+              @click="activeTab = 'settings'"
+            >
+              <AdminSidebarGlyph
+                name="cog"
+                class="shrink-0"
+                :class="activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span v-if="!sidebarCollapsed" class="truncate">{{ t('admin.tabSettings') }}</span>
+            </button>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- Main -->
+      <div class="flex-1 min-w-0 w-full max-w-7xl">
+        <div class="md:hidden mb-4 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            class="inline-flex items-center justify-center rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600"
+            @click="sidebarMobileOpen = true"
+          >
+            Menü
+          </button>
+          <button
+            v-if="sidebarCollapsed"
+            type="button"
+            class="inline-flex items-center justify-center rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            @click="sidebarCollapsed = false"
+          >
+            Sidebar öffnen
+          </button>
+        </div>
+
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900 mb-4 sm:mb-6">{{ t('admin.title') }}</h1>
+        <h2 v-if="pageHeading" class="text-lg font-semibold text-slate-800 mb-4">{{ pageHeading }}</h2>
+        <div v-if="message" class="mb-4 p-3 rounded bg-red-50 text-red-700 text-sm">
+          {{ message }}
+        </div>
+
+        <!-- Tab: Übersicht (Dashboard) -->
+        <div v-show="activeTab === 'overview'" class="space-y-10">
       <!-- Statistik -->
       <section class="p-4 sm:p-6 rounded-xl border border-slate-200 bg-white">
         <h2 class="text-lg font-semibold text-slate-800 mb-4">{{ t('admin.statsTitle') }}</h2>
@@ -1036,6 +1189,13 @@ onMounted(() => {
               <div class="mt-3 flex flex-col gap-2">
                 <button
                   type="button"
+                  class="inline-flex items-center justify-center px-3 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-medium text-sm transition-colors min-h-[44px]"
+                  @click="openOrgCrm(org.id)"
+                >
+                  CRM
+                </button>
+                <button
+                  type="button"
                   class="inline-flex items-center justify-center px-3 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors min-h-[44px]"
                   @click="viewAsOrg(org.id)"
                 >
@@ -1068,6 +1228,13 @@ onMounted(() => {
                   <td class="py-3 px-4 text-slate-600">{{ org.contactEmail }}</td>
                   <td class="py-3 px-4 text-right">
                     <div class="flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        class="inline-flex items-center px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-medium text-sm transition-colors"
+                        @click="openOrgCrm(org.id)"
+                      >
+                        CRM
+                      </button>
                       <button
                         type="button"
                         class="inline-flex items-center px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium text-sm transition-colors"
@@ -1350,21 +1517,13 @@ onMounted(() => {
       <div class="sm:hidden">
         <label class="block text-sm font-medium text-slate-700 mb-1">Acquise</label>
         <select v-model="acquiseSubTab" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-          <option value="contacts">{{ t('admin.acquise.tabContacts') }}</option>
           <option value="users">{{ t('admin.acquise.tabUsers') }}</option>
           <option value="registeredOrgs">{{ t('admin.acquise.tabRegisteredOrgs') }}</option>
+          <option value="orgaAquise">{{ t('admin.orgaAquise.tabOrgaAquise') }}</option>
         </select>
       </div>
 
       <div class="hidden sm:flex gap-2 border-b border-slate-200 pb-2">
-        <button
-          type="button"
-          :class="acquiseSubTab === 'contacts' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-          class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          @click="acquiseSubTab = 'contacts'"
-        >
-          {{ t('admin.acquise.tabContacts') }}
-        </button>
         <button
           type="button"
           :class="acquiseSubTab === 'users' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
@@ -1381,305 +1540,18 @@ onMounted(() => {
         >
           {{ t('admin.acquise.tabRegisteredOrgs') }}
         </button>
+        <button
+          type="button"
+          :class="acquiseSubTab === 'orgaAquise' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          @click="acquiseSubTab = 'orgaAquise'"
+        >
+          {{ t('admin.orgaAquise.tabOrgaAquise') }}
+        </button>
       </div>
 
-      <!-- Sub-Tab: Kontakte -->
-      <template v-if="acquiseSubTab === 'contacts'">
-      <!-- E-Mail-Versand -->
-      <section class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
-        <h2 class="text-lg font-semibold text-slate-800 mb-1">{{ t('admin.acquise.mailTitle') }}</h2>
-        <p class="text-slate-600 text-sm mb-4">{{ t('admin.acquise.mailDescription') }}</p>
-        <div v-if="mailResult" class="mb-4 p-3 rounded text-sm" :class="mailResult.type === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'">
-          {{ mailResult.text }}
-        </div>
-        <div class="space-y-3">
-          <label class="block">
-            <span class="text-sm font-medium text-slate-700">{{ t('admin.acquise.mailSubject') }}</span>
-            <input v-model="mailSubject" type="text" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" placeholder="Betreff" />
-          </label>
-          <label class="block">
-            <span class="text-sm font-medium text-slate-700">{{ t('admin.acquise.mailBody') }}</span>
-            <textarea v-model="mailBody" rows="14" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 font-mono text-sm" :placeholder="t('admin.acquise.mailPlaceholder')" />
-          </label>
-          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <label class="block">
-              <span class="text-sm font-medium text-slate-700">{{ t('admin.acquise.mailFooter') }}</span>
-              <textarea
-                v-model="mailFooterText"
-                rows="2"
-                class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 text-sm"
-                :placeholder="t('admin.acquise.mailFooterPlaceholder')"
-              />
-            </label>
-            <p class="mt-1 text-xs text-slate-500">{{ t('admin.acquise.mailFooterHint') }}</p>
-            <div class="mt-2 flex items-center gap-2">
-              <button
-                type="button"
-                class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600 disabled:opacity-50"
-                :disabled="savingMailSettings || loadingMailSettings"
-                @click="saveMailSettings"
-              >
-                {{ savingMailSettings ? t('admin.acquise.mailSaving') : t('admin.acquise.mailSaveTemplate') }}
-              </button>
-              <span v-if="mailSettingsSaved" class="text-sm text-emerald-600">{{ t('admin.acquise.saved') }}</span>
-            </div>
-          </div>
-          <div class="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              class="rounded-lg bg-amber-500 px-4 py-2.5 font-medium text-slate-900 hover:bg-amber-600 disabled:opacity-50"
-              :disabled="sendingMail"
-              @click="sendBulkMail"
-            >
-              {{ sendingMail ? t('admin.acquise.mailSending') : t('admin.acquise.mailSend') }}
-            </button>
-            <button
-              type="button"
-              class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              :disabled="sendingMail"
-              @click="openTestPanel"
-            >
-              {{ t('admin.acquise.mailTestSend') }}
-            </button>
-          </div>
-
-          <!-- Test-E-Mail: Auswahl -->
-          <div v-if="showTestPanel" class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <p class="mb-2 text-sm font-medium text-slate-700">{{ t('admin.acquise.mailTestTo') }}</p>
-            <select
-              v-model="testRecipient"
-              class="mb-3 block w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
-            >
-              <option value="">{{ t('admin.acquise.mailTestChoose') }}</option>
-              <option v-for="c in contactsWithEmail" :key="c.id" :value="c.email">
-                {{ c.name }} ({{ c.email }})
-              </option>
-              <option value="__other__">{{ t('admin.acquise.mailTestOther') }}</option>
-            </select>
-            <input
-              v-if="testRecipient === '__other__'"
-              v-model="testEmailCustom"
-              type="email"
-              class="mb-3 block w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
-              :placeholder="t('admin.acquise.mailTestEmailPlaceholder')"
-            />
-            <div class="flex gap-2">
-              <button
-                type="button"
-                class="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-amber-600"
-                :disabled="sendingMail || !testRecipient || (testRecipient === '__other__' && !testEmailCustom.trim())"
-                @click="sendTestMail"
-              >
-                {{ t('admin.acquise.mailTestSubmit') }}
-              </button>
-              <button
-                type="button"
-                class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                @click="showTestPanel = false"
-              >
-                {{ t('admin.acquise.mailTestCancel') }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.acquise.title') }}</h2>
-        <p class="text-slate-600 text-sm mb-2">{{ t('admin.acquise.description') }}</p>
-        <div class="flex flex-wrap items-center gap-3 mb-4">
-          <input
-            v-model="acquiseSearch"
-            type="search"
-            :placeholder="t('admin.searchPlaceholder')"
-            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 max-w-[220px]"
-            @keyup.enter="loadAcquise(1)"
-          />
-          <select
-            v-model="acquiseStatusFilter"
-            class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white"
-            @change="loadAcquise(1)"
-          >
-            <option value="">{{ t('admin.filterAll') }}</option>
-            <option value="OPEN">{{ t('admin.acquise.statusOpen') }}</option>
-            <option value="CONTACTED">{{ t('admin.acquise.statusContacted') }}</option>
-            <option value="REPLIED">{{ t('admin.acquise.statusReplied') }}</option>
-            <option value="REGISTERED">{{ t('admin.acquise.statusRegistered') }}</option>
-            <option value="REJECTED">{{ t('admin.acquise.statusRejected') }}</option>
-          </select>
-          <button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600" @click="loadAcquise(1)">{{ t('admin.search') }}</button>
-        </div>
-        <div v-if="loadingAcquise" class="text-slate-600 text-sm">{{ t('admin.acquise.loading') }}</div>
-        <div v-else-if="acquisitionContacts.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
-          {{ t('admin.acquise.empty') }}
-        </div>
-        <div v-else>
-          <!-- Mobile: Cards -->
-          <div class="sm:hidden space-y-3">
-            <div v-for="c in acquisitionContacts" :key="c.id" class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <div class="font-semibold text-slate-900 break-words">{{ c.name }}</div>
-                  <div class="text-sm text-slate-600 mt-1">{{ c.country }} · {{ c.websiteLanguage }}</div>
-                  <div class="text-sm text-slate-600 mt-1 break-all">
-                    <a v-if="c.email" :href="`mailto:${c.email}`" class="text-amber-600 hover:underline">{{ c.email }}</a>
-                    <span v-else class="text-slate-400">–</span>
-                  </div>
-                </div>
-                <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 shrink-0">
-                  {{ acquisitionStatusLabel(c.status) }}
-                </span>
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  class="inline-flex items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-medium min-h-[44px]"
-                  :class="c.noted ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-slate-100 border-slate-200 text-slate-600'"
-                  :disabled="savingId === c.id"
-                  @click="toggleNoted(c)"
-                >
-                  {{ t('admin.acquise.noted') }}: {{ c.noted ? '✓' : '–' }}
-                </button>
-                <button
-                  type="button"
-                  class="inline-flex items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-medium min-h-[44px]"
-                  :class="c.emailSent ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-slate-100 border-slate-200 text-slate-600'"
-                  :disabled="savingId === c.id"
-                  @click="toggleEmailSent(c)"
-                >
-                  {{ t('admin.acquise.emailSent') }}: {{ c.emailSent ? '✓' : '–' }}
-                </button>
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">{{ t('admin.acquise.status') }}</label>
-                <select
-                  :value="c.status"
-                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-                  :disabled="savingId === c.id"
-                  @change="setStatus(c, ($event.target as HTMLSelectElement).value as AcquisitionStatus)"
-                >
-                  <option value="OPEN">{{ t('admin.acquise.statusOpen') }}</option>
-                  <option value="CONTACTED">{{ t('admin.acquise.statusContacted') }}</option>
-                  <option value="REPLIED">{{ t('admin.acquise.statusReplied') }}</option>
-                  <option value="REGISTERED">{{ t('admin.acquise.statusRegistered') }}</option>
-                  <option value="REJECTED">{{ t('admin.acquise.statusRejected') }}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Desktop: Table -->
-          <div class="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="w-full min-w-[900px] text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.name') }}</th>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.country') }}</th>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.language') }}</th>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.website') }}</th>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.email') }}</th>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.type') }}</th>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.toDE') }}</th>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.fromDE') }}</th>
-                <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.noted') }}</th>
-                <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.emailSent') }}</th>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.mailStatus') }}</th>
-                <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.status') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="c in acquisitionContacts" :key="c.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                <td class="py-3 px-3 text-slate-900 font-medium">{{ c.name }}</td>
-                <td class="py-3 px-3 text-slate-600">{{ c.country }}</td>
-                <td class="py-3 px-3 text-slate-600">{{ c.websiteLanguage }}</td>
-                <td class="py-3 px-3 max-w-[200px]">
-                  <a v-if="c.websiteUrl" :href="c.websiteUrl" :title="c.websiteUrl" target="_blank" rel="noopener noreferrer" class="text-amber-600 hover:underline truncate block">{{ shortenUrl(c.websiteUrl) }}</a>
-                  <span v-else class="text-slate-400">–</span>
-                </td>
-                <td class="py-3 px-3 max-w-[180px]">
-                  <a v-if="c.email" :href="`mailto:${c.email}`" class="text-amber-600 hover:underline truncate block" :title="c.email">{{ c.email.length > 30 ? c.email.slice(0, 27) + '…' : c.email }}</a>
-                  <span v-else class="text-slate-400">–</span>
-                </td>
-                <td class="py-3 px-3 text-slate-600">{{ mediationTypeLabel(c.mediationType) }}</td>
-                <td class="py-3 px-3 text-slate-600">{{ mediatesLabel(c.mediatesToGermany) }}</td>
-                <td class="py-3 px-3 text-slate-600">{{ mediatesLabel(c.mediatesFromGermany) }}</td>
-                <td class="py-3 px-3 text-center">
-                  <button
-                    type="button"
-                    class="inline-flex items-center justify-center w-8 h-8 rounded border transition-colors"
-                    :class="c.noted ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'"
-                    :aria-label="t('admin.acquise.noted')"
-                    :disabled="savingId === c.id"
-                    @click="toggleNoted(c)"
-                  >
-                    <span v-if="c.noted">✓</span>
-                    <span v-else>–</span>
-                  </button>
-                </td>
-                <td class="py-3 px-3 text-center">
-                  <button
-                    type="button"
-                    class="inline-flex items-center justify-center w-8 h-8 rounded border transition-colors"
-                    :class="c.emailSent ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'"
-                    :aria-label="t('admin.acquise.emailSent')"
-                    :disabled="savingId === c.id"
-                    @click="toggleEmailSent(c)"
-                  >
-                    <span v-if="c.emailSent">✓</span>
-                    <span v-else>–</span>
-                  </button>
-                </td>
-                <td class="py-3 px-3">
-                  <div v-if="c.lastMailStatus" class="flex flex-col gap-1">
-                    <span class="inline-flex px-2 py-0.5 rounded text-xs font-medium" :class="mailStatusColor(c.lastMailStatus)">
-                      {{ mailStatusLabel(c.lastMailStatus) }}
-                    </span>
-                    <span v-if="c.lastMailSentAt" class="text-xs text-slate-500">
-                      {{ new Date(c.lastMailSentAt).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) }}
-                    </span>
-                  </div>
-                  <span v-else class="text-slate-400 text-xs">–</span>
-                </td>
-                <td class="py-3 px-3">
-                  <select
-                    :value="c.status"
-                    class="w-full min-w-[120px] py-1.5 px-2 rounded border border-slate-300 text-slate-800 text-xs bg-white"
-                    :disabled="savingId === c.id"
-                    @change="setStatus(c, ($event.target as HTMLSelectElement).value as AcquisitionStatus)"
-                  >
-                    <option value="OPEN">{{ t('admin.acquise.statusOpen') }}</option>
-                    <option value="CONTACTED">{{ t('admin.acquise.statusContacted') }}</option>
-                    <option value="REPLIED">{{ t('admin.acquise.statusReplied') }}</option>
-                    <option value="REGISTERED">{{ t('admin.acquise.statusRegistered') }}</option>
-                    <option value="REJECTED">{{ t('admin.acquise.statusRejected') }}</option>
-                  </select>
-                </td>
-              </tr>
-            </tbody>
-            </table>
-          </div>
-        </div>
-        <!-- Paginierung -->
-        <div v-if="acquiseTotal > 15" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-          <p class="text-sm text-slate-600">
-            {{ t('admin.acquise.pageInfo', { from: (acquisePage - 1) * acquisePageSize + 1, to: Math.min(acquisePage * acquisePageSize, acquiseTotal), total: acquiseTotal }) }}
-          </p>
-          <nav class="flex items-center gap-1" aria-label="Paginierung">
-            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="acquisePage <= 1 || loadingAcquise" :aria-label="t('admin.paginationFirst')" @click="goToAcquisePage(1)">«</button>
-            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="acquisePage <= 1 || loadingAcquise" :aria-label="t('admin.acquise.prevPage')" @click="goToAcquisePage(acquisePage - 1)">&lt;</button>
-            <template v-for="p in getPageNumbers(acquisePage, acquiseTotalPages)" :key="String(p)">
-              <span v-if="p === 'ellipsis'" class="px-1.5 text-slate-400">…</span>
-              <button v-else type="button" class="min-w-[32px] rounded px-2.5 py-1.5 text-sm font-medium transition-colors" :class="p === acquisePage ? 'bg-slate-800 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'" :disabled="loadingAcquise" @click="goToAcquisePage(p)">{{ p }}</button>
-            </template>
-            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="acquisePage >= acquiseTotalPages || loadingAcquise" :aria-label="t('admin.acquise.nextPage')" @click="goToAcquisePage(acquisePage + 1)">&gt;</button>
-            <button type="button" class="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="acquisePage >= acquiseTotalPages || loadingAcquise" :aria-label="t('admin.paginationLast')" @click="goToAcquisePage(acquiseTotalPages)">»</button>
-          </nav>
-        </div>
-      </section>
-      </template>
-
       <!-- Sub-Tab: Nutzer -->
-      <template v-else-if="acquiseSubTab === 'users'">
+      <template v-if="acquiseSubTab === 'users'">
         <section>
           <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.acquise.usersTitle') }}</h2>
           <p class="text-slate-600 text-sm mb-4">{{ t('admin.acquise.usersDescription') }}</p>
@@ -1703,11 +1575,31 @@ onMounted(() => {
               <input v-model="adminUsersFilterActive" type="checkbox" class="rounded border-slate-300" />
               <span class="text-sm text-slate-700">{{ t('admin.acquise.filterActive') }}</span>
             </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input v-model="adminUsersFilterProfileComplete" type="checkbox" class="rounded border-slate-300" />
+              <span class="text-sm text-slate-700">{{ t('admin.acquise.userProfileComplete') }}</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input v-model="adminUsersListBlocked" type="checkbox" class="rounded border-slate-300" />
+              <span class="text-sm text-slate-700">{{ t('admin.acquise.filterBlockedOnly') }}</span>
+            </label>
+            <input
+              v-model="adminUsersFilterLastLoginFrom"
+              type="date"
+              class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+              :aria-label="`Letzter Login von`"
+            />
+            <input
+              v-model="adminUsersFilterLastLoginTo"
+              type="date"
+              class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+              :aria-label="`Letzter Login bis`"
+            />
             <button type="button" class="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600" @click="loadAdminUsers(1)">{{ t('admin.search') }}</button>
           </div>
           <div v-if="loadingAdminUsers" class="text-slate-600 text-sm py-4">{{ t('admin.acquise.loading') }}</div>
           <div v-else-if="adminUsers.length === 0" class="p-6 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm">
-            {{ t('admin.acquise.usersEmpty') }}
+            {{ adminUsersListBlocked ? t('admin.acquise.usersEmptyBlocked') : t('admin.acquise.usersEmpty') }}
           </div>
           <div v-else>
             <!-- Mobile: Cards -->
@@ -1739,6 +1631,17 @@ onMounted(() => {
                   </div>
                 </div>
                 <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Sprache</label>
+                  <select
+                    :value="u.preferredLanguage || 'de'"
+                    :disabled="savingUserLanguageId === u.id"
+                    class="w-full py-2 px-3 rounded-lg border border-slate-300 text-slate-800 text-sm min-h-[44px]"
+                    @change="saveUserLanguage(u, ($event.target as HTMLSelectElement).value)"
+                  >
+                    <option v-for="opt in languageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  </select>
+                </div>
+                <div>
                   <label class="block text-xs font-medium text-slate-600 mb-1">{{ t('admin.acquise.userNotes') }}</label>
                   <input
                     type="text"
@@ -1748,6 +1651,26 @@ onMounted(() => {
                     :placeholder="t('admin.acquise.userNotesPlaceholder')"
                     @blur="saveUserNotes(u, ($event.target as HTMLInputElement).value)"
                   />
+                </div>
+                <div class="flex flex-wrap gap-2 pt-1">
+                  <button
+                    v-if="!adminUsersListBlocked"
+                    type="button"
+                    :disabled="blockingUserId === u.id"
+                    class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-800 hover:bg-red-100 disabled:opacity-50 min-h-[36px]"
+                    @click="setUserBlocked(u, true)"
+                  >
+                    {{ t('admin.acquise.blockUser') }}
+                  </button>
+                  <button
+                    v-else
+                    type="button"
+                    :disabled="blockingUserId === u.id"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 min-h-[36px]"
+                    @click="setUserBlocked(u, false)"
+                  >
+                    {{ t('admin.acquise.unblockUser') }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1764,7 +1687,9 @@ onMounted(() => {
                   <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userFlights') }}</th>
                   <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userCreated') }}</th>
                   <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userLastLogin') }}</th>
+                  <th class="text-left py-3 px-3 font-semibold text-slate-700">Sprache</th>
                   <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userNotes') }}</th>
+                  <th class="text-right py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userActions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1793,6 +1718,16 @@ onMounted(() => {
                   <td class="py-3 px-3 text-slate-600">{{ new Date(u.createdAt).toLocaleDateString(locale) }}</td>
                   <td class="py-3 px-3 text-slate-600">{{ u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString(locale) : '–' }}</td>
                   <td class="py-3 px-3">
+                    <select
+                      :value="u.preferredLanguage || 'de'"
+                      :disabled="savingUserLanguageId === u.id"
+                      class="w-full max-w-[150px] py-1.5 px-2 rounded border border-slate-300 text-slate-800 text-xs bg-white"
+                      @change="saveUserLanguage(u, ($event.target as HTMLSelectElement).value)"
+                    >
+                      <option v-for="opt in languageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                  </td>
+                  <td class="py-3 px-3">
                     <input
                       type="text"
                       :value="u.adminNotes ?? ''"
@@ -1801,6 +1736,26 @@ onMounted(() => {
                       :placeholder="t('admin.acquise.userNotesPlaceholder')"
                       @blur="saveUserNotes(u, ($event.target as HTMLInputElement).value)"
                     />
+                  </td>
+                  <td class="py-3 px-3 text-right whitespace-nowrap">
+                    <button
+                      v-if="!adminUsersListBlocked"
+                      type="button"
+                      :disabled="blockingUserId === u.id"
+                      class="rounded border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-100 disabled:opacity-50"
+                      @click="setUserBlocked(u, true)"
+                    >
+                      {{ t('admin.acquise.blockUser') }}
+                    </button>
+                    <button
+                      v-else
+                      type="button"
+                      :disabled="blockingUserId === u.id"
+                      class="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      @click="setUserBlocked(u, false)"
+                    >
+                      {{ t('admin.acquise.unblockUser') }}
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -1823,6 +1778,11 @@ onMounted(() => {
             </nav>
           </div>
         </section>
+      </template>
+
+      <!-- Sub-Tab: Orga Aquise -->
+      <template v-else-if="acquiseSubTab === 'orgaAquise'">
+        <AdminOrgaAquiseTable />
       </template>
 
       <!-- Sub-Tab: Registrierte Organisationen -->
@@ -1885,6 +1845,17 @@ onMounted(() => {
                     @blur="saveOrgUserNotes(org, ($event.target as HTMLInputElement).value)"
                   />
                 </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Orga-Sprache</label>
+                  <select
+                    :value="org.preferredLanguage || 'de'"
+                    :disabled="savingOrgLanguageId === org.id"
+                    class="w-full py-2 px-3 rounded-lg border border-slate-300 text-slate-800 text-sm min-h-[44px] bg-white"
+                    @change="saveOrgLanguage(org, ($event.target as HTMLSelectElement).value)"
+                  >
+                    <option v-for="opt in languageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  </select>
+                </div>
                 <div class="flex flex-wrap gap-2">
                   <NuxtLink
                     v-if="org.slug"
@@ -1916,6 +1887,7 @@ onMounted(() => {
                     <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userFlights') }}</th>
                     <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userCreated') }}</th>
                     <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userLastLogin') }}</th>
+                    <th class="text-left py-3 px-3 font-semibold text-slate-700">Orga-Sprache</th>
                     <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userNotes') }}</th>
                     <th class="text-right py-3 px-3 font-semibold text-slate-700">{{ t('admin.tableAction') }}</th>
                   </tr>
@@ -1948,6 +1920,16 @@ onMounted(() => {
                     <td class="py-3 px-3 text-slate-600">{{ new Date(org.createdAt).toLocaleDateString(locale) }}</td>
                     <td class="py-3 px-3 text-slate-600">{{ org.createdByUser?.lastLoginAt ? new Date(org.createdByUser.lastLoginAt).toLocaleDateString(locale) : '–' }}</td>
                     <td class="py-3 px-3">
+                      <select
+                        :value="org.preferredLanguage || 'de'"
+                        :disabled="savingOrgLanguageId === org.id"
+                        class="w-full max-w-[150px] py-1.5 px-2 rounded border border-slate-300 text-slate-800 text-xs bg-white"
+                        @change="saveOrgLanguage(org, ($event.target as HTMLSelectElement).value)"
+                      >
+                        <option v-for="opt in languageOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                      </select>
+                    </td>
+                    <td class="py-3 px-3">
                       <input
                         v-if="org.createdByUser"
                         type="text"
@@ -1961,6 +1943,13 @@ onMounted(() => {
                     </td>
                     <td class="py-3 px-3 text-right">
                       <div class="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          class="inline-flex items-center px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-medium text-sm"
+                          @click="openOrgCrm(org.id)"
+                        >
+                          CRM
+                        </button>
                         <NuxtLink
                           v-if="org.slug"
                           :to="`/org/${org.slug}`"
@@ -1997,6 +1986,54 @@ onMounted(() => {
           </div>
         </section>
       </template>
+    </div>
+
+    <!-- Tab: Mailing -->
+    <div v-show="activeTab === 'mailing'" class="space-y-6">
+      <section v-show="mailingSubTab === 'flows'" class="space-y-4">
+        <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+          <h2 class="text-lg font-semibold text-slate-900">{{ t('admin.mailing.subTabFlows') }}</h2>
+          <p class="mt-1 text-sm text-slate-600">
+            Versand, Audience und Automatisierung werden zentral im Mailflow verwaltet.
+          </p>
+          <div class="mt-4 flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+            <button
+              type="button"
+              class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              :class="mailflowMode === 'oneTime' ? 'bg-slate-800 text-white' : 'border border-slate-200 bg-white text-slate-700'"
+              @click="mailflowMode = 'oneTime'"
+            >
+              Einmalige E-Mail
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              :class="mailflowMode === 'workflows' ? 'bg-slate-800 text-white' : 'border border-slate-200 bg-white text-slate-700'"
+              @click="mailflowMode = 'workflows'"
+            >
+              Automatische E-Mails (Workflows)
+            </button>
+          </div>
+          <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+            Hinweis: Das Mail-Archiv bleibt als eigener Bereich bestehen und dient als zentrale Auswertung fur Versandstatus und Verlauf.
+          </div>
+        </div>
+
+        <AdminMailingCampaignPanel
+          v-show="mailflowMode === 'oneTime'"
+          :active="activeTab === 'mailing' && mailingSubTab === 'flows' && mailflowMode === 'oneTime'"
+        />
+        <AdminEmailSystemPanel
+          v-show="mailflowMode === 'workflows'"
+          :active="activeTab === 'mailing' && mailingSubTab === 'flows' && mailflowMode === 'workflows'"
+          section="flows"
+        />
+      </section>
+      <AdminEmailSystemPanel
+        v-show="mailingSubTab === 'archive'"
+        :active="activeTab === 'mailing' && mailingSubTab === 'archive'"
+        section="archive"
+      />
     </div>
 
     <!-- Tab: Einstellungen -->
@@ -2145,6 +2182,274 @@ onMounted(() => {
           </nav>
         </div>
       </section>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div v-if="sidebarMobileOpen" class="md:hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-slate-900/40" @click="sidebarMobileOpen = false"></div>
+    <aside class="absolute left-0 top-0 bottom-0 w-72 bg-slate-50 border-r border-slate-200/80 overflow-y-auto">
+      <div class="px-3 py-3 flex items-center justify-between gap-2 border-b border-slate-200/80">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="inline-flex items-center justify-center h-9 w-9 rounded-md text-slate-500 [&_svg]:h-5 [&_svg]:w-5" aria-hidden="true">
+            <AdminSidebarGlyph name="overview" />
+          </span>
+          <span class="text-sm font-bold text-slate-900 truncate">Admin</span>
+        </div>
+        <button
+          type="button"
+          class="inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-500 hover:bg-slate-200/80 hover:text-slate-800"
+          aria-label="Sidebar schließen"
+          @click="sidebarMobileOpen = false"
+        >
+          <span class="text-lg leading-none" aria-hidden="true">×</span>
+        </button>
+      </div>
+
+      <nav class="flex flex-col gap-6 py-4 px-2 overflow-y-auto" aria-label="Admin Navigation">
+        <div>
+          <button
+            type="button"
+            class="w-full flex items-center gap-2.5 rounded-md py-2 pl-2 pr-2 text-left text-sm font-semibold border-l-[3px] transition-colors"
+            :class="
+              activeTab === 'overview'
+                ? 'border-indigo-600 bg-indigo-50/90 text-slate-900'
+                : 'border-transparent text-slate-700 hover:bg-slate-100/90'
+            "
+            @click="activeTab = 'overview'; loadStats(); sidebarMobileOpen = false"
+          >
+            <AdminSidebarGlyph
+              name="overview"
+              :class="activeTab === 'overview' ? 'text-indigo-600' : 'text-slate-400'"
+            />
+            <span class="truncate">{{ t('admin.tabOverview') }}</span>
+          </button>
+        </div>
+
+        <div>
+          <p class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            {{ t('admin.tabOrganizations') }}
+          </p>
+          <button
+            type="button"
+            class="w-full flex items-center gap-2.5 rounded-md py-2 pl-2 pr-2 text-left text-sm font-semibold border-l-[3px] border-transparent text-slate-800 hover:bg-slate-100/90 transition-colors"
+            @click="toggleOrganizationsNav()"
+          >
+            <AdminSidebarGlyph name="building" class="text-slate-400" />
+            <span class="truncate min-w-0 flex-1 text-left">{{ t('admin.tabOrganizations') }}</span>
+            <AdminSidebarGlyph
+              name="chevron-down"
+              class="shrink-0 text-slate-400 transition-transform duration-200"
+              :class="organizationsMenuOpen ? 'rotate-180' : ''"
+            />
+          </button>
+          <div
+            v-show="organizationsMenuOpen"
+            class="mt-0.5 flex flex-col gap-0.5 border-l border-slate-200 ml-3 pl-2"
+          >
+            <button
+              type="button"
+              class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+              :class="
+                activeTab === 'organizations'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                  : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+              "
+              @click="activeTab = 'organizations'; sidebarMobileOpen = false"
+            >
+              <AdminSidebarGlyph
+                name="building"
+                :class="activeTab === 'organizations' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span class="truncate">{{ t('admin.orgNav.manageOrgs') }}</span>
+            </button>
+            <button
+              type="button"
+              class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+              :class="
+                activeTab === 'requests'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                  : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+              "
+              @click="activeTab = 'requests'; sidebarMobileOpen = false"
+            >
+              <AdminSidebarGlyph
+                name="truck"
+                :class="activeTab === 'requests' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span class="truncate">{{ t('admin.orgNav.transportRequests') }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <p class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            {{ t('admin.tabAcquise') }}
+          </p>
+          <button
+            type="button"
+            class="w-full flex items-center gap-2.5 rounded-md py-2 pl-2 pr-2 text-left text-sm font-semibold border-l-[3px] border-transparent text-slate-800 hover:bg-slate-100/90 transition-colors"
+            @click="acquiseMenuOpen = !acquiseMenuOpen; if (activeTab !== 'acquise') activeTab = 'acquise'"
+          >
+            <AdminSidebarGlyph name="megaphone" class="text-slate-400" />
+            <span class="truncate min-w-0 flex-1 text-left">{{ t('admin.tabAcquise') }}</span>
+            <AdminSidebarGlyph
+              name="chevron-down"
+              class="shrink-0 text-slate-400 transition-transform duration-200"
+              :class="acquiseMenuOpen ? 'rotate-180' : ''"
+            />
+          </button>
+          <div v-show="acquiseMenuOpen" class="mt-0.5 flex flex-col gap-0.5 border-l border-slate-200 ml-3 pl-2">
+            <button
+              type="button"
+              class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+              :class="
+                activeTab === 'acquise' && acquiseSubTab === 'users'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                  : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+              "
+              @click="activeTab = 'acquise'; acquiseSubTab = 'users'; loadAdminUsers(1); sidebarMobileOpen = false"
+            >
+              <AdminSidebarGlyph
+                name="users"
+                :class="activeTab === 'acquise' && acquiseSubTab === 'users' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span class="truncate">{{ t('admin.acquise.tabUsers') }}</span>
+            </button>
+            <button
+              type="button"
+              class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+              :class="
+                activeTab === 'acquise' && acquiseSubTab === 'registeredOrgs'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                  : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+              "
+              @click="activeTab = 'acquise'; acquiseSubTab = 'registeredOrgs'; sidebarMobileOpen = false"
+            >
+              <AdminSidebarGlyph
+                name="building-plus"
+                :class="activeTab === 'acquise' && acquiseSubTab === 'registeredOrgs' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span class="truncate">{{ t('admin.acquise.tabRegisteredOrgs') }}</span>
+            </button>
+            <button
+              type="button"
+              class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+              :class="
+                activeTab === 'acquise' && acquiseSubTab === 'orgaAquise'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                  : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+              "
+              @click="activeTab = 'acquise'; acquiseSubTab = 'orgaAquise'; sidebarMobileOpen = false"
+            >
+              <AdminSidebarGlyph
+                name="table"
+                :class="activeTab === 'acquise' && acquiseSubTab === 'orgaAquise' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span class="truncate">{{ t('admin.orgaAquise.tabOrgaAquise') }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <p class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            {{ t('admin.tabReviews') }}
+          </p>
+          <button
+            type="button"
+            class="w-full flex items-center gap-2.5 rounded-md py-2 pl-2 pr-2 text-left text-sm font-semibold border-l-[3px] transition-colors"
+            :class="
+              activeTab === 'reviews'
+                ? 'border-indigo-600 bg-indigo-50/90 text-slate-900'
+                : 'border-transparent text-slate-700 hover:bg-slate-100/90'
+            "
+            @click="activeTab = 'reviews'; loadAdminReviews(1); sidebarMobileOpen = false"
+          >
+            <AdminSidebarGlyph
+              name="star"
+              :class="activeTab === 'reviews' ? 'text-indigo-600' : 'text-slate-400'"
+            />
+            <span class="truncate">{{ t('admin.tabReviews') }}</span>
+          </button>
+        </div>
+
+        <div>
+          <p class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            {{ t('admin.tabMailing') }}
+          </p>
+          <button
+            type="button"
+            class="w-full flex items-center gap-2.5 rounded-md py-2 pl-2 pr-2 text-left text-sm font-semibold border-l-[3px] border-transparent text-slate-800 hover:bg-slate-100/90 transition-colors"
+            @click="mailingMenuOpen = !mailingMenuOpen; if (activeTab !== 'mailing') activeTab = 'mailing'"
+          >
+            <AdminSidebarGlyph name="mail" class="text-slate-400" />
+            <span class="truncate min-w-0 flex-1 text-left">{{ t('admin.tabMailing') }}</span>
+            <AdminSidebarGlyph
+              name="chevron-down"
+              class="shrink-0 text-slate-400 transition-transform duration-200"
+              :class="mailingMenuOpen ? 'rotate-180' : ''"
+            />
+          </button>
+          <div v-show="mailingMenuOpen" class="mt-0.5 flex flex-col gap-0.5 border-l border-slate-200 ml-3 pl-2">
+            <button
+              type="button"
+              class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+              :class="
+                activeTab === 'mailing' && mailingSubTab === 'flows'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                  : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+              "
+              @click="activeTab = 'mailing'; mailingSubTab = 'flows'; sidebarMobileOpen = false"
+            >
+              <AdminSidebarGlyph
+                name="cog"
+                :class="activeTab === 'mailing' && mailingSubTab === 'flows' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span class="truncate">{{ t('admin.mailing.subTabFlows') }}</span>
+            </button>
+            <button
+              type="button"
+              class="w-full flex items-center gap-2.5 rounded-r-md py-2 pl-2 pr-2 text-left text-[13px] font-normal border-l-[3px] -ml-px transition-colors"
+              :class="
+                activeTab === 'mailing' && mailingSubTab === 'archive'
+                  ? 'border-indigo-600 bg-indigo-50/90 text-slate-900 font-medium'
+                  : 'border-transparent text-slate-600 hover:bg-slate-100/80'
+              "
+              @click="activeTab = 'mailing'; mailingSubTab = 'archive'; sidebarMobileOpen = false"
+            >
+              <AdminSidebarGlyph
+                name="inbox"
+                :class="activeTab === 'mailing' && mailingSubTab === 'archive' ? 'text-indigo-600' : 'text-slate-400'"
+              />
+              <span class="truncate">{{ t('admin.mailing.subTabArchive') }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <p class="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            {{ t('admin.tabSettings') }}
+          </p>
+          <button
+            type="button"
+            class="w-full flex items-center gap-2.5 rounded-md py-2 pl-2 pr-2 text-left text-sm font-semibold border-l-[3px] transition-colors"
+            :class="
+              activeTab === 'settings'
+                ? 'border-indigo-600 bg-indigo-50/90 text-slate-900'
+                : 'border-transparent text-slate-700 hover:bg-slate-100/90'
+            "
+            @click="activeTab = 'settings'; sidebarMobileOpen = false"
+          >
+            <AdminSidebarGlyph
+              name="cog"
+              :class="activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'"
+            />
+            <span class="truncate">{{ t('admin.tabSettings') }}</span>
+          </button>
+        </div>
+      </nav>
+    </aside>
   </div>
 </template>

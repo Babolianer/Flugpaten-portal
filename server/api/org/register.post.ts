@@ -7,6 +7,7 @@ const schema = z.object({
   description: z.string().optional(),
   website: z.string().url().optional().or(z.literal('')),
   contactEmail: z.string().email(),
+  preferredLanguage: z.enum(['de', 'en', 'fr', 'es', 'it', 'pl']).optional(),
 })
 
 function slugify(text: string): string {
@@ -29,7 +30,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid input', data: parsed.error.flatten() })
   }
 
-  const { name, description, website, contactEmail } = parsed.data
+  const { name, description, website, contactEmail, preferredLanguage } = parsed.data
   const slug = slugify(name)
 
   const existing = await prisma.organization.findUnique({ where: { slug } })
@@ -43,6 +44,7 @@ export default defineEventHandler(async (event) => {
       slug,
       description: description || null,
       website: website || null,
+      preferredLanguage: preferredLanguage || 'de',
       contactEmail,
       status: 'PENDING',
       createdByUserId: user.id,

@@ -10,9 +10,23 @@ export default defineEventHandler(async (event) => {
   const filterNew = query.filterNew === 'true' || query.filterNew === '1'
   const filterUnverified = query.filterUnverified === 'true' || query.filterUnverified === '1'
   const filterActive = query.filterActive === 'true' || query.filterActive === '1'
+  const filterProfileComplete = query.filterProfileComplete === 'true' || query.filterProfileComplete === '1'
+  const lastLoginFromRaw = query.lastLoginFrom ? String(query.lastLoginFrom) : ''
+  const lastLoginToRaw = query.lastLoginTo ? String(query.lastLoginTo) : ''
+  const lastLoginFrom = lastLoginFromRaw ? new Date(lastLoginFromRaw) : null
+  const lastLoginTo = lastLoginToRaw ? new Date(lastLoginToRaw) : null
+  const validLastLoginFrom = lastLoginFrom && !Number.isNaN(lastLoginFrom.getTime()) ? lastLoginFrom : null
+  const validLastLoginTo = lastLoginTo && !Number.isNaN(lastLoginTo.getTime()) ? lastLoginTo : null
   const search = String(query.search || '').trim()
+  const listBlocked = query.list === 'blocked' || query.blockedOnly === 'true' || query.blockedOnly === '1'
 
   const where: Record<string, unknown> = { role: 'USER' }
+
+  if (listBlocked) {
+    where.blockedAt = { not: null }
+  } else {
+    where.blockedAt = null
+  }
 
   if (search) {
     where.OR = [
@@ -40,12 +54,30 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  if (filterProfileComplete) {
+    where.profile = {
+      OR: [
+        { city: { not: null } },
+        { countryCode: { not: null } },
+        { aboutMe: { not: null } },
+      ],
+    }
+  }
+
+  if (validLastLoginFrom || validLastLoginTo) {
+    where.lastLoginAt = {
+      ...(validLastLoginFrom ? { gte: validLastLoginFrom } : {}),
+      ...(validLastLoginTo ? { lte: validLastLoginTo } : {}),
+    }
+  }
+
   const users = await prisma.user.findMany({
     where,
     select: {
       id: true,
       email: true,
       displayName: true,
+      preferredLanguage: true,
       emailVerified: true,
       createdAt: true,
       lastLoginAt: true,
@@ -74,10 +106,12 @@ export default defineEventHandler(async (event) => {
       id: u.id,
       email: u.email,
       displayName: u.displayName,
+      preferredLanguage: u.preferredLanguage,
       emailVerified: u.emailVerified,
       createdAt: u.createdAt.toISOString(),
       lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
       adminNotes: u.adminNotes,
+      blockedAt: u.blockedAt?.toISOString() ?? null,
       profileComplete: !!(
         u.profile &&
         (u.profile.city || u.profile.countryCode || u.profile.aboutMe)

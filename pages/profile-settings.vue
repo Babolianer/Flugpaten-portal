@@ -29,7 +29,17 @@ const form = ref({
   languages: '',
   preferredRoutes: '',
   frequentAirports: '',
+  preferredLanguage: 'de',
 })
+
+const languageOptions = [
+  { code: 'de', label: 'Deutsch' },
+  { code: 'en', label: 'English' },
+  { code: 'fr', label: 'Français' },
+  { code: 'es', label: 'Español' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'pl', label: 'Polski' },
+]
 
 onMounted(async () => {
   await fetchUser()
@@ -46,7 +56,12 @@ onMounted(async () => {
     return
   }
   try {
-    const res = await $fetch<{ profile: typeof profile.value; displayName?: string; phone?: string | null }>('/api/user/profile')
+    const res = await $fetch<{
+      profile: typeof profile.value
+      displayName?: string
+      phone?: string | null
+      preferredLanguage?: string
+    }>('/api/user/profile')
     profile.value = res.profile
     if (res.profile) {
       form.value.firstName = res.profile.firstName ?? ''
@@ -59,6 +74,7 @@ onMounted(async () => {
       form.value.frequentAirports = (res.profile.frequentAirports || []).join(', ')
     }
     form.value.phone = res.phone ?? (user.value as { phone?: string | null })?.phone ?? ''
+    form.value.preferredLanguage = res.preferredLanguage || (user.value?.preferredLanguage as string) || 'de'
   } catch {
     message.value = { type: 'error', text: t('profile.loadError') }
   }
@@ -87,6 +103,7 @@ async function save() {
         languages: parseList(form.value.languages),
         preferredRoutes: parseList(form.value.preferredRoutes),
         frequentAirports: parseList(form.value.frequentAirports),
+        preferredLanguage: form.value.preferredLanguage || 'de',
       },
     })
     message.value = { type: 'success', text: t('profile.saved') }
@@ -221,6 +238,15 @@ const inputClass = 'w-full rounded-xl border border-slate-200 px-4 py-3 text-sla
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-2">{{ t('profile.languages') }}</label>
                 <input v-model="form.languages" type="text" :class="inputClass" placeholder="de, en, fr" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">{{ t('profile.defaultLanguage') }}</label>
+                <select v-model="form.preferredLanguage" :class="inputClass">
+                  <option v-for="opt in languageOptions" :key="opt.code" :value="opt.code">
+                    {{ opt.label }}
+                  </option>
+                </select>
+                <p class="mt-1.5 text-xs text-slate-500">{{ t('profile.defaultLanguageHint') }}</p>
               </div>
             </div>
           </section>

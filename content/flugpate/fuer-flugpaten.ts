@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const fuerFlugpatenContent: FlugpatePageContent = {
   meta: {
-    title: 'Flugpaten – Voraussetzungen, Aufwand & Verantwortung | PawBridge',
+    title: 'Flugpaten – Voraussetzungen, Aufwand & Verantwortung | PawTransfer',
     description:
       'Alles für angehende Flugpaten: Voraussetzungen, Zeitaufwand, Verantwortung, Risiken, Vorteile und Motivation. Sachlich und praxisnah.',
-    ogTitle: 'Für Flugpaten | PawBridge',
+    ogTitle: 'Für Flugpaten | PawTransfer',
     ogDescription:
       'Voraussetzungen und Tipps für alle, die als Flugpate ein Tier begleiten möchten.',
   },

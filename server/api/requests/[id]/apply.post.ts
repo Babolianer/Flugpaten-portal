@@ -2,6 +2,7 @@ import path from 'node:path'
 import { writeFile, mkdir } from 'node:fs/promises'
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
+import { fireEmailTrigger } from '~~/server/utils/emailTriggerEngine'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
@@ -172,6 +173,18 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    const firstApp = result.applications[0]
+    const firstConv = result.conversations[0]
+    if (firstApp && firstConv) {
+      fireEmailTrigger('TRANSPORT_APPLICATION_ORG', {
+        organizationId: request.organizationId,
+        requestId: firstApp.requestId,
+        userId: user.id,
+        conversationId: firstConv.id,
+        applicantMessage: message,
+      })
+    }
+
     return { applications: result.applications, conversations: result.conversations }
   } catch (dbErr: unknown) {
     const msg = dbErr instanceof Error ? dbErr.message : String(dbErr)
@@ -228,6 +241,17 @@ export default defineEventHandler(async (event) => {
             })
           }
         }
+      }
+      const firstApp = result.applications[0]
+      const firstConv = result.conversations[0]
+      if (firstApp && firstConv) {
+        fireEmailTrigger('TRANSPORT_APPLICATION_ORG', {
+          organizationId: request.organizationId,
+          requestId: firstApp.requestId,
+          userId: user.id,
+          conversationId: firstConv.id,
+          applicantMessage: message,
+        })
       }
       return { applications: result.applications, conversations: result.conversations }
     }

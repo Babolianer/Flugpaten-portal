@@ -4,10 +4,10 @@ export type { FlugpateTopicMeta, FlugpatePageContent, FlugpatePageMeta, Flugpate
 export const FLUGPATE_LANDING = {
   heroTitle: 'Wissensdatenbank Flugpate',
   heroSubtitle: 'Alles rund um Flugpatenschaft, Tiertransport im Flugzeug und rechtliche Hinweise – für Flugpaten und Organisationen.',
-  metaTitle: 'Flugpate & Flugpatenschaft – Wissensdatenbank | PawBridge',
+  metaTitle: 'Flugpate & Flugpatenschaft – Wissensdatenbank | PawTransfer',
   metaDescription:
     'Umfassende Informationen zur Flugpatenschaft: Was ist ein Flugpate? Ablauf, Recht, Tiertransport, Checkliste, EU-Regelungen und FAQ. Katze oder Hund als Flugpate mitnehmen.',
-  ogTitle: 'Flugpate – Wissensdatenbank | PawBridge',
+  ogTitle: 'Flugpate – Wissensdatenbank | PawTransfer',
   ogDescription:
     'Professionelle Infos zu Flugpatenschaft, Tiertransport und Recht. Für Flugpaten und Tierschutzorganisationen.',
 }

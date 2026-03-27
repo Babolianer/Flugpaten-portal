@@ -12,6 +12,7 @@ const schema = z.object({
   languages: z.array(z.string().max(100)).max(20).optional(),
   preferredRoutes: z.array(z.string().max(200)).max(50).optional(),
   frequentAirports: z.array(z.string().max(50)).max(30).optional(),
+  preferredLanguage: z.enum(['de', 'en', 'fr', 'es', 'it', 'pl']).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -26,12 +27,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid input', data: parsed.error.flatten() })
   }
 
-  const { firstName, lastName, phone, ...profileData } = parsed.data
+  const { firstName, lastName, phone, preferredLanguage, ...profileData } = parsed.data
 
-  const userUpdate: { displayName?: string; firstName?: string | null; lastName?: string | null; phone?: string | null } = {}
+  const userUpdate: {
+    displayName?: string
+    firstName?: string | null
+    lastName?: string | null
+    phone?: string | null
+    preferredLanguage?: string
+  } = {}
   if (phone !== undefined) userUpdate.phone = phone?.trim() || null
   if (firstName !== undefined) userUpdate.firstName = firstName?.trim() || null
   if (lastName !== undefined) userUpdate.lastName = lastName?.trim() || null
+  if (preferredLanguage !== undefined) userUpdate.preferredLanguage = preferredLanguage
   if (firstName !== undefined || lastName !== undefined) {
     const existing = await prisma.user.findUnique({ where: { id: user.id }, select: { firstName: true, lastName: true } })
     const first = (firstName ?? existing?.firstName ?? null)?.trim() || ''
@@ -44,6 +52,15 @@ export default defineEventHandler(async (event) => {
       where: { id: user.id },
       data: userUpdate,
     })
+    if (preferredLanguage) {
+      setCookie(event, 'pawbridge_locale', preferredLanguage, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365,
+        path: '/',
+      })
+    }
   }
 
   const cleanProfileData = Object.fromEntries(

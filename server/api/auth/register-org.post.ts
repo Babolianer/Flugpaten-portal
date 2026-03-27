@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { prisma } from '~~/server/utils/prisma'
 import { hashPassword, signJwt } from '~~/server/utils/auth'
+import { fireEmailTrigger } from '~~/server/utils/emailTriggerEngine'
 
 const schema = z.object({
   email: z.string().email(),
@@ -13,6 +14,7 @@ const schema = z.object({
   termsAccepted: z.boolean().optional(),
   privacyAccepted: z.boolean().optional(),
   newsletterOptIn: z.boolean().optional(),
+  preferredLanguage: z.enum(['de', 'en', 'fr', 'es', 'it', 'pl']),
 })
 
 function slugify(text: string): string {
@@ -33,7 +35,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid input', data: parsed.error.flatten() })
   }
 
-  const { email, password, displayName, description, website, contactEmail, maintenancePreRegister, termsAccepted, privacyAccepted, newsletterOptIn } = parsed.data
+  const {
+    email,
+    password,
+    displayName,
+    description,
+    website,
+    contactEmail,
+    maintenancePreRegister,
+    termsAccepted,
+    privacyAccepted,
+    newsletterOptIn,
+    preferredLanguage,
+  } = parsed.data
   const name = displayName.trim()
 
   if (termsAccepted !== true || privacyAccepted !== true) {
@@ -59,6 +73,7 @@ export default defineEventHandler(async (event) => {
       role: 'ORG_USER',
       displayName: name,
       newsletterOptIn: !!newsletterOptIn,
+      preferredLanguage,
     },
     select: {
       id: true,
@@ -74,6 +89,7 @@ export default defineEventHandler(async (event) => {
       slug,
       description: description?.trim() || null,
       website: website?.trim() || null,
+      preferredLanguage,
       contactEmail: contactEmail.trim(),
       status: 'PENDING',
       createdByUserId: user.id,
@@ -88,6 +104,20 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  fireEmailTrigger('ORG_REGISTRATION_PENDING_ADMIN', {
+    organizationId: org.id,
+    userId: user.id,
+    orgRegistration: {
+      orgName: org.name,
+      orgSlug: org.slug,
+      orgContactEmail: org.contactEmail,
+      orgUserEmail: user.email,
+    },
+  })
+  if (newsletterOptIn) {
+    fireEmailTrigger('NEWSLETTER_OPT_IN_ORG_USER', { userId: user.id })
+  }
+
   if (!maintenancePreRegister) {
     const token = await signJwt({ sub: user.id, role: user.role })
     const config = useRuntimeConfig()
@@ -97,6 +127,13 @@ export default defineEventHandler(async (event) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    })
+    setCookie(event, 'pawbridge_locale', preferredLanguage, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 365,
       path: '/',
     })
   }

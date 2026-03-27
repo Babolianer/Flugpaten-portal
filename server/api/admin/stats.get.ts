@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     prisma.organization.count({ where: { status: 'APPROVED' } }),
     prisma.transportRequest.count(),
     prisma.transportRequest.count({ where: { status: { in: ['OPEN', 'MATCHED'] } } }),
-    prisma.user.count(),
+    prisma.user.count({ where: { role: 'USER', blockedAt: null } }),
   ])
 
   return {

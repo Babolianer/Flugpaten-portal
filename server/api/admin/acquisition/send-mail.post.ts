@@ -1,6 +1,6 @@
-import { Resend } from 'resend'
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
+import { sendEmail } from '~~/server/utils/sendEmail'
 import { buildEmailHtml } from '~~/server/utils/emailTemplate'
 
 function replacePlaceholders(text: string, name: string): string {
@@ -15,15 +15,14 @@ export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
 
   const config = useRuntimeConfig()
-  const apiKey = config.resendApiKey
   const mailFrom = config.mailFrom
   const mailLogoUrl = config.mailLogoUrl || ''
   const appUrl = config.public.appUrl
 
-  if (!apiKey) {
+  if (!config.smtpUser || !config.smtpPass) {
     throw createError({
       statusCode: 500,
-      message: 'RESEND_API_KEY ist nicht gesetzt. Bitte in .env eintragen.',
+      message: 'SMTP ist nicht konfiguriert. Bitte SMTP_USER und SMTP_PASS in .env eintragen.',
     })
   }
 
@@ -50,8 +49,6 @@ export default defineEventHandler(async (event) => {
     // Tabelle ggf. noch nicht migriert
   }
 
-  const resend = new Resend(apiKey)
-
   // Nur Test-E-Mail an eine Adresse
   if (testTo) {
     const email = testTo
@@ -60,14 +57,13 @@ export default defineEventHandler(async (event) => {
     }
     const bodyWithPlaceholders = replacePlaceholders(bodyText, testName)
     const html = buildEmailHtml(bodyWithPlaceholders, testName, { appUrl, logoUrl: mailLogoUrl, footerText })
-    const { data, error } = await resend.emails.send({
+    await sendEmail({
       from: mailFrom,
       to: email,
       subject: replacePlaceholders(subject, testName),
       html,
     })
-    if (error) throw createError({ statusCode: 500, message: error.message })
-    return { test: true, sent: 1, resendId: data?.id }
+    return { test: true, sent: 1, resendId: `smtp-test-${Date.now()}` }
   }
 
   const contacts = await prisma.acquisitionContact.findMany({
@@ -86,38 +82,21 @@ export default defineEventHandler(async (event) => {
     const html = buildEmailHtml(bodyWithPlaceholders, c.name, { appUrl, logoUrl: mailLogoUrl, footerText })
 
     try {
-      const { data, error } = await resend.emails.send({
+      await sendEmail({
         from: mailFrom,
         to: email,
         subject: replacePlaceholders(subject, c.name),
         html,
-        tags: [{ name: 'acquisition_contact_id', value: c.id }],
       })
-      if (error) {
-        const errMsg = `${c.name} (${email}): ${error.message}`
-        errors.push(errMsg)
-        console.error('[acquise/send-mail] Fehler:', errMsg)
-        // Log als FAILED
-        await prisma.acquisitionMailLog.create({
-          data: {
-            acquisitionContactId: c.id,
-            resendId: `error-${Date.now()}-${c.id}`,
-            status: 'FAILED',
-          },
-        })
-        continue
-      }
       sent++
-      // Log-Eintrag mit resendId anlegen
-      if (data?.id) {
-        await prisma.acquisitionMailLog.create({
-          data: {
-            acquisitionContactId: c.id,
-            resendId: data.id,
-            status: 'SENT',
-          },
-        })
-      }
+      const smtpId = `smtp-${Date.now()}-${c.id}`
+      await prisma.acquisitionMailLog.create({
+        data: {
+          acquisitionContactId: c.id,
+          resendId: smtpId,
+          status: 'SENT',
+        },
+      })
       await prisma.acquisitionContact.update({
         where: { id: c.id },
         data: { emailSent: true },
@@ -153,4 +132,3 @@ export default defineEventHandler(async (event) => {
     errors: errors.length > 0 ? errors : undefined,
   }
 })
-

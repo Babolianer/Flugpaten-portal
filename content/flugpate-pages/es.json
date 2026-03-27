@@ -1,9 +1,9 @@
 {
   "was-ist-ein-flugpate": {
     "meta": {
-      "title": "¿Qué es un padrino de vuelo? | PawBridge",
+      "title": "¿Qué es un padrino de vuelo? | PawTransfer",
       "description": "Un padrino de vuelo lleva animales del extranjero a manos seguras. Descubra qué implica el padrinazgo de vuelo.",
-      "ogTitle": "¿Qué es un padrino de vuelo? | PawBridge",
+      "ogTitle": "¿Qué es un padrino de vuelo? | PawTransfer",
       "ogDescription": "Definición y significado del padrinazgo de vuelo en la protección animal."
     },
     "sections": [
@@ -60,9 +60,9 @@
   },
   "ablauf-einer-flugpatenschaft": {
     "meta": {
-      "title": "Proceso del padrinazgo de vuelo – Paso a paso | PawBridge",
+      "title": "Proceso del padrinazgo de vuelo – Paso a paso | PawTransfer",
       "description": "Cómo funciona un padrinazgo de vuelo: desde el contacto inicial hasta el check-in, el vuelo y la entrega en el destino. Transparente y práctico.",
-      "ogTitle": "Proceso del padrinazgo de vuelo | PawBridge",
+      "ogTitle": "Proceso del padrinazgo de vuelo | PawTransfer",
       "ogDescription": "Contacto inicial, verificación de documentos, entrega en aeropuerto, transporte y llegada – el proceso completo."
     },
     "sections": [
@@ -81,7 +81,7 @@
     ]
   },
   "rechtliche-hinweise": {
-    "meta": {"title": "Aspectos legales del padrinazgo de vuelo | PawBridge", "description": "Responsabilidad, indemnización, requisitos de importación, TRACES, reglamento UE sobre mascotas.", "ogTitle": "Aspectos legales | PawBridge", "ogDescription": "Obligaciones legales del padrino."},
+    "meta": {"title": "Aspectos legales del padrinazgo de vuelo | PawTransfer", "description": "Responsabilidad, indemnización, requisitos de importación, TRACES, reglamento UE sobre mascotas.", "ogTitle": "Aspectos legales | PawTransfer", "ogDescription": "Obligaciones legales del padrino."},
     "sections": [
       {"id": "verantwortung", "title": "Responsabilidad del padrino", "paragraphs": ["Como padrino asume la custodia del animal durante el transporte. Debe cumplir las normas de entrada y bienestar animal.", "Se recomienda un acuerdo escrito claro."]},
       {"id": "haftung", "title": "Responsabilidad civil", "paragraphs": ["Quien transporta un animal responde de daños. La distribución entre organización y padrino debe aclararse de antemano."]},
@@ -97,7 +97,7 @@
     ]
   },
   "tiertransport-im-flugzeug": {
-    "meta": {"title": "Transporte de animales en avión | PawBridge", "description": "Directrices IATA, jaulas, cabina vs. bodega, reducción del estrés.", "ogTitle": "Transporte en avión | PawBridge", "ogDescription": "Jaulas, cabina, bodega y condiciones de aerolíneas."},
+    "meta": {"title": "Transporte de animales en avión | PawTransfer", "description": "Directrices IATA, jaulas, cabina vs. bodega, reducción del estrés.", "ogTitle": "Transporte en avión | PawTransfer", "ogDescription": "Jaulas, cabina, bodega y condiciones de aerolíneas."},
     "sections": [
       {"id": "iata", "title": "Directrices IATA", "paragraphs": ["La IATA publica Live Animals Regulations. Regulan tamaño de contenedores, ventilación y etiquetado.", "Los padrinos deben observar los requisitos de su aerolínea."]},
       {"id": "transportboxen", "title": "Jaulas de transporte", "paragraphs": ["Para cabina: bolsas blandas o semirrígidas. Para bodega: jaulas rígidas IATA con rejilla y ventilación."]},
@@ -113,7 +113,7 @@
     ]
   },
   "haeufige-fragen": {
-    "meta": {"title": "Preguntas frecuentes sobre el padrinazgo de vuelo | PawBridge", "description": "Más de 20 respuestas sobre padrino, padrinazgo, transporte, costes y documentos.", "ogTitle": "FAQ Padrinazgo de vuelo | PawBridge", "ogDescription": "Preguntas y respuestas más importantes."},
+    "meta": {"title": "Preguntas frecuentes sobre el padrinazgo de vuelo | PawTransfer", "description": "Más de 20 respuestas sobre padrino, padrinazgo, transporte, costes y documentos.", "ogTitle": "FAQ Padrinazgo de vuelo | PawTransfer", "ogDescription": "Preguntas y respuestas más importantes."},
     "sections": [{"id": "einstieg", "title": "Introducción", "paragraphs": ["Las siguientes preguntas cubren los temas más frecuentes."]}],
     "faqs": [
       {"question": "¿Qué es un padrino de vuelo?", "answer": "Persona que lleva voluntariamente un animal en un vuelo ya planificado y lo entrega en destino."},
@@ -141,7 +141,7 @@
     ]
   },
   "fuer-organisationen": {
-    "meta": {"title": "Padrinos de vuelo para organizaciones | PawBridge", "description": "Por qué los padrinos tienen sentido: optimizar procesos, documentación, confianza.", "ogTitle": "Padrinos para organizaciones | PawBridge", "ogDescription": "Beneficios y procesos."},
+    "meta": {"title": "Padrinos de vuelo para organizaciones | PawTransfer", "description": "Por qué los padrinos tienen sentido: optimizar procesos, documentación, confianza.", "ogTitle": "Padrinos para organizaciones | PawTransfer", "ogDescription": "Beneficios y procesos."},
     "sections": [
       {"id": "warum-sinnvoll", "title": "Por qué los padrinos tienen sentido", "paragraphs": ["Los padrinos amplían la capacidad de transporte. Cada padrinazgo permite reubicar otro animal.", "Los viajeros se convierten en embajadores del bienestar animal."]},
       {"id": "prozesse-optimieren", "title": "Optimizar procesos", "paragraphs": ["Procesos claros, contactos fijos, listas de verificación, comunicación puntual."]},
@@ -156,7 +156,7 @@
     ]
   },
   "fuer-flugpaten": {
-    "meta": {"title": "Para padrinos de vuelo | PawBridge", "description": "Requisitos, esfuerzo y responsabilidad para aspirantes a padrinos.", "ogTitle": "Para padrinos | PawBridge", "ogDescription": "Requisitos y consejos."},
+    "meta": {"title": "Para padrinos de vuelo | PawTransfer", "description": "Requisitos, esfuerzo y responsabilidad para aspirantes a padrinos.", "ogTitle": "Para padrinos | PawTransfer", "ogDescription": "Requisitos y consejos."},
     "sections": [
       {"id": "voraussetzungen", "title": "Requisitos", "paragraphs": ["Mayor de edad, documentación válida, indicar ruta y fecha. Fiabilidad importante."]},
       {"id": "zeitaufwand", "title": "Tiempo necesario", "paragraphs": ["Entrega en aeropuertos (15–30 min) y llevar jaula y papeles."]},
@@ -172,7 +172,7 @@
     ]
   },
   "risiken-und-sicherheit": {
-    "meta": {"title": "Riesgos y seguridad | PawBridge", "description": "Prevenir abusos, reconocer organizaciones serias, verificar documentos.", "ogTitle": "Riesgos y seguridad | PawBridge", "ogDescription": "Padrinazgo seguro y serio."},
+    "meta": {"title": "Riesgos y seguridad | PawTransfer", "description": "Prevenir abusos, reconocer organizaciones serias, verificar documentos.", "ogTitle": "Riesgos y seguridad | PawTransfer", "ogDescription": "Padrinazgo seguro y serio."},
     "sections": [
       {"id": "missbrauch-verhindern", "title": "Prevenir abusos", "paragraphs": ["Trabaje solo con organizaciones transparentes. Verifique documentos."]},
       {"id": "serioese-organisationen", "title": "Reconocer organizaciones serias", "paragraphs": ["Asociación registrada, procesos claros, contactos fijos. Cuidado con presión o pago."]},
@@ -187,7 +187,7 @@
     ]
   },
   "checkliste": {
-    "meta": {"title": "Checklist padrinazgo de vuelo | PawBridge", "description": "Checklist: antes del vuelo, en aeropuerto, tras llegada.", "ogTitle": "Checklist | PawBridge", "ogDescription": "Checklist práctica."},
+    "meta": {"title": "Checklist padrinazgo de vuelo | PawTransfer", "description": "Checklist: antes del vuelo, en aeropuerto, tras llegada.", "ogTitle": "Checklist | PawTransfer", "ogDescription": "Checklist práctica."},
     "sections": [
       {"id": "vor-dem-flug", "title": "Antes del vuelo", "subs": [
         {"title": "Registro y acuerdo", "paragraphs": ["Informar a la organización. Obtener confirmación por escrito. Guardar contactos."]},
@@ -209,7 +209,7 @@
     ]
   },
   "eu-regelungen": {
-    "meta": {"title": "Reglamentos UE sobre padrinazgo | PawBridge", "description": "Reglamento de mascotas UE, diferencias entre países, entrada desde no UE.", "ogTitle": "Reglamentos UE | PawBridge", "ogDescription": "Requisitos UE para transporte privado."},
+    "meta": {"title": "Reglamentos UE sobre padrinazgo | PawTransfer", "description": "Reglamento de mascotas UE, diferencias entre países, entrada desde no UE.", "ogTitle": "Reglamentos UE | PawTransfer", "ogDescription": "Requisitos UE para transporte privado."},
     "sections": [
       {"id": "heimtierverordnung", "title": "Reglamento de mascotas UE", "paragraphs": ["El Reglamento (UE) 576/2013 regula el movimiento no comercial. Los padrinos sin pago suelen estar incluidos."]},
       {"id": "laenderunterschiede", "title": "Diferencias entre países", "paragraphs": ["Algunos Estados exigen medidas adicionales: tratamiento contra equinococos (Finlandia, Irlanda, Malta, Reino Unido)."]},

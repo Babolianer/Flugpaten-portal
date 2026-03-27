@@ -4,6 +4,7 @@ export type AuthUser = {
   role: string
   displayName: string
   phone: string | null
+  preferredLanguage?: string
 } | null
 
 export function useAuth() {

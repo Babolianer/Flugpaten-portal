@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     prisma.userProfile.findUnique({ where: { userId: user.id } }),
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { displayName: true, firstName: true, lastName: true, phone: true },
+      select: { displayName: true, firstName: true, lastName: true, phone: true, preferredLanguage: true },
     }),
   ])
 
@@ -25,5 +25,6 @@ export default defineEventHandler(async (event) => {
       : { firstName: dbUser?.firstName ?? null, lastName: dbUser?.lastName ?? null },
     displayName: dbUser?.displayName ?? user.displayName,
     phone: dbUser?.phone ?? (user as { phone?: string | null }).phone ?? null,
+    preferredLanguage: dbUser?.preferredLanguage ?? 'de',
   }
 })

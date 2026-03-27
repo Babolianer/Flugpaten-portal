@@ -12,5 +12,6 @@ export default defineEventHandler(async (event) => {
     subject: settings?.subject ?? '',
     body: settings?.body ?? '',
     footerText: settings?.footerText ?? '',
+    footerHtml: settings?.footerHtml ?? '',
   }
 })
