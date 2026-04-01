@@ -89,7 +89,9 @@ async function submit() {
           </div>
         </div>
         <div class="mb-4">
-          <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.displayName') }}</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">
+            {{ t('register.displayName') }}<span class="text-red-600"> *</span>
+          </label>
           <input
             v-model="displayName"
             type="text"
@@ -99,7 +101,9 @@ async function submit() {
           />
         </div>
         <div class="mb-4">
-          <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.email') }}</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">
+            {{ t('register.email') }}<span class="text-red-600"> *</span>
+          </label>
           <input
             v-model="email"
             type="email"
@@ -108,7 +112,9 @@ async function submit() {
           />
         </div>
         <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.password') }}</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">
+            {{ t('register.password') }}<span class="text-red-600"> *</span>
+          </label>
           <input
             v-model="password"
             type="password"
@@ -118,7 +124,9 @@ async function submit() {
           />
         </div>
         <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.preferredLanguage') }}</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">
+            {{ t('register.preferredLanguage') }}<span class="text-red-600"> *</span>
+          </label>
           <select
             v-model="preferredLanguage"
             required
@@ -132,22 +140,6 @@ async function submit() {
             <option value="it">Italiano</option>
             <option value="pl">Polski</option>
           </select>
-        </div>
-        <div class="mb-4 space-y-3">
-          <label class="flex items-start gap-2 cursor-pointer">
-            <input v-model="termsAndPrivacyAccepted" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300 shrink-0" />
-            <span class="text-sm text-slate-700">
-              {{ t('register.termsAndPrivacyCheckboxPrefix') }}
-              <button type="button" class="text-amber-600 hover:underline" @click.prevent="showTermsModal = true">{{ t('register.termsLink') }}</button>
-              {{ t('register.termsAndPrivacyCheckboxMiddle') }}
-              <button type="button" class="text-amber-600 hover:underline" @click.prevent="showPrivacyModal = true">{{ t('register.privacyLink') }}</button>
-              {{ t('register.termsAndPrivacyCheckboxSuffix') }}
-            </span>
-          </label>
-          <label class="flex items-start gap-2 cursor-pointer">
-            <input v-model="newsletterOptIn" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300 shrink-0" />
-            <span class="text-sm text-slate-700">{{ t('register.newsletterCheckbox') }}</span>
-          </label>
         </div>
         <template v-if="role === 'ORG_USER'">
           <div class="mb-4">
@@ -169,7 +161,9 @@ async function submit() {
             />
           </div>
           <div class="mb-6">
-            <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.contactEmail') }}</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              {{ t('register.contactEmail') }}<span class="text-red-600"> *</span>
+            </label>
             <input
               v-model="orgContactEmail"
               type="email"
@@ -179,6 +173,22 @@ async function submit() {
             />
           </div>
         </template>
+        <div class="mb-4 space-y-3">
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input v-model="termsAndPrivacyAccepted" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300 shrink-0" />
+            <span class="text-sm text-slate-700">
+              {{ t('register.termsAndPrivacyCheckboxPrefix') }}
+              <button type="button" class="text-amber-600 hover:underline" @click.prevent="showTermsModal = true">{{ t('register.termsLink') }}</button>
+              {{ t('register.termsAndPrivacyCheckboxMiddle') }}
+              <button type="button" class="text-amber-600 hover:underline" @click.prevent="showPrivacyModal = true">{{ t('register.privacyLink') }}</button>
+              {{ t('register.termsAndPrivacyCheckboxSuffix') }}
+            </span>
+          </label>
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input v-model="newsletterOptIn" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300 shrink-0" />
+            <span class="text-sm text-slate-700">{{ t('register.newsletterCheckbox') }}</span>
+          </label>
+        </div>
         <button
           type="submit"
           :disabled="loading || !termsAndPrivacyAccepted || !preferredLanguage"

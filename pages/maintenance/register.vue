@@ -9,6 +9,7 @@ const orgPassword = ref('')
 const orgDescription = ref('')
 const orgWebsite = ref('')
 const orgContactEmail = ref('')
+const preferredLanguage = ref('')
 const termsAndPrivacyAccepted = ref(false)
 const newsletterOptIn = ref(false)
 const showTermsModal = ref(false)
@@ -31,6 +32,7 @@ async function registerOrg() {
         description: orgDescription.value.trim() || undefined,
         website: orgWebsite.value.trim() || undefined,
         contactEmail: orgContactEmail.value.trim(),
+        preferredLanguage: preferredLanguage.value,
         maintenancePreRegister: true,
         termsAccepted: termsAndPrivacyAccepted.value,
         privacyAccepted: termsAndPrivacyAccepted.value,
@@ -64,7 +66,9 @@ async function registerOrg() {
             {{ orgError }}
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.displayNamePlaceholderOrg') }}</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              {{ t('register.displayNamePlaceholderOrg') }}<span class="text-red-600"> *</span>
+            </label>
             <input
               v-model="orgDisplayName"
               type="text"
@@ -74,7 +78,9 @@ async function registerOrg() {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.email') }}</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              {{ t('register.email') }}<span class="text-red-600"> *</span>
+            </label>
             <input
               v-model="orgEmail"
               type="email"
@@ -83,7 +89,9 @@ async function registerOrg() {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.password') }}</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              {{ t('register.password') }}<span class="text-red-600"> *</span>
+            </label>
             <input
               v-model="orgPassword"
               type="password"
@@ -113,7 +121,9 @@ async function registerOrg() {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.contactEmail') }}</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              {{ t('register.contactEmail') }}<span class="text-red-600"> *</span>
+            </label>
             <input
               v-model="orgContactEmail"
               type="email"
@@ -121,6 +131,24 @@ async function registerOrg() {
               class="w-full border border-slate-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
               :placeholder="t('register.contactEmailPlaceholder')"
             />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">
+              {{ t('register.preferredLanguage') }}<span class="text-red-600"> *</span>
+            </label>
+            <select
+              v-model="preferredLanguage"
+              required
+              class="w-full border border-slate-300 rounded-lg px-3 py-2.5 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+            >
+              <option value="" disabled>{{ t('register.preferredLanguagePlaceholder') }}</option>
+              <option value="de">Deutsch</option>
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="it">Italiano</option>
+              <option value="pl">Polski</option>
+            </select>
           </div>
           <div class="space-y-3">
             <label class="flex items-start gap-2 cursor-pointer">
@@ -140,7 +168,7 @@ async function registerOrg() {
           </div>
           <button
             type="submit"
-            :disabled="orgLoading || !termsAndPrivacyAccepted"
+            :disabled="orgLoading || !termsAndPrivacyAccepted || !preferredLanguage"
             class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold transition disabled:opacity-50 shadow-md hover:shadow-lg"
           >
             {{ orgLoading ? t('register.submitting') : t('maintenance.orgPreRegisterSubmit') }}
