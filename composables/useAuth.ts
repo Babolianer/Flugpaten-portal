@@ -12,7 +12,9 @@ export function useAuth() {
 
   async function fetchUser() {
     try {
-      const data = await $fetch<{ user: AuthUser }>('/api/auth/me')
+      const data = await $fetch<{ user: AuthUser }>('/api/auth/me', {
+        credentials: 'include',
+      })
       user.value = data.user
     } catch {
       user.value = null
@@ -20,7 +22,7 @@ export function useAuth() {
   }
 
   async function logout() {
-    await $fetch('/api/auth/logout', { method: 'POST' })
+    await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     user.value = null
     await navigateTo('/')
   }

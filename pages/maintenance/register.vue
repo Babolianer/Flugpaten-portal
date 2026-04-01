@@ -2,6 +2,15 @@
 definePageMeta({ layout: false })
 
 const { t } = useI18n()
+const registerRole = ref<'USER' | 'ORG_USER'>('USER')
+
+const userDisplayName = ref('')
+const userEmail = ref('')
+const userPassword = ref('')
+const userPreferredLanguage = ref('')
+const userError = ref('')
+const userLoading = ref(false)
+const userSuccess = ref(false)
 
 const orgDisplayName = ref('')
 const orgEmail = ref('')
@@ -17,6 +26,32 @@ const showPrivacyModal = ref(false)
 const orgError = ref('')
 const orgLoading = ref(false)
 const orgSuccess = ref(false)
+
+async function registerUser() {
+  userError.value = ''
+  userSuccess.value = false
+  userLoading.value = true
+  try {
+    await $fetch('/api/auth/register', {
+      method: 'POST',
+      body: {
+        email: userEmail.value,
+        password: userPassword.value,
+        role: 'USER',
+        displayName: userDisplayName.value.trim(),
+        termsAccepted: termsAndPrivacyAccepted.value,
+        privacyAccepted: termsAndPrivacyAccepted.value,
+        newsletterOptIn: newsletterOptIn.value,
+        preferredLanguage: userPreferredLanguage.value,
+      },
+    })
+    userSuccess.value = true
+  } catch (e: unknown) {
+    userError.value = (e as { data?: { message?: string } })?.data?.message || t('register.error')
+  } finally {
+    userLoading.value = false
+  }
+}
 
 async function registerOrg() {
   orgError.value = ''
@@ -57,6 +92,82 @@ async function registerOrg() {
         </NuxtLink>
       </div>
       <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-6 sm:p-8">
+        <div class="mb-5 flex gap-2 rounded-lg border border-slate-200 p-1 bg-slate-50">
+          <button
+            type="button"
+            class="flex-1 py-2 rounded-md text-sm font-medium"
+            :class="registerRole === 'USER' ? 'bg-white shadow text-slate-900' : 'text-slate-600 hover:text-slate-800'"
+            @click="registerRole = 'USER'"
+          >
+            Flugpate
+          </button>
+          <button
+            type="button"
+            class="flex-1 py-2 rounded-md text-sm font-medium"
+            :class="registerRole === 'ORG_USER' ? 'bg-white shadow text-slate-900' : 'text-slate-600 hover:text-slate-800'"
+            @click="registerRole = 'ORG_USER'"
+          >
+            Organisation
+          </button>
+        </div>
+
+        <template v-if="registerRole === 'USER'">
+          <h1 class="text-xl font-bold text-slate-900 mb-2">{{ t('register.rolePatron') }}</h1>
+          <p class="text-slate-600 text-sm mb-6">
+            Registrierung ist möglich. Während Wartungsmodus wird dein Konto nach Admin-Freigabe aktiviert.
+          </p>
+          <form v-if="!userSuccess" @submit.prevent="registerUser" class="space-y-4">
+            <div v-if="userError" class="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">{{ userError }}</div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.displayName') }} *</label>
+              <input v-model="userDisplayName" type="text" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.email') }} *</label>
+              <input v-model="userEmail" type="email" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.password') }} *</label>
+              <input v-model="userPassword" type="password" minlength="8" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('register.preferredLanguage') }} *</label>
+              <select v-model="userPreferredLanguage" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition">
+                <option value="" disabled>{{ t('register.preferredLanguagePlaceholder') }}</option>
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <option value="it">Italiano</option>
+                <option value="pl">Polski</option>
+              </select>
+            </div>
+            <div class="space-y-3">
+              <label class="flex items-start gap-2 cursor-pointer">
+                <input v-model="termsAndPrivacyAccepted" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300 shrink-0" />
+                <span class="text-sm text-slate-700">
+                  {{ t('register.termsAndPrivacyCheckboxPrefix') }}
+                  <button type="button" class="text-amber-600 hover:underline" @click.prevent="showTermsModal = true">{{ t('register.termsLink') }}</button>
+                  {{ t('register.termsAndPrivacyCheckboxMiddle') }}
+                  <button type="button" class="text-amber-600 hover:underline" @click.prevent="showPrivacyModal = true">{{ t('register.privacyLink') }}</button>
+                  {{ t('register.termsAndPrivacyCheckboxSuffix') }}
+                </span>
+              </label>
+              <label class="flex items-start gap-2 cursor-pointer">
+                <input v-model="newsletterOptIn" type="checkbox" class="mt-1 w-4 h-4 rounded border-slate-300 shrink-0" />
+                <span class="text-sm text-slate-700">{{ t('register.newsletterCheckbox') }}</span>
+              </label>
+            </div>
+            <button type="submit" :disabled="userLoading || !termsAndPrivacyAccepted || !userPreferredLanguage" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold transition disabled:opacity-50 shadow-md hover:shadow-lg">
+              {{ userLoading ? t('register.submitting') : t('register.submit') }}
+            </button>
+          </form>
+          <div v-else class="p-4 rounded-xl bg-green-50 text-green-800 text-sm border border-green-200">
+            Registrierung erfolgreich. Dein Konto wartet auf Freigabe durch den Admin.
+          </div>
+        </template>
+
+        <template v-else>
         <h1 class="text-xl font-bold text-slate-900 mb-2">{{ t('maintenance.orgHeading') }}</h1>
         <p class="text-slate-600 text-sm mb-6">
           {{ t('maintenance.orgPreRegisterHint') }}
@@ -177,6 +288,7 @@ async function registerOrg() {
         <div v-else class="p-4 rounded-xl bg-green-50 text-green-800 text-sm border border-green-200">
           {{ t('maintenance.orgSuccess') }}
         </div>
+        </template>
       </div>
     </div>
 

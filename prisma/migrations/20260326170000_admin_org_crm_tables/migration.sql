@@ -31,7 +31,3 @@ ON "admin_organization_tasks"("organization_id", "status", "due_date");
 ALTER TABLE "admin_organization_notes"
 ADD CONSTRAINT "admin_organization_notes_organization_id_fkey"
 FOREIGN KEY ("organization_id") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
-ALTER TABLE "admin_organization_tasks"
-ADD CONSTRAINT "admin_organization_tasks_organization_id_fkey"
-FOREIGN KEY ("organization_id") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;

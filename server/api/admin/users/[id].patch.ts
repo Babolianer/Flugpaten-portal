@@ -5,6 +5,7 @@ import { requireRole } from '~~/server/utils/auth'
 const schema = z.object({
   adminNotes: z.string().max(2000).optional().nullable(),
   blocked: z.boolean().optional(),
+  isApproved: z.boolean().optional(),
   preferredLanguage: z.enum(['de', 'en', 'fr', 'es', 'it', 'pl']).optional(),
 })
 
@@ -28,10 +29,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const data: { adminNotes?: string | null; blockedAt?: Date | null; preferredLanguage?: string } = {}
+  const data: { adminNotes?: string | null; blockedAt?: Date | null; preferredLanguage?: string; isApproved?: boolean } = {}
   if (parsed.data.adminNotes !== undefined) data.adminNotes = parsed.data.adminNotes
   if (parsed.data.blocked === true) data.blockedAt = new Date()
   if (parsed.data.blocked === false) data.blockedAt = null
+  if (parsed.data.isApproved !== undefined) data.isApproved = parsed.data.isApproved
   if (parsed.data.preferredLanguage !== undefined) data.preferredLanguage = parsed.data.preferredLanguage
 
   if (Object.keys(data).length === 0) {
@@ -48,6 +50,7 @@ export default defineEventHandler(async (event) => {
       id: user.id,
       adminNotes: user.adminNotes,
       blockedAt: user.blockedAt?.toISOString() ?? null,
+      isApproved: user.isApproved,
       preferredLanguage: user.preferredLanguage,
     },
   }

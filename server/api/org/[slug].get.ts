@@ -1,6 +1,26 @@
 import { prisma } from '~~/server/utils/prisma'
 import { getRequestLocale } from '~~/server/utils/locale'
 import { translateStrings } from '~~/server/utils/translateContent'
+import sanitizeHtml from 'sanitize-html'
+
+function sanitizeLandingContent(input: string | null | undefined): string | null {
+  if (!input) return null
+  const cleaned = sanitizeHtml(input, {
+    allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'h3', 'h4', 'blockquote'],
+    allowedAttributes: { a: ['href', 'target', 'rel'] },
+    allowedSchemes: ['https', 'mailto', 'tel'],
+    transformTags: {
+      a: (_tagName, attrs) => ({
+        tagName: 'a',
+        attribs: {
+          ...attrs,
+          rel: 'noopener noreferrer',
+        },
+      }),
+    },
+  }).trim()
+  return cleaned || null
+}
 
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
@@ -39,7 +59,7 @@ export default defineEventHandler(async (event) => {
 
   let name = org.name
   let description = org.description
-  let landingContent = org.landingContent
+  let landingContent = sanitizeLandingContent(org.landingContent)
   let locationTitles: string[] = []
   let requestTitles: string[] = []
 
@@ -55,7 +75,7 @@ export default defineEventHandler(async (event) => {
     let i = 0
     name = translated[i++] ?? org.name
     description = translated[i++] ?? org.description
-    landingContent = translated[i++] ?? org.landingContent
+    landingContent = sanitizeLandingContent(translated[i++] ?? org.landingContent)
     locationTitles = org.locations.map(() => translated[i++] ?? '')
     requestTitles = org.requests.map(() => translated[i++] ?? '')
   }

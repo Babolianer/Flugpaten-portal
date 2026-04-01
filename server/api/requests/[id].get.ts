@@ -2,6 +2,26 @@ import { prisma } from '~~/server/utils/prisma'
 import { getRequestLocale } from '~~/server/utils/locale'
 import { translateStrings } from '~~/server/utils/translateContent'
 import { getUserFromEvent } from '~~/server/utils/auth'
+import sanitizeHtml from 'sanitize-html'
+
+function sanitizeLandingContent(input: string | null | undefined): string | null {
+  if (!input) return null
+  const cleaned = sanitizeHtml(input, {
+    allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'h3', 'h4', 'blockquote'],
+    allowedAttributes: { a: ['href', 'target', 'rel'] },
+    allowedSchemes: ['https', 'mailto', 'tel'],
+    transformTags: {
+      a: (_tagName, attrs) => ({
+        tagName: 'a',
+        attribs: {
+          ...attrs,
+          rel: 'noopener noreferrer',
+        },
+      }),
+    },
+  }).trim()
+  return cleaned || null
+}
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -51,7 +71,7 @@ export default defineEventHandler(async (event) => {
 
   let orgName = request.organization?.name
   let orgDescription = request.organization?.description
-  let orgLandingContent = request.organization?.landingContent
+  let orgLandingContent = sanitizeLandingContent(request.organization?.landingContent)
   let reqTitle = request.title
   let reqDetails = request.details
 
@@ -68,7 +88,7 @@ export default defineEventHandler(async (event) => {
     reqDetails = translated[1] ?? request.details
     orgName = translated[2] ?? request.organization?.name
     orgDescription = translated[3] ?? request.organization?.description
-    orgLandingContent = translated[4] ?? request.organization?.landingContent
+    orgLandingContent = sanitizeLandingContent(translated[4] ?? request.organization?.landingContent)
   }
 
   // Bewertungen der Organisation (von Flugpaten nach abgeschlossenen Transporten)

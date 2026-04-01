@@ -29,6 +29,12 @@ function slugify(text: string): string {
 }
 
 export default defineEventHandler(async (event) => {
+  const maintenanceRow = await prisma.siteSetting.findUnique({
+    where: { key: 'maintenanceMode' },
+    select: { value: true },
+  }).catch(() => null)
+  const maintenanceActive = maintenanceRow?.value === 'true'
+
   const body = await readBody(event)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
@@ -72,6 +78,7 @@ export default defineEventHandler(async (event) => {
       passwordHash,
       role: 'ORG_USER',
       displayName: name,
+      isApproved: !maintenanceActive,
       newsletterOptIn: !!newsletterOptIn,
       preferredLanguage,
     },

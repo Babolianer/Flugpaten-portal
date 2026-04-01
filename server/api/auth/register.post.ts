@@ -16,6 +16,12 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const maintenanceRow = await prisma.siteSetting.findUnique({
+    where: { key: 'maintenanceMode' },
+    select: { value: true },
+  }).catch(() => null)
+  const maintenanceActive = maintenanceRow?.value === 'true'
+
   const body = await readBody(event)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
@@ -46,6 +52,7 @@ export default defineEventHandler(async (event) => {
         displayName,
         phone,
         emailVerified: false,
+        isApproved: !maintenanceActive,
         newsletterOptIn: !!newsletterOptIn,
         preferredLanguage,
       },
@@ -57,23 +64,25 @@ export default defineEventHandler(async (event) => {
       },
     })
 
-    const config = useRuntimeConfig()
-    const cookieName = config.cookieName || 'tierschutz_session'
-    const token = await signJwt({ sub: user.id, role: user.role })
-    setCookie(event, cookieName, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    })
-    setCookie(event, 'pawbridge_locale', preferredLanguage, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 365,
-      path: '/',
-    })
+    if (!maintenanceActive) {
+      const config = useRuntimeConfig()
+      const cookieName = config.cookieName || 'tierschutz_session'
+      const token = await signJwt({ sub: user.id, role: user.role })
+      setCookie(event, cookieName, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      })
+      setCookie(event, 'pawbridge_locale', preferredLanguage, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365,
+        path: '/',
+      })
+    }
 
     if (newsletterOptIn) {
       fireEmailTrigger('NEWSLETTER_OPT_IN_USER', { userId: user.id })
@@ -84,7 +93,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = await prisma.user.create({
-    data: { email, passwordHash, role, displayName, phone, newsletterOptIn: !!newsletterOptIn, preferredLanguage },
+    data: {
+      email,
+      passwordHash,
+      role,
+      displayName,
+      phone,
+      isApproved: !maintenanceActive,
+      newsletterOptIn: !!newsletterOptIn,
+      preferredLanguage,
+    },
     select: {
       id: true,
       email: true,

@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
       phone: user.phone,
       preferredLanguage: user.preferredLanguage,
       emailVerified: (user as { emailVerified?: boolean }).emailVerified,
+      isApproved: (user as { isApproved?: boolean }).isApproved,
     },
     memberships: memberships || [],
   }

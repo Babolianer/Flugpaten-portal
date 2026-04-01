@@ -127,6 +127,7 @@ interface AdminUserRow {
   displayName: string
   preferredLanguage: string
   emailVerified: boolean
+  isApproved: boolean
   createdAt: string
   lastLoginAt: string | null
   adminNotes: string | null
@@ -151,6 +152,7 @@ const savingOrgUserNotesId = ref<string | null>(null)
 const savingUserLanguageId = ref<string | null>(null)
 const savingOrgLanguageId = ref<string | null>(null)
 const verifyingUserId = ref<string | null>(null)
+const approvingUserId = ref<string | null>(null)
 const blockingUserId = ref<string | null>(null)
 const adminUsersListBlocked = ref(false)
 const languageOptions = [
@@ -449,9 +451,20 @@ async function setUserBlocked(u: AdminUserRow, blocked: boolean) {
   blockingUserId.value = u.id
   message.value = ''
   try {
-    await $fetch(`/api/admin/users/${u.id}`, { method: 'PATCH', body: { blocked } })
+    // Beim Entsperren: Sperre aufheben und Konto wieder für Login freigeben (z. B. Wartungsmodus / isApproved).
+    const body = blocked ? { blocked: true } : { blocked: false, isApproved: true }
+    await $fetch(`/api/admin/users/${u.id}`, { method: 'PATCH', body })
+    if (!blocked) {
+      u.isApproved = true
+      u.blockedAt = null
+    } else {
+      u.blockedAt = new Date().toISOString()
+    }
     await loadAdminUsers(adminUsersPage.value)
     await loadStats()
+    if (!blocked) {
+      message.value = 'Nutzer entsperrt und für den Login freigegeben.'
+    }
   } catch {
     message.value = blocked ? t('admin.acquise.blockUserError') : t('admin.acquise.unblockUserError')
   } finally {
@@ -471,6 +484,21 @@ async function verifyUser(u: AdminUserRow) {
     message.value = t('admin.acquise.verifyError')
   } finally {
     verifyingUserId.value = null
+  }
+}
+
+async function approveUserAccount(u: AdminUserRow) {
+  if (u.isApproved) return
+  approvingUserId.value = u.id
+  message.value = ''
+  try {
+    await $fetch(`/api/admin/users/${u.id}`, { method: 'PATCH', body: { isApproved: true } })
+    u.isApproved = true
+    message.value = 'Nutzer wurde freigegeben.'
+  } catch {
+    message.value = 'Freigabe fehlgeschlagen.'
+  } finally {
+    approvingUserId.value = null
   }
 }
 
@@ -1625,6 +1653,12 @@ onMounted(() => {
                     >
                       {{ verifyingUserId === u.id ? '…' : t('admin.acquise.verifyButton') }}
                     </button>
+                    <span
+                      class="inline-flex px-2 py-0.5 rounded text-xs"
+                      :class="u.isApproved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+                    >
+                      {{ u.isApproved ? 'Freigegeben' : 'Wartet auf Freigabe' }}
+                    </span>
                     <span class="inline-flex px-2 py-0.5 rounded text-xs" :class="u.profileComplete ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'">
                       Profil: {{ u.profileComplete ? '✓' : '–' }}
                     </span>
@@ -1653,6 +1687,15 @@ onMounted(() => {
                   />
                 </div>
                 <div class="flex flex-wrap gap-2 pt-1">
+                  <button
+                    v-if="!u.isApproved"
+                    type="button"
+                    :disabled="approvingUserId === u.id"
+                    class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-50 min-h-[36px]"
+                    @click="approveUserAccount(u)"
+                  >
+                    {{ approvingUserId === u.id ? '…' : 'Freigeben' }}
+                  </button>
                   <button
                     v-if="!adminUsersListBlocked"
                     type="button"
@@ -1683,6 +1726,7 @@ onMounted(() => {
                   <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userName') }}</th>
                   <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.email') }}</th>
                   <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userEmailVerified') }}</th>
+                  <th class="text-center py-3 px-3 font-semibold text-slate-700">Freigabe</th>
                   <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userProfileComplete') }}</th>
                   <th class="text-center py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userFlights') }}</th>
                   <th class="text-left py-3 px-3 font-semibold text-slate-700">{{ t('admin.acquise.userCreated') }}</th>
@@ -1709,6 +1753,14 @@ onMounted(() => {
                     >
                       {{ verifyingUserId === u.id ? '…' : t('admin.acquise.verifyButton') }}
                     </button>
+                  </td>
+                  <td class="py-3 px-3 text-center">
+                    <span
+                      class="inline-flex px-2 py-0.5 rounded text-xs"
+                      :class="u.isApproved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+                    >
+                      {{ u.isApproved ? 'Ja' : 'Nein' }}
+                    </span>
                   </td>
                   <td class="py-3 px-3 text-center">
                     <span v-if="u.profileComplete" class="text-green-600">✓</span>
@@ -1738,6 +1790,15 @@ onMounted(() => {
                     />
                   </td>
                   <td class="py-3 px-3 text-right whitespace-nowrap">
+                    <button
+                      v-if="!u.isApproved"
+                      type="button"
+                      :disabled="approvingUserId === u.id"
+                      class="mr-2 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
+                      @click="approveUserAccount(u)"
+                    >
+                      {{ approvingUserId === u.id ? '…' : 'Freigeben' }}
+                    </button>
                     <button
                       v-if="!adminUsersListBlocked"
                       type="button"

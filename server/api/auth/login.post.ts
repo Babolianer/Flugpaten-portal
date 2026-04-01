@@ -29,6 +29,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Invalid email or password' })
   }
 
+  const maintenanceRow = await prisma.siteSetting.findUnique({
+    where: { key: 'maintenanceMode' },
+    select: { value: true },
+  }).catch(() => null)
+  const maintenanceActive = maintenanceRow?.value === 'true'
+  const isApproved = (user as { isApproved?: boolean }).isApproved !== false
+  if (maintenanceActive && !isApproved && user.role !== 'ADMIN') {
+    throw createError({
+      statusCode: 403,
+      message: 'Dein Konto wurde registriert und wartet auf Freigabe durch den Admin.',
+    })
+  }
+
   if (user.role === 'USER' && user.blockedAt) {
     throw createError({
       statusCode: 403,

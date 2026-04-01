@@ -2,6 +2,28 @@ import { z } from 'zod'
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 import { ensureOrgAccess } from '~~/server/utils/orgAccess'
+import sanitizeHtml from 'sanitize-html'
+
+function sanitizeLandingContent(input: string | null | undefined): string | null {
+  if (!input) return null
+  const cleaned = sanitizeHtml(input, {
+    allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'h3', 'h4', 'blockquote'],
+    allowedAttributes: {
+      a: ['href', 'target', 'rel'],
+    },
+    allowedSchemes: ['https', 'mailto', 'tel'],
+    transformTags: {
+      a: (_tagName, attrs) => ({
+        tagName: 'a',
+        attribs: {
+          ...attrs,
+          rel: 'noopener noreferrer',
+        },
+      }),
+    },
+  }).trim()
+  return cleaned || null
+}
 
 const schema = z.object({
   organizationId: z.string().min(1),
@@ -43,7 +65,7 @@ export default defineEventHandler(async (event) => {
 
   const data: Record<string, unknown> = {}
   if (parsed.data.description !== undefined) data.description = parsed.data.description ?? null
-  if (parsed.data.landingContent !== undefined) data.landingContent = parsed.data.landingContent ?? null
+  if (parsed.data.landingContent !== undefined) data.landingContent = sanitizeLandingContent(parsed.data.landingContent)
   if (parsed.data.website !== undefined) data.website = parsed.data.website ?? null
   if (parsed.data.preferredLanguage !== undefined) data.preferredLanguage = parsed.data.preferredLanguage
   if (parsed.data.contactEmail !== undefined && parsed.data.contactEmail !== '') data.contactEmail = parsed.data.contactEmail
@@ -80,7 +102,7 @@ export default defineEventHandler(async (event) => {
       try {
         await prisma.$executeRaw`
           UPDATE "Organization" SET
-            landing_content = ${parsed.data.landingContent ?? null},
+            landing_content = ${sanitizeLandingContent(parsed.data.landingContent)},
             contact_phone = ${parsed.data.contactPhone ?? null},
             contact_instagram = ${parsed.data.contactInstagram ?? null},
             contact_facebook = ${parsed.data.contactFacebook ?? null}
@@ -103,7 +125,9 @@ export default defineEventHandler(async (event) => {
       const withExtra = organization
         ? {
             ...organization,
-            landingContent: parsed.data.landingContent ?? (organization as { landingContent?: string | null }).landingContent ?? null,
+            landingContent: sanitizeLandingContent(parsed.data.landingContent)
+              ?? (organization as { landingContent?: string | null }).landingContent
+              ?? null,
             contactPhone: parsed.data.contactPhone ?? null,
             contactInstagram: parsed.data.contactInstagram ?? null,
             contactFacebook: parsed.data.contactFacebook ?? null,

@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
     '/maintenance',
     '/api/site/maintenance',
     '/api/auth/login',
+    '/api/auth/register',
     '/api/auth/forgot-password',
     '/api/auth/reset-password',
     '/api/auth/register-org',
@@ -51,16 +52,9 @@ export default defineEventHandler(async (event) => {
   if (token) {
     const { verifyJwt } = await import('../utils/auth')
     const payload = await verifyJwt(token)
-    if (payload?.role === 'ADMIN') return
-    if (payload?.role === 'ORG_USER') {
-      const { prisma } = await import('../utils/prisma')
-      const memberships = await prisma.organizationMember.findMany({
-        where: { userId: payload.sub },
-        include: { organization: { select: { status: true } } },
-      })
-      const hasApprovedOrg = memberships.some((m) => m.organization.status === 'APPROVED')
-      if (hasApprovedOrg) return
-    }
+    // Gültige Session darf die Wartungssperre passieren.
+    // Login-Endpunkt prüft bereits Freigabe/Block-Status beim Anmelden.
+    if (payload?.sub) return
   }
 
   if (path.startsWith('/api/')) {

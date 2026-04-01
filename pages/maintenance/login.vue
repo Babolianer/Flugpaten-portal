@@ -2,11 +2,20 @@
 definePageMeta({ layout: false })
 
 const { t } = useI18n()
+const route = useRoute()
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
 const { fetchUser, user } = useAuth()
+const { getFetchErrorMessage } = useFetchErrorMessage()
+
+function sanitizeRedirect(input: unknown, fallback = '/maintenance') {
+  if (typeof input !== 'string') return fallback
+  if (!input.startsWith('/')) return fallback
+  if (input.startsWith('//')) return fallback
+  return input
+}
 
 // Admin-Bypass Modal
 const showBypassModal = ref(false)
@@ -21,34 +30,33 @@ async function submit() {
     await $fetch('/api/auth/login', {
       method: 'POST',
       body: { email: email.value, password: password.value },
+      credentials: 'include',
     })
     await fetchUser()
-    const role = user.value?.role
-    if (role === 'USER') {
-      error.value = t('maintenance.loginUserNotAllowed')
-      await $fetch('/api/auth/logout', { method: 'POST' })
-      user.value = null
+    if (!user.value) {
+      error.value =
+        'Anmeldung ok, aber die Sitzung konnte nicht geladen werden. Bitte Cookies für diese Seite erlauben und erneut versuchen.'
       return
     }
-    if (role === 'ORG_USER') {
-      const data = await $fetch<{ memberships?: { status: string }[] }>('/api/auth/me')
-      const hasApprovedOrg = data.memberships?.some((m) => m.status === 'APPROVED')
-      if (!hasApprovedOrg) {
-        error.value = t('maintenance.loginOrgPending')
-        await $fetch('/api/auth/logout', { method: 'POST' })
-        user.value = null
-        return
-      }
+    const role = user.value.role
+    const target = sanitizeRedirect(route.query.redirect, '')
+    if (target) {
+      await navigateTo(target)
+      return
     }
+
     if (role === 'ADMIN') {
       await navigateTo('/admin')
     } else if (role === 'ORG_USER') {
       await navigateTo('/org/dashboard')
+    } else if (role === 'USER') {
+      await navigateTo('/dashboard')
     } else {
-      await navigateTo('/')
+      await navigateTo('/maintenance')
     }
   } catch (e: unknown) {
-    error.value = (e as { data?: { message?: string } })?.data?.message || t('login.error')
+    const msg = getFetchErrorMessage(e)
+    error.value = msg || t('login.error')
   } finally {
     loading.value = false
   }

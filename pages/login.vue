@@ -6,7 +6,13 @@ const error = ref('')
 const loading = ref(false)
 
 const route = useRoute()
-const redirect = computed(() => (route.query.redirect as string) || '/dashboard')
+function sanitizeRedirect(input: unknown, fallback = '/dashboard') {
+  if (typeof input !== 'string') return fallback
+  if (!input.startsWith('/')) return fallback
+  if (input.startsWith('//')) return fallback
+  return input
+}
+const redirect = computed(() => sanitizeRedirect(route.query.redirect, '/dashboard'))
 const { fetchUser, user } = useAuth()
 
 async function submit() {
