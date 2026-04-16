@@ -1,24 +1,17 @@
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
-import { FLUGPATE_TOPICS } from '~/content/flugpate/types'
+import { parseDisabledKnowledgeSlugs } from '~~/server/utils/disabledKnowledgeSlugs'
 
 const SETTING_KEY = 'disabledKnowledgeSlugs'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
+  setResponseHeader(event, 'Cache-Control', 'private, no-store, max-age=0, must-revalidate')
   try {
     const row = await prisma.siteSetting.findUnique({
       where: { key: SETTING_KEY },
     })
-    const raw = row?.value?.trim()
-    if (!raw) return { disabledSlugs: [] as string[] }
-
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return { disabledSlugs: [] as string[] }
-
-    const validSlugs = new Set(FLUGPATE_TOPICS.map(topic => topic.slug))
-    const disabledSlugs = parsed.filter((entry): entry is string => typeof entry === 'string' && validSlugs.has(entry))
-
+    const disabledSlugs = parseDisabledKnowledgeSlugs(row?.value ?? null)
     return { disabledSlugs }
   } catch {
     return { disabledSlugs: [] as string[] }

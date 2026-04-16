@@ -1,4 +1,8 @@
 import { FLUGPATE_TOPICS } from '~/content/flugpate/types'
+
+function allKnowledgeSlugsClient(): string[] {
+  return FLUGPATE_TOPICS.map((t) => t.slug)
+}
 import type { FlugpatePageContent } from '~/content/flugpate/types'
 import { wasIstEinFlugpateContent } from '~/content/flugpate/was-ist-ein-flugpate'
 import { ablaufFlugpatenschaftContent } from '~/content/flugpate/ablauf-einer-flugpatenschaft'
@@ -43,7 +47,10 @@ export function useFlugpateContent() {
   const route = useRoute()
   const { data: knowledgePagesSettings } = useAsyncData(
     'knowledge-pages-settings',
-    () => $fetch<{ disabledSlugs: string[] }>('/api/site/knowledge-pages'),
+    () =>
+      $fetch<{ disabledSlugs: string[] }>('/api/site/knowledge-pages', {
+        headers: { 'Cache-Control': 'no-cache' },
+      }).catch(() => ({ disabledSlugs: allKnowledgeSlugsClient() })),
     {
       default: () => ({ disabledSlugs: [] }),
       // Always fetch fresh settings for current session/navigation.

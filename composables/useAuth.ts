@@ -24,6 +24,7 @@ export function useAuth() {
   async function logout() {
     await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     user.value = null
+    await refreshNuxtData('knowledge-pages-settings')
     await navigateTo('/')
   }
 
