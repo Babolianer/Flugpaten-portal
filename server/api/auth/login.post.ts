@@ -34,12 +34,26 @@ export default defineEventHandler(async (event) => {
     select: { value: true },
   }).catch(() => null)
   const maintenanceActive = maintenanceRow?.value === 'true'
-  const isApproved = (user as { isApproved?: boolean }).isApproved !== false
-  if (maintenanceActive && !isApproved && user.role !== 'ADMIN') {
-    throw createError({
-      statusCode: 403,
-      message: 'Dein Konto wurde registriert und wartet auf Freigabe durch den Admin.',
-    })
+  if (maintenanceActive && user.role !== 'ADMIN') {
+    // Wartungsmodus: Flugpaten-Nutzer (USER) warten auf explizite Nutzer-Freigabe (isApproved).
+    // Organisations-Konten (ORG_USER) sind getrennt: Freigabe = mindestens eine Organisation APPROVED.
+    if (user.role === 'ORG_USER') {
+      const hasApprovedOrg = user.memberships?.some((m) => m.organization.status === 'APPROVED')
+      if (!hasApprovedOrg) {
+        throw createError({
+          statusCode: 403,
+          message: 'Dein Konto wurde registriert und wartet auf Freigabe durch den Admin.',
+        })
+      }
+    } else {
+      const isApproved = (user as { isApproved?: boolean }).isApproved !== false
+      if (!isApproved) {
+        throw createError({
+          statusCode: 403,
+          message: 'Dein Konto wurde registriert und wartet auf Freigabe durch den Admin.',
+        })
+      }
+    }
   }
 
   if (user.role === 'USER' && user.blockedAt) {
