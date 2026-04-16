@@ -380,7 +380,14 @@
       "maintenanceTitle": "Modalità manutenzione",
       "maintenanceDescription": "Quando attiva, i visitatori vedono solo una pagina di manutenzione. Solo chi conosce la password può accedere.",
       "maintenanceOn": "Attiva – solo admin",
-      "maintenanceOff": "Disattivata – sito accessibile"
+      "maintenanceOff": "Disattivata – sito accessibile",
+      "knowledgePagesTitle": "Pagine informative",
+      "knowledgePagesDescription": "Attiva o disattiva singole pagine informative. Le pagine inattive non vengono mostrate nella navigazione e non sono accessibili direttamente.",
+      "knowledgePagesMasterTitle": "Tutte le pagine informative",
+      "knowledgePagesMasterOn": "Tutte attive",
+      "knowledgePagesMasterOff": "Tutte inattive",
+      "knowledgePageOn": "Attiva",
+      "knowledgePageOff": "Inattiva"
     },
     "pendingOrgs": "Organizzazioni in attesa",
     "approvedOrgs": "Organizzazioni approvate",

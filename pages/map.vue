@@ -62,8 +62,8 @@ const filters = ref<MapFilterValues>(defaultFilters())
 const pins = ref<Pin[]>([])
 const requests = ref<Request[]>([])
 const selectedId = ref<string | null>(null)
-const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void } | null>(null)
-const overlayMapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void } | null>(null)
+const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void; resize: () => void } | null>(null)
+const overlayMapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void; resize: () => void } | null>(null)
 const requestListRef = ref<HTMLElement | null>(null)
 const mapExpanded = ref(false)
 const loading = ref(false)
@@ -213,7 +213,14 @@ onMounted(() => {
 })
 
 watch(mapExpanded, (expanded) => {
-  if (expanded) nextTick(() => overlayMapRef.value?.fitToPins())
+  if (expanded) {
+    nextTick(() => {
+      overlayMapRef.value?.resize()
+      overlayMapRef.value?.fitToPins()
+    })
+    return
+  }
+  nextTick(() => mapRef.value?.resize())
 })
 </script>
 
@@ -267,11 +274,11 @@ watch(mapExpanded, (expanded) => {
             :selected-id="selectedId"
             :selected-routes="selectedRoutes"
             :compact="isMobile && !mapExpanded"
-            class="h-[140px] md:h-[380px] lg:h-[500px] w-full"
+            class="h-[170px] md:h-[380px] lg:h-[500px] w-full"
             @pin-click="onPinClick"
           />
           <template #fallback>
-            <div class="h-[140px] md:h-[380px] lg:h-[500px] bg-slate-200 flex items-center justify-center">
+            <div class="h-[170px] md:h-[380px] lg:h-[500px] bg-slate-200 flex items-center justify-center">
               Karte wird geladen...
             </div>
           </template>

@@ -4,6 +4,7 @@ import logoImgHover from '~/assets/images/logo_2.png'
 
 const { user, fetchUser, logout } = useAuth()
 const { locale, locales, t, setLocale } = useI18n()
+const { topics } = useFlugpateContent()
 const mobileMenuOpen = ref(false)
 const unreadMessagesCount = ref(0)
 const logoHover = ref(false)
@@ -12,6 +13,7 @@ const langDropdownDesktopRef = ref<HTMLElement | null>(null)
 const langDropdownMobileRef = ref<HTMLElement | null>(null)
 
 const currentLocale = computed(() => locales.find((l) => l.code === locale.value) ?? locales[0])
+const hasKnowledgeTopics = computed(() => topics.value.length > 0)
 
 function closeMobileMenu() {
   mobileMenuOpen.value = false
@@ -134,7 +136,7 @@ onUnmounted(() => {
 
       <!-- Desktop nav (ab md): Wissen + Flugpaten werden (Button) -->
       <nav class="hidden md:flex items-center gap-4 lg:gap-6 shrink-0">
-        <NuxtLink to="/flugpate" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.wissen') }}</NuxtLink>
+        <NuxtLink v-if="hasKnowledgeTopics" to="/flugpate" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.wissen') }}</NuxtLink>
         <NuxtLink to="/orgs-map" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.organisations') }}</NuxtLink>
         <NuxtLink
           to="/map"
@@ -396,7 +398,7 @@ onUnmounted(() => {
           <!-- 4. Organisationen -->
           <NuxtLink to="/orgs-map" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.organisations') }}</NuxtLink>
           <!-- 5. Wissen -->
-          <NuxtLink to="/flugpate" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.wissen') }}</NuxtLink>
+          <NuxtLink v-if="hasKnowledgeTopics" to="/flugpate" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.wissen') }}</NuxtLink>
           <template v-if="user">
             <button type="button" class="py-3 px-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-left w-full font-medium mt-2" @click="logout(); closeMobileMenu()">{{ t('nav.logout') }}</button>
           </template>

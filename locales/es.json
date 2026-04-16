@@ -384,7 +384,14 @@
       "maintenanceTitle": "Modo mantenimiento",
       "maintenanceDescription": "Cuando está activo, los visitantes solo ven una página de mantenimiento. Solo quienes conocen la contraseña pueden iniciar sesión.",
       "maintenanceOn": "Activo – solo admin",
-      "maintenanceOff": "Desactivado – sitio accesible"
+      "maintenanceOff": "Desactivado – sitio accesible",
+      "knowledgePagesTitle": "Páginas de conocimiento",
+      "knowledgePagesDescription": "Activa o desactiva páginas de conocimiento individuales. Las páginas inactivas no se muestran en la navegación ni pueden abrirse directamente.",
+      "knowledgePagesMasterTitle": "Todas las páginas de conocimiento",
+      "knowledgePagesMasterOn": "Todas activas",
+      "knowledgePagesMasterOff": "Todas inactivas",
+      "knowledgePageOn": "Activa",
+      "knowledgePageOff": "Inactiva"
     },
     "pendingOrgs": "Organizaciones pendientes",
     "approvedOrgs": "Organizaciones aprobadas",

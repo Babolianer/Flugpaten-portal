@@ -1,5 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+import { FLUGPATE_TOPICS } from '~/content/flugpate/types'
 
 interface PendingOrg {
   id: string
@@ -119,6 +120,9 @@ const pageHeading = computed(() => {
 const maintenanceMode = ref(false)
 const loadingMaintenance = ref(false)
 const savingMaintenance = ref(false)
+const disabledKnowledgeSlugs = ref<string[]>([])
+const loadingKnowledgePages = ref(false)
+const savingKnowledgeSlug = ref<string | null>(null)
 const acquiseSubTab = ref<'users' | 'registeredOrgs' | 'orgaAquise'>('users')
 
 interface AdminUserRow {
@@ -234,6 +238,74 @@ async function setMaintenance(value: boolean) {
     message.value = err?.data?.message || 'Wartungsmodus konnte nicht gespeichert werden.'
   } finally {
     savingMaintenance.value = false
+  }
+}
+
+const knowledgePages = computed(() =>
+  FLUGPATE_TOPICS.map((topic) => {
+    const isActive = !disabledKnowledgeSlugs.value.includes(topic.slug)
+    return {
+      slug: topic.slug,
+      title: t(`flugpate.topics.${topic.slug}.title`),
+      isActive,
+    }
+  }),
+)
+
+const allKnowledgePagesActive = computed(() => disabledKnowledgeSlugs.value.length === 0)
+
+async function loadKnowledgePages() {
+  loadingKnowledgePages.value = true
+  try {
+    const res = await $fetch<{ disabledSlugs: string[] }>('/api/admin/knowledge-pages')
+    disabledKnowledgeSlugs.value = res.disabledSlugs
+  } catch {
+    disabledKnowledgeSlugs.value = []
+  } finally {
+    loadingKnowledgePages.value = false
+  }
+}
+
+async function setKnowledgePageActive(slug: string, nextValue: boolean) {
+  savingKnowledgeSlug.value = slug
+  message.value = ''
+  try {
+    const nextDisabled = new Set(disabledKnowledgeSlugs.value)
+    if (nextValue) {
+      nextDisabled.delete(slug)
+    } else {
+      nextDisabled.add(slug)
+    }
+    const res = await $fetch<{ disabledSlugs: string[] }>('/api/admin/knowledge-pages', {
+      method: 'PATCH',
+      body: { disabledSlugs: Array.from(nextDisabled) },
+    })
+    disabledKnowledgeSlugs.value = res.disabledSlugs
+    await refreshNuxtData('knowledge-pages-settings')
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    message.value = err?.data?.message || 'Wissensseiten konnten nicht gespeichert werden.'
+  } finally {
+    savingKnowledgeSlug.value = null
+  }
+}
+
+async function setAllKnowledgePagesActive(nextValue: boolean) {
+  savingKnowledgeSlug.value = '__all__'
+  message.value = ''
+  try {
+    const disabledSlugs = nextValue ? [] : FLUGPATE_TOPICS.map(topic => topic.slug)
+    const res = await $fetch<{ disabledSlugs: string[] }>('/api/admin/knowledge-pages', {
+      method: 'PATCH',
+      body: { disabledSlugs },
+    })
+    disabledKnowledgeSlugs.value = res.disabledSlugs
+    await refreshNuxtData('knowledge-pages-settings')
+  } catch (e: unknown) {
+    const err = e as { data?: { message?: string } }
+    message.value = err?.data?.message || 'Wissensseiten konnten nicht gespeichert werden.'
+  } finally {
+    savingKnowledgeSlug.value = null
   }
 }
 
@@ -676,6 +748,7 @@ function toggleOrganizationsNav() {
 onMounted(() => {
   load()
   loadMaintenance()
+  loadKnowledgePages()
   loadStats()
 })
 </script>
@@ -2121,6 +2194,63 @@ onMounted(() => {
           <span class="font-medium text-slate-700">
             {{ maintenanceMode ? t('admin.settings.maintenanceOn') : t('admin.settings.maintenanceOff') }}
           </span>
+        </div>
+      </section>
+
+      <section class="p-4 sm:p-6 rounded-xl border border-slate-200 bg-white">
+        <h2 class="text-lg font-semibold text-slate-800 mb-2">{{ t('admin.settings.knowledgePagesTitle') }}</h2>
+        <p class="text-sm text-slate-600 mb-4">{{ t('admin.settings.knowledgePagesDescription') }}</p>
+        <div v-if="loadingKnowledgePages" class="text-slate-500 text-sm">{{ t('admin.loading') }}</div>
+        <div v-else class="space-y-3">
+          <div class="flex items-center justify-between gap-4 rounded-lg border-2 border-slate-300 bg-slate-50 p-3">
+            <span class="text-sm font-semibold text-slate-900">{{ t('admin.settings.knowledgePagesMasterTitle') }}</span>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                :disabled="savingKnowledgeSlug === '__all__'"
+                class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 min-h-[44px] min-w-[56px]"
+                :class="allKnowledgePagesActive ? 'bg-emerald-500' : 'bg-slate-200'"
+                role="switch"
+                :aria-checked="allKnowledgePagesActive"
+                @click="setAllKnowledgePagesActive(!allKnowledgePagesActive)"
+              >
+                <span
+                  class="pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition"
+                  :class="allKnowledgePagesActive ? 'translate-x-6' : 'translate-x-1'"
+                />
+              </button>
+              <span class="text-xs font-medium" :class="allKnowledgePagesActive ? 'text-emerald-700' : 'text-slate-500'">
+                {{ allKnowledgePagesActive ? t('admin.settings.knowledgePagesMasterOn') : t('admin.settings.knowledgePagesMasterOff') }}
+              </span>
+            </div>
+          </div>
+
+          <div
+            v-for="topic in knowledgePages"
+            :key="topic.slug"
+            class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-3"
+          >
+            <span class="text-sm text-slate-800">{{ topic.title }}</span>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                :disabled="savingKnowledgeSlug === topic.slug"
+                class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 min-h-[44px] min-w-[56px]"
+                :class="topic.isActive ? 'bg-emerald-500' : 'bg-slate-200'"
+                role="switch"
+                :aria-checked="topic.isActive"
+                @click="setKnowledgePageActive(topic.slug, !topic.isActive)"
+              >
+                <span
+                  class="pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition"
+                  :class="topic.isActive ? 'translate-x-6' : 'translate-x-1'"
+                />
+              </button>
+              <span class="text-xs font-medium" :class="topic.isActive ? 'text-emerald-700' : 'text-slate-500'">
+                {{ topic.isActive ? t('admin.settings.knowledgePageOn') : t('admin.settings.knowledgePageOff') }}
+              </span>
+            </div>
+          </div>
         </div>
       </section>
     </div>

@@ -4,6 +4,12 @@ import { FLUGPATE_LANDING } from '~/content/flugpate'
 const { t } = useI18n()
 const { topics } = useFlugpateContent()
 
+watchEffect(() => {
+  if (topics.value.length === 0) {
+    throw createError({ statusCode: 404, statusMessage: 'Seite nicht gefunden' })
+  }
+})
+
 useHead({
   title: FLUGPATE_LANDING.metaTitle,
   meta: [

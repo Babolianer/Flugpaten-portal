@@ -380,7 +380,14 @@
       "maintenanceTitle": "Tryb konserwacji",
       "maintenanceDescription": "Gdy aktywny, odwiedzający widzą tylko stronę konserwacji. Tylko osoby znające hasło mogą się zalogować.",
       "maintenanceOn": "Aktywny – tylko admin",
-      "maintenanceOff": "Wyłączony – strona dostępna"
+      "maintenanceOff": "Wyłączony – strona dostępna",
+      "knowledgePagesTitle": "Strony wiedzy",
+      "knowledgePagesDescription": "Włączaj lub wyłączaj pojedyncze strony wiedzy. Nieaktywne strony nie są widoczne w nawigacji i nie można ich otworzyć bezpośrednio.",
+      "knowledgePagesMasterTitle": "Wszystkie strony wiedzy",
+      "knowledgePagesMasterOn": "Wszystkie aktywne",
+      "knowledgePagesMasterOff": "Wszystkie nieaktywne",
+      "knowledgePageOn": "Aktywna",
+      "knowledgePageOff": "Nieaktywna"
     },
     "pendingOrgs": "Organizacje oczekujące",
     "approvedOrgs": "Zatwierdzone organizacje",

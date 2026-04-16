@@ -465,7 +465,14 @@
       "maintenanceTitle": "Maintenance mode",
       "maintenanceDescription": "When active, visitors only see a maintenance page. Only those who know the maintenance password can log in and use the site.",
       "maintenanceOn": "Active – admin access only",
-      "maintenanceOff": "Off – site accessible to all"
+      "maintenanceOff": "Off – site accessible to all",
+      "knowledgePagesTitle": "Knowledge pages",
+      "knowledgePagesDescription": "Enable or disable individual knowledge pages. Disabled pages are hidden from navigation and cannot be opened directly.",
+      "knowledgePagesMasterTitle": "All knowledge pages",
+      "knowledgePagesMasterOn": "All active",
+      "knowledgePagesMasterOff": "All inactive",
+      "knowledgePageOn": "Active",
+      "knowledgePageOff": "Inactive"
     },
     "pendingOrgs": "Pending organisations",
     "approvedOrgs": "Approved organisations",

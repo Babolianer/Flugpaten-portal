@@ -96,8 +96,8 @@ function initMap() {
           source: 'selectedRoute',
           paint: {
             'line-color': '#ea580c',
-            'line-width': 3,
-            'line-dasharray': [2, 1],
+            'line-width': 4,
+            'line-opacity': 0.95,
           },
           layout: { 'line-join': 'round', 'line-cap': 'round' },
         },
@@ -127,9 +127,26 @@ function updateSelectedRoute() {
         ? [props.selectedRoute]
         : null
     if (routes && routes.length > 0) {
+      const normalizedRoutes = routes
+        .map((r) => ({
+          from: [Number(r.from[0]), Number(r.from[1])] as [number, number],
+          to: [Number(r.to[0]), Number(r.to[1])] as [number, number],
+        }))
+        .filter((r) =>
+          Number.isFinite(r.from[0]) &&
+          Number.isFinite(r.from[1]) &&
+          Number.isFinite(r.to[0]) &&
+          Number.isFinite(r.to[1]),
+        )
+      if (normalizedRoutes.length === 0) {
+        source.setData({ type: 'FeatureCollection', features: [] })
+        selectedRouteMarkers.value.forEach((m) => m.remove())
+        selectedRouteMarkers.value = []
+        return
+      }
       source.setData({
         type: 'FeatureCollection',
-        features: routes.map((r) => ({
+        features: normalizedRoutes.map((r) => ({
           type: 'Feature' as const,
           properties: {},
           geometry: {
@@ -156,7 +173,7 @@ function updateSelectedRoute() {
       }
       const bounds = new maplibregl.LngLatBounds()
       const startAdded = new Set<string>()
-      routes.forEach((r, idx) => {
+      normalizedRoutes.forEach((r, idx) => {
         const startKey = `${r.from[0]},${r.from[1]}`
         if (!startAdded.has(startKey)) {
           startAdded.add(startKey)
@@ -172,8 +189,8 @@ function updateSelectedRoute() {
         bounds.extend(r.from)
         bounds.extend(r.to)
         const endEl = document.createElement('div')
-        endEl.title = routes.length > 1 ? `Ziel ${idx + 1} (${String.fromCharCode(66 + idx)})` : 'Ziel (B)'
-        endEl.textContent = routes.length > 1 ? String(idx + 1) : 'B'
+        endEl.title = normalizedRoutes.length > 1 ? `Ziel ${idx + 1} (${String.fromCharCode(66 + idx)})` : 'Ziel (B)'
+        endEl.textContent = normalizedRoutes.length > 1 ? String(idx + 1) : 'B'
         Object.assign(endEl.style, { ...routePointStyle })
         const mEnd = new maplibregl.Marker({ element: endEl })
           .setLngLat(r.to)
@@ -251,6 +268,14 @@ function flyTo(lng: number, lat: number, zoom = 10) {
   map?.flyTo({ center: [lng, lat], zoom })
 }
 
+function resize() {
+  if (!map) return
+  map.resize()
+  updateConnections()
+  updateSelectedRoute()
+  updateMarkers()
+}
+
 function fitToPins() {
   if (!map || props.pins.length === 0) return
   const bounds = new maplibregl.LngLatBounds()
@@ -268,6 +293,9 @@ watch(
   () => [props.pins, props.selectedId],
   () => {
     updateMarkers()
+    // Ensure A/B or A/1/2 markers stay visible above pin markers
+    // after pin updates (render order can differ between envs).
+    updateSelectedRoute()
     if (!props.selectedRoute && props.pins.length > 0) fitToPins()
   },
   { deep: true }
@@ -294,7 +322,7 @@ onUnmounted(() => {
   map = null
 })
 
-defineExpose({ flyTo, fitToPins })
+defineExpose({ flyTo, fitToPins, resize })
 </script>
 
 <template>

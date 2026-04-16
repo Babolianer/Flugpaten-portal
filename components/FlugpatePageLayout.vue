@@ -11,6 +11,12 @@ const content = computed(() => getPageContent(props.slug))
 const pageTitle = computed(() => t(`flugpate.topics.${props.slug}.title`))
 
 watchEffect(() => {
+  if (!content.value) {
+    throw createError({ statusCode: 404, statusMessage: 'Seite nicht gefunden' })
+  }
+})
+
+watchEffect(() => {
   const c = content.value
   if (c?.meta) {
     useHead({

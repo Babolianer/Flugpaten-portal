@@ -40,16 +40,33 @@ const LOCALE_PAGES: Record<string, Record<string, FlugpatePageContent>> = {
 
 export function useFlugpateContent() {
   const { locale, t } = useI18n()
+  const route = useRoute()
+  const { data: knowledgePagesSettings } = useAsyncData(
+    'knowledge-pages-settings',
+    () => $fetch<{ disabledSlugs: string[] }>('/api/site/knowledge-pages'),
+    {
+      default: () => ({ disabledSlugs: [] }),
+      // Always fetch fresh settings for current session/navigation.
+      getCachedData: () => undefined,
+    },
+  )
+
+  watch(() => route.fullPath, () => refreshNuxtData('knowledge-pages-settings'))
+
+  const disabledSlugs = computed(() => new Set(knowledgePagesSettings.value?.disabledSlugs ?? []))
 
   const topics = computed(() =>
-    FLUGPATE_TOPICS.map((topic) => ({
-      ...topic,
-      title: t(`flugpate.topics.${topic.slug}.title`),
-      shortDescription: t(`flugpate.topics.${topic.slug}.shortDescription`),
-    }))
+    FLUGPATE_TOPICS
+      .filter((topic) => !disabledSlugs.value.has(topic.slug))
+      .map((topic) => ({
+        ...topic,
+        title: t(`flugpate.topics.${topic.slug}.title`),
+        shortDescription: t(`flugpate.topics.${topic.slug}.shortDescription`),
+      }))
   )
 
   function getPageContent(slug: string): FlugpatePageContent | null {
+    if (disabledSlugs.value.has(slug)) return null
     const loc = (locale.value || 'de') as 'de' | 'en' | 'es' | 'fr' | 'it' | 'pl'
     if (loc === 'de') {
       return CONTENT_MAP[slug] ?? null

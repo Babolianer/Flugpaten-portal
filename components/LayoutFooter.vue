@@ -4,17 +4,19 @@ import logoImg from '~/assets/images/logo.png'
 const { t } = useI18n()
 const { user } = useAuth()
 const { openSettings } = useCookieConsent()
+const { topics } = useFlugpateContent()
 
 const year = new Date().getFullYear()
 const copyright = computed(() => t('footer.copyright').replace('{year}', String(year)))
 
 const linkGroups = computed(() => {
+  const hasKnowledgeTopics = topics.value.length > 0
   const mitmachen = [
     ...(user.value ? [] : [
       { to: '/org/register', label: t('footer.forOrgs') },
       { to: '/register', label: t('footer.becomePatron') },
     ]),
-    { to: '/flugpate', label: t('home.heroCtaSecondary') },
+    ...(hasKnowledgeTopics ? [{ to: '/flugpate', label: t('home.heroCtaSecondary') }] : []),
   ]
   return [
     { label: t('footer.mitmachen'), links: mitmachen },

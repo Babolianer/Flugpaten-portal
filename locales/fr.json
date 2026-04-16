@@ -384,7 +384,14 @@
       "maintenanceTitle": "Mode maintenance",
       "maintenanceDescription": "Lorsqu'actif, les visiteurs ne voient qu'une page de maintenance. Seuls ceux qui connaissent le mot de passe peuvent se connecter.",
       "maintenanceOn": "Actif – accès admin uniquement",
-      "maintenanceOff": "Désactivé – site accessible"
+      "maintenanceOff": "Désactivé – site accessible",
+      "knowledgePagesTitle": "Pages de connaissance",
+      "knowledgePagesDescription": "Activez ou désactivez des pages de connaissance individuelles. Les pages inactives n'apparaissent pas dans la navigation et ne sont pas accessibles directement.",
+      "knowledgePagesMasterTitle": "Toutes les pages de connaissance",
+      "knowledgePagesMasterOn": "Toutes actives",
+      "knowledgePagesMasterOff": "Toutes inactives",
+      "knowledgePageOn": "Active",
+      "knowledgePageOff": "Inactive"
     },
     "pendingOrgs": "Organisations en attente",
     "approvedOrgs": "Organisations approuvées",
