@@ -24,6 +24,11 @@ interface DestEntry {
   lng: number | null
 }
 
+interface MapConnection {
+  from: [number, number]
+  to: [number, number]
+}
+
 interface Request {
   id: string
   title: string
@@ -60,6 +65,7 @@ type MapFilterValues = import('~/components/MapFilterBar.vue').MapFilterValues
 
 const filters = ref<MapFilterValues>(defaultFilters())
 const pins = ref<Pin[]>([])
+const connections = ref<MapConnection[]>([])
 const requests = ref<Request[]>([])
 const selectedId = ref<string | null>(null)
 const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void; fitToPins: () => void; resize: () => void } | null>(null)
@@ -152,8 +158,11 @@ async function loadData() {
     if (filters.value.species && filters.value.species !== 'all') params.set('species', filters.value.species)
     params.set('radius_km', '200')
 
-    const res = await $fetch<{ pins: Pin[]; requests: Request[] }>('/api/map/pins?' + params.toString())
+    const res = await $fetch<{ pins: Pin[]; requests: Request[]; connections?: MapConnection[] }>(
+      '/api/map/pins?' + params.toString(),
+    )
     pins.value = res.pins
+    connections.value = res.connections ?? []
     requests.value = res.requests
     nextTick(() => getActiveMapRef()?.fitToPins())
   } finally {
@@ -270,7 +279,7 @@ watch(mapExpanded, (expanded) => {
           <MapView
             ref="mapRef"
             :pins="pins"
-            :connections="[]"
+            :connections="connections"
             :selected-id="selectedId"
             :selected-routes="selectedRoutes"
             :compact="isMobile && !mapExpanded"
@@ -308,7 +317,7 @@ watch(mapExpanded, (expanded) => {
               <MapView
                 ref="overlayMapRef"
                 :pins="pins"
-                :connections="[]"
+                :connections="connections"
                 :selected-id="selectedId"
                 :selected-routes="selectedRoutes"
                 class="absolute inset-0 w-full h-full"

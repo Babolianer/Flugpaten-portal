@@ -74,6 +74,11 @@ interface MapPin {
   distanceKm?: number
 }
 
+interface MapConnection {
+  from: [number, number]
+  to: [number, number]
+}
+
 interface MapRequest {
   id: string
   title: string
@@ -102,6 +107,7 @@ const mapFilters = ref({
 })
 
 const mapPins = ref<MapPin[]>([])
+const mapConnections = ref<MapConnection[]>([])
 const mapRequests = ref<MapRequest[]>([])
 const mapSelectedId = ref<string | null>(null)
 const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void } | null>(null)
@@ -160,8 +166,11 @@ async function loadMapData() {
     }
     if (mapFilters.value.species && mapFilters.value.species !== 'all') params.set('species', mapFilters.value.species)
 
-    const res = await $fetch<{ pins: MapPin[]; requests: MapRequest[] }>('/api/map/pins?' + params.toString())
+    const res = await $fetch<{ pins: MapPin[]; requests: MapRequest[]; connections?: MapConnection[] }>(
+      '/api/map/pins?' + params.toString(),
+    )
     mapPins.value = res.pins
+    mapConnections.value = res.connections ?? []
     mapRequests.value = res.requests
   } finally {
     mapLoading.value = false
@@ -754,6 +763,7 @@ function starDisplay(rating: number) {
             <MapView
               ref="mapRef"
               :pins="mapPins"
+              :connections="mapConnections"
               :selected-id="mapSelectedId"
               :selected-route="mapSelectedRoute"
               class="h-[280px] sm:h-[380px] lg:h-[500px] w-full"

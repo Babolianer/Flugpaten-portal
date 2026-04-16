@@ -296,7 +296,9 @@ watch(
     // Ensure A/B or A/1/2 markers stay visible above pin markers
     // after pin updates (render order can differ between envs).
     updateSelectedRoute()
-    if (!props.selectedRoute && props.pins.length > 0) fitToPins()
+    const hasRouteHighlight =
+      (props.selectedRoutes && props.selectedRoutes.length > 0) || props.selectedRoute != null
+    if (!hasRouteHighlight && props.pins.length > 0) fitToPins()
   },
   { deep: true }
 )
