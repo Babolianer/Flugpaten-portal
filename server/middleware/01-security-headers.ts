@@ -22,6 +22,10 @@ export default defineEventHandler((event) => {
     "style-src 'self' 'unsafe-inline' https:",
     "font-src 'self' data: https:",
     "script-src 'self' 'unsafe-inline' https:",
+    // MapLibre nutzt in Production WebWorker via blob:-URL.
+    "worker-src 'self' blob:",
+    // Safari-Fallback fuer Worker-Kontexte.
+    "child-src 'self' blob:",
     "connect-src 'self' https: wss:",
     "form-action 'self'",
   ].join('; ')

@@ -58,6 +58,10 @@ const mapContainer = ref<HTMLDivElement | null>(null)
 let map: maplibregl.Map | null = null
 let markers: maplibregl.Marker[] = []
 
+function isFiniteLngLat(lng: number, lat: number): boolean {
+  return Number.isFinite(lng) && Number.isFinite(lat) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180
+}
+
 function initMap() {
   if (!mapContainer.value) return
 
@@ -132,12 +136,7 @@ function updateSelectedRoute() {
           from: [Number(r.from[0]), Number(r.from[1])] as [number, number],
           to: [Number(r.to[0]), Number(r.to[1])] as [number, number],
         }))
-        .filter((r) =>
-          Number.isFinite(r.from[0]) &&
-          Number.isFinite(r.from[1]) &&
-          Number.isFinite(r.to[0]) &&
-          Number.isFinite(r.to[1]),
-        )
+        .filter((r) => isFiniteLngLat(r.from[0], r.from[1]) && isFiniteLngLat(r.to[0], r.to[1]))
       if (normalizedRoutes.length === 0) {
         source.setData({ type: 'FeatureCollection', features: [] })
         selectedRouteMarkers.value.forEach((m) => m.remove())
@@ -213,14 +212,16 @@ function updateConnections() {
   try {
     const source = map.getSource('connections') as maplibregl.GeoJSONSource | undefined
     if (!source) return
-    const features = props.connections.map((c) => ({
-      type: 'Feature' as const,
-      properties: {},
-      geometry: {
-        type: 'LineString' as const,
-        coordinates: [c.from, c.to],
-      },
-    }))
+    const features = props.connections
+      .filter((c) => isFiniteLngLat(c.from[0], c.from[1]) && isFiniteLngLat(c.to[0], c.to[1]))
+      .map((c) => ({
+        type: 'Feature' as const,
+        properties: {},
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: [c.from, c.to],
+        },
+      }))
     source.setData({ type: 'FeatureCollection', features })
   } catch {
     // Style not loaded yet
@@ -234,6 +235,10 @@ function updateMarkers() {
   markers = []
 
   for (const pin of props.pins) {
+    const lng = Number(pin.lng)
+    const lat = Number(pin.lat)
+    if (!isFiniteLngLat(lng, lat)) continue
+
     const el = document.createElement('div')
     let bg = pin.type === 'request' ? 'bg-amber-500' : 'bg-emerald-600'
     if (pin.type === 'request' && pin.matchType === 'DIRECT') bg = 'bg-emerald-500'
@@ -252,12 +257,12 @@ function updateMarkers() {
     el.title = [routeText, distText, orgText, extraText].filter(Boolean).join('').replace(/^[ •,]+/, '') || 'Transportanfrage'
 
     const marker = new maplibregl.Marker({ element: el })
-      .setLngLat([pin.lng, pin.lat])
+      .setLngLat([lng, lat])
       .addTo(map)
 
     el.addEventListener('click', () => {
       emit('pinClick', pin)
-      map?.flyTo({ center: [pin.lng, pin.lat], zoom: 10 })
+      map?.flyTo({ center: [lng, lat], zoom: 10 })
     })
 
     markers.push(marker)
@@ -279,9 +284,15 @@ function resize() {
 function fitToPins() {
   if (!map || props.pins.length === 0) return
   const bounds = new maplibregl.LngLatBounds()
+  let hasValidPin = false
   for (const pin of props.pins) {
-    bounds.extend([pin.lng, pin.lat])
+    const lng = Number(pin.lng)
+    const lat = Number(pin.lat)
+    if (!isFiniteLngLat(lng, lat)) continue
+    bounds.extend([lng, lat])
+    hasValidPin = true
   }
+  if (!hasValidPin) return
   try {
     map.fitBounds(bounds, { padding: 60, maxZoom: 10 })
   } catch {
