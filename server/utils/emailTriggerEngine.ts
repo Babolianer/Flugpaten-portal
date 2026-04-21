@@ -57,7 +57,11 @@ async function buildVars(triggerKey: string, payload: EmailTriggerPayload): Prom
   const { appUrl, adminUrl } = baseAppUrls()
   const base = { appUrl, adminUrl }
 
-  if (triggerKey === 'TRANSPORT_APPLICATION_ORG' || triggerKey === 'WAITING_LIST_ORG') {
+  if (
+    triggerKey === 'TRANSPORT_APPLICATION_ORG' ||
+    triggerKey === 'WAITING_LIST_ORG' ||
+    triggerKey === 'TRANSPORT_CANCELLED_USER'
+  ) {
     const { organizationId, requestId, userId, conversationId, applicantMessage } = payload
     if (!organizationId || !requestId || !userId) return null
     const [org, req, user] = await Promise.all([

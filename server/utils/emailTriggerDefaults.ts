@@ -53,6 +53,25 @@ Chat: {{inboxUrl}}`,
     sortOrder: 20,
   },
   {
+    triggerKey: 'TRANSPORT_CANCELLED_USER',
+    labelDe: 'Transport storniert → Flugpate',
+    descriptionDe:
+      'Wird ausgelöst, wenn eine Organisation eine Transportanfrage storniert. Informiert alle betroffenen Bewerber.',
+    enabled: true,
+    deliveryMode: 'IMMEDIATE',
+    recipientKind: 'USER_SELF',
+    subjectTemplate: 'PawTransfer: Transport „{{requestTitle}}“ wurde storniert',
+    bodyTemplate: `Hallo {{userDisplayName}},
+
+die Transportanfrage „{{requestTitle}}“ wurde von {{orgName}} storniert.
+
+Route: {{originAirport}} → {{destAirport}}
+
+Du findest den Eintrag weiterhin im Dashboard mit dem Status „Storniert“.
+Details: {{requestUrl}}`,
+    sortOrder: 25,
+  },
+  {
     triggerKey: 'ORG_REGISTRATION_PENDING_ADMIN',
     labelDe: 'Neue Organisations-Registrierung → Admin',
     descriptionDe: 'Benachrichtigt die Admin-E-Mail (ADMIN_NOTIFY_EMAIL), wenn eine Organisation sich registriert.',

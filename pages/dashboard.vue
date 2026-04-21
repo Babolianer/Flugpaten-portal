@@ -315,6 +315,18 @@ const getStatusBadgeClass = (status: string) => {
   }
 }
 
+const requestStatusLabel = (status?: string | null) => {
+  if (!status) return ''
+  return t(`requestStatus.${status}`)
+}
+
+const getRequestStatusBadgeClass = (status?: string | null) => {
+  if (status === 'CANCELLED') return 'bg-rose-100 text-rose-700 border-rose-200'
+  if (status === 'COMPLETED') return 'bg-slate-100 text-slate-700 border-slate-200'
+  if (status === 'MATCHED') return 'bg-blue-100 text-blue-700 border-blue-200'
+  return 'bg-slate-100 text-slate-700 border-slate-200'
+}
+
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
   const localeCode = locale.value === 'de' ? 'de-DE' : 'en-US'
@@ -849,6 +861,16 @@ async function onToggleMapRouteAlert() {
                 </span>
               </div>
               <p class="text-sm text-slate-500 mt-0.5">{{ app.request?.originAirport }} → {{ app.request?.destAirport }} · {{ formatDate(app.request?.earliestDate ?? '') }}</p>
+              <div v-if="app.request?.status && app.request.status !== 'OPEN'" class="mt-2">
+                <span
+                  :class="[
+                    'inline-flex px-2 py-0.5 rounded text-xs font-medium border',
+                    getRequestStatusBadgeClass(app.request.status),
+                  ]"
+                >
+                  {{ requestStatusLabel(app.request.status) }}
+                </span>
+              </div>
               <NuxtLink
                 v-if="conversations.some(c => c.requestId === app.requestId)"
                 :to="`/inbox/${conversations.find(c => c.requestId === app.requestId)?.id}`"
