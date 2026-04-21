@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const euRegelungenContent: FlugpatePageContent = {
   meta: {
-    title: 'EU-Regelungen zur Flugpatenschaft – Heimtierverordnung & mehr | PawBridge',
+    title: 'EU-Regelungen zur Flugpatenschaft – Heimtierverordnung & mehr | PawTransfer',
     description:
       'EU-Heimtierverordnung, Länderunterschiede, Sonderfälle und Einreise aus Nicht-EU-Ländern. Rechtssicher als Flugpate unterwegs.',
-    ogTitle: 'EU-Regelungen Flugpatenschaft | PawBridge',
+    ogTitle: 'EU-Regelungen Flugpatenschaft | PawTransfer',
     ogDescription:
       'EU-Vorgaben für die private Mitnahme von Hunden und Katzen – für Flugpaten.',
   },

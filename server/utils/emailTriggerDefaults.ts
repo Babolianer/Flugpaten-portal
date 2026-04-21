@@ -158,6 +158,25 @@ du kannst dein Passwort hier zurücksetzen:
 Der Link ist nur begrenzt gültig.`,
     sortOrder: 90,
   },
+  {
+    triggerKey: 'ROUTE_MATCH_DIGEST_USER',
+    labelDe: 'Strecken-Benachrichtigung (Digest) → Flugpate',
+    descriptionDe:
+      'Sammelt neue passende Transporte zu aktivierten Strecken-Abos und sendet eine Zusammenfassung.',
+    enabled: true,
+    deliveryMode: 'IMMEDIATE',
+    recipientKind: 'USER_SELF',
+    subjectTemplate: 'PawTransfer: Neue Transporte fuer deine Strecke',
+    bodyTemplate: `Hallo {{userDisplayName}},
+
+es gibt {{requestCount}} neue Transportanfrage(n) fuer deine aktive Strecke:
+{{routeSummary}}
+
+{{requestLines}}
+
+Direkt ansehen: {{requestsUrl}}`,
+    sortOrder: 100,
+  },
 ]
 
 export function toPrismaCreateInput(row: DefaultRuleRow): Prisma.EmailNotificationRuleCreateInput {

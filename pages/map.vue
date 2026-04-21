@@ -2,6 +2,8 @@
 import mapBackground from '~/assets/images/map_background.png'
 
 const { t } = useI18n()
+const { user, fetchUser } = useAuth()
+const { getRouteSubscription, upsertRouteSubscription, setRouteSubscriptionEnabled } = useRouteSubscription()
 
 type MatchType = 'DIRECT' | 'RADIUS' | 'COUNTRY'
 
@@ -34,6 +36,8 @@ interface Request {
   title: string
   originAirport: string
   destAirport: string
+  originAirportDisplay?: string
+  destAirportsDisplay?: string
   earliestDate: string
   latestDate: string
   status?: string
@@ -73,6 +77,8 @@ const requestListRef = ref<HTMLElement | null>(null)
 const mapExpanded = ref(false)
 const loading = ref(false)
 const isMobile = ref(false)
+const routeSubscription = ref<{ id: string; enabled: boolean } | null>(null)
+const routeNotifyBusy = ref(false)
 
 function getActiveMapRef() {
   return mapExpanded.value ? overlayMapRef.value : mapRef.value
@@ -171,6 +177,7 @@ async function loadData() {
 function onFilter(f: MapFilterValues) {
   filters.value = { ...f }
   loadDataDebounced()
+  void refreshRouteSubscriptionStatus()
 }
 
 function onPinClick(pin: Pin) {
@@ -214,10 +221,64 @@ const hasActiveFilters = computed(
 
 onMounted(() => {
   loadData()
+  void fetchUser()
+  void refreshRouteSubscriptionStatus()
   const mq = window.matchMedia('(max-width: 767px)')
   isMobile.value = mq.matches
   mq.addEventListener('change', (e) => { isMobile.value = e.matches })
 })
+
+const canManageRouteAlert = computed(() => {
+  return !!(filters.value.originAirport && filters.value.destAirport)
+})
+
+const routeAlertEnabled = computed(() => {
+  return routeSubscription.value?.enabled ?? false
+})
+
+const routeNotifyCtaLabel = computed(() => {
+  if (routeNotifyBusy.value) return t('map.notifyWorking')
+  if (routeAlertEnabled.value) return t('map.notifyDeactivate')
+  return t('map.notifyCta')
+})
+
+async function refreshRouteSubscriptionStatus() {
+  if (!canManageRouteAlert.value) {
+    routeSubscription.value = null
+    return
+  }
+  try {
+    const sub = await getRouteSubscription(filters.value.originAirport, filters.value.destAirport)
+    routeSubscription.value = sub ? { id: sub.id, enabled: sub.enabled } : null
+  } catch {
+    routeSubscription.value = null
+  }
+}
+
+async function onToggleRouteAlert() {
+  if (!canManageRouteAlert.value || routeNotifyBusy.value) return
+  if (!user.value) {
+    await navigateTo('/login')
+    return
+  }
+  routeNotifyBusy.value = true
+  try {
+    if (routeSubscription.value) {
+      const nextState = !routeSubscription.value.enabled
+      const sub = await setRouteSubscriptionEnabled(routeSubscription.value.id, nextState)
+      routeSubscription.value = { id: sub.id, enabled: sub.enabled }
+    } else {
+      const sub = await upsertRouteSubscription(filters.value.originAirport, filters.value.destAirport, true)
+      routeSubscription.value = { id: sub.id, enabled: sub.enabled }
+    }
+  } catch {
+    // Wenn Session abgelaufen ist, zum Login leiten.
+    await fetchUser()
+    if (!user.value) await navigateTo('/login')
+  } finally {
+    routeNotifyBusy.value = false
+  }
+}
 
 watch(mapExpanded, (expanded) => {
   if (expanded) {
@@ -356,18 +417,24 @@ watch(mapExpanded, (expanded) => {
           <div v-if="requests.length === 0 && hasActiveFilters" class="mt-4">
             <button
               type="button"
-              class="w-full px-4 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium transition-colors min-h-[48px]"
+              class="w-full px-4 py-3 rounded-lg text-slate-900 font-medium transition-colors min-h-[48px] disabled:opacity-60 disabled:cursor-not-allowed"
+              :class="routeAlertEnabled ? 'bg-slate-300 hover:bg-slate-200' : 'bg-amber-500 hover:bg-amber-400'"
+              :disabled="!canManageRouteAlert || routeNotifyBusy"
+              @click="onToggleRouteAlert"
             >
-              {{ t('map.notifyCta') }}
+              {{ routeNotifyCtaLabel }}
             </button>
+            <p v-if="routeAlertEnabled" class="mt-2 text-xs text-emerald-700">
+              {{ t('map.notifyEnabledHint') }}
+            </p>
           </div>
 
-          <div ref="requestListRef" class="space-y-2 sm:space-y-3 lg:max-h-[520px] lg:overflow-y-auto overflow-x-hidden">
-            <section v-if="groupedRequests.direct.length" class="space-y-1.5">
+          <div ref="requestListRef" class="space-y-4 sm:space-y-5 lg:max-h-[520px] lg:overflow-y-auto overflow-x-hidden">
+            <section v-if="groupedRequests.direct.length" class="space-y-2">
               <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">
                 {{ t('map.groupDirect') }}
               </h3>
-              <div class="space-y-2">
+              <div class="space-y-4">
                 <div v-for="req in groupedRequests.direct" :key="req.id" :data-request-id="req.id">
                   <RequestCard
                     :request="req"
@@ -377,11 +444,11 @@ watch(mapExpanded, (expanded) => {
                 </div>
               </div>
             </section>
-            <section v-if="groupedRequests.radius.length" class="space-y-1.5">
+            <section v-if="groupedRequests.radius.length" class="space-y-2">
               <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">
                 {{ t('map.groupRadius') }}
               </h3>
-              <div class="space-y-2">
+              <div class="space-y-4">
                 <div v-for="req in groupedRequests.radius" :key="req.id" :data-request-id="req.id">
                   <RequestCard
                     :request="req"
@@ -391,11 +458,11 @@ watch(mapExpanded, (expanded) => {
                 </div>
               </div>
             </section>
-            <section v-if="groupedRequests.country.length" class="space-y-1.5">
+            <section v-if="groupedRequests.country.length" class="space-y-2">
               <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wide">
                 {{ t('map.groupCountry') }}
               </h3>
-              <div class="space-y-2">
+              <div class="space-y-4">
                 <div v-for="req in groupedRequests.country" :key="req.id" :data-request-id="req.id">
                   <RequestCard
                     :request="req"
@@ -405,8 +472,8 @@ watch(mapExpanded, (expanded) => {
                 </div>
               </div>
             </section>
-            <section v-if="groupedRequests.other.length" class="space-y-1.5">
-              <div class="space-y-2">
+            <section v-if="groupedRequests.other.length" class="space-y-2">
+              <div class="space-y-4">
                 <div v-for="req in groupedRequests.other" :key="req.id" :data-request-id="req.id">
                   <RequestCard
                     :request="req"

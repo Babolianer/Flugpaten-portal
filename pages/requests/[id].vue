@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import type { SelectedRoute } from '~/components/MapView.vue'
+
 const route = useRoute()
 const { t, locale } = useI18n()
 const { getSpeciesLabel } = useSpeciesLabel()
 const id = route.params.id as string
+
+type DestinationRow = { id?: string; airportCode: string; lat?: number | null; lng?: number | null; sortOrder?: number }
 
 interface Request {
   id: string
@@ -10,6 +14,7 @@ interface Request {
   details?: string | null
   originAirport: string
   destAirport: string
+  destinations?: DestinationRow[]
   earliestDate: string
   latestDate: string
   status: string
@@ -31,6 +36,7 @@ interface Request {
       latestDate: string
       originAirport: string
       destAirport: string
+      destinations?: DestinationRow[]
       animalCanFlyInCargo?: boolean
       animalCanFlyInCabin?: boolean
       animal: { name: string; species: string; imageUrl: string | null } | null
@@ -62,30 +68,50 @@ const request = computed(() => data.value?.request)
 const participantInfo = computed(() => data.value?.participantInfo ?? null)
 const waitingListInfo = computed(() => data.value?.waitingListInfo ?? null)
 
-const hasRouteCoords = computed(
-  () =>
-    request.value &&
-    request.value.originLat != null &&
-    request.value.originLng != null &&
-    request.value.destLat != null &&
-    request.value.destLng != null
-)
+function destinationCodesLine(r: { destAirport: string; destinations?: DestinationRow[] | null }): string {
+  const list = r.destinations?.filter((d) => d.airportCode?.trim()) ?? []
+  if (list.length > 0) return list.map((d) => d.airportCode).join(', ')
+  return r.destAirport
+}
 
-const selectedRoute = computed(() => {
+const routeDestinationsLabel = computed(() => {
   const r = request.value
-  if (!r || !hasRouteCoords.value) return null
-  return {
-    from: [r.originLng!, r.originLat!] as [number, number],
-    to: [r.destLng!, r.destLat!] as [number, number],
+  if (!r) return ''
+  return destinationCodesLine(r)
+})
+
+const routeMapLines = computed((): SelectedRoute[] | null => {
+  const r = request.value
+  if (!r || r.originLat == null || r.originLng == null) return null
+  const from: [number, number] = [r.originLng, r.originLat]
+  const dests = r.destinations?.filter((d) => d.lat != null && d.lng != null) ?? []
+  if (dests.length > 0) {
+    return dests.map((d) => ({ from, to: [d.lng!, d.lat!] as [number, number] }))
   }
+  if (r.destLat != null && r.destLng != null) {
+    return [{ from, to: [r.destLng, r.destLat] }]
+  }
+  return null
+})
+
+const hasRouteCoords = computed(() => routeMapLines.value != null && routeMapLines.value.length > 0)
+
+const selectedRoutesForMap = computed((): SelectedRoute[] | null => {
+  const lines = routeMapLines.value
+  return lines && lines.length > 0 ? lines : null
 })
 
 const mapCenter = computed((): [number, number] => {
   const r = request.value
-  if (!r || r.originLat == null || r.originLng == null || r.destLat == null || r.destLng == null) return [10.45, 51.17]
-  const lng = (r.originLng + r.destLng) / 2
-  const lat = (r.originLat + r.destLat) / 2
-  return [lng, lat]
+  const lines = routeMapLines.value
+  if (!r || !lines?.length) return [10.45, 51.17]
+  const lngs: number[] = [r.originLng!]
+  const lats: number[] = [r.originLat!]
+  for (const seg of lines) {
+    lngs.push(seg.to[0])
+    lats.push(seg.to[1])
+  }
+  return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length]
 })
 
 const message = ref('')
@@ -356,10 +382,10 @@ watch(imageLightboxOpen, (open) => {
                 {{ request.animal.name }} ({{ request.animal.species === 'dog' ? t('map.speciesDog') : t('map.speciesCat') }})
               </span>
             </div>
-            <p class="mt-2 text-slate-600">
+            <p class="mt-2 text-slate-600 break-words">
               <span class="font-medium">{{ request.originAirport }}</span>
               <span class="mx-2 text-slate-400">→</span>
-              <span class="font-medium">{{ request.destAirport }}</span>
+              <span class="font-medium">{{ routeDestinationsLabel }}</span>
             </p>
             <p class="text-sm text-slate-500 mt-1">
               {{ new Date(request.earliestDate).toLocaleDateString(locale) }} –
@@ -415,7 +441,7 @@ watch(imageLightboxOpen, (open) => {
         </div>
         <div class="p-4 sm:p-6 space-y-2">
           <NuxtLink
-            v-for="gr in request.group.requests.filter((x) => x.id !== request.id)"
+            v-for="gr in request.group.requests.filter((x) => x.id !== id)"
             :key="gr.id"
             :to="`/requests/${gr.id}`"
             class="block rounded-lg border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50 transition-colors"
@@ -423,7 +449,7 @@ watch(imageLightboxOpen, (open) => {
             <div class="flex items-center justify-between gap-3">
               <div class="min-w-0">
                 <div class="font-medium text-slate-900 truncate">{{ gr.title }}</div>
-                <div class="text-xs text-slate-600 mt-0.5 truncate">{{ gr.originAirport }} → {{ gr.destAirport }}</div>
+                <div class="text-xs text-slate-600 mt-0.5 line-clamp-2">{{ gr.originAirport }} → {{ destinationCodesLine(gr) }}</div>
               </div>
               <div class="text-xs text-slate-500 shrink-0">
                 {{ new Date(gr.earliestDate).toLocaleDateString(locale) }} – {{ new Date(gr.latestDate).toLocaleDateString(locale) }}
@@ -450,9 +476,9 @@ watch(imageLightboxOpen, (open) => {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </div>
-            <div class="text-center">
+            <div class="text-center max-w-[min(100%,280px)]">
               <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('request.destination') }}</p>
-              <p class="text-lg font-bold text-slate-900">{{ request.destAirport }}</p>
+              <p class="text-lg font-bold text-slate-900 break-words leading-snug">{{ routeDestinationsLabel }}</p>
             </div>
           </div>
           <div class="h-px lg:h-auto lg:w-px flex-1 lg:flex-initial bg-slate-200" />
@@ -463,10 +489,10 @@ watch(imageLightboxOpen, (open) => {
         </div>
       </div>
       <div class="rounded-xl overflow-hidden shadow-lg border border-slate-200 bg-white">
-        <ClientOnly v-if="hasRouteCoords && selectedRoute">
+        <ClientOnly v-if="hasRouteCoords && selectedRoutesForMap">
           <MapView
             :pins="[]"
-            :selected-route="selectedRoute"
+            :selected-routes="selectedRoutesForMap"
             :center="mapCenter"
             :zoom="5"
             class="h-[240px] sm:h-[280px] md:h-[320px] w-full"
@@ -490,9 +516,9 @@ watch(imageLightboxOpen, (open) => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </div>
-          <div class="text-center px-4">
+          <div class="text-center px-4 max-w-[min(100%,320px)]">
             <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('request.destination') }}</p>
-            <p class="text-xl font-bold text-slate-900">{{ request.destAirport }}</p>
+            <p class="text-xl font-bold text-slate-900 break-words leading-snug">{{ routeDestinationsLabel }}</p>
           </div>
         </div>
       </div>

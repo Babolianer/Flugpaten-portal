@@ -24,6 +24,9 @@ export type EmailTriggerPayload = {
   resetUrl?: string
   loginAtIso?: string
   locale?: string
+  routeSummary?: string
+  requestCount?: string
+  requestLines?: string
 }
 
 export function applyTemplate(template: string, vars: Record<string, string>): string {
@@ -126,6 +129,7 @@ async function buildVars(triggerKey: string, payload: EmailTriggerPayload): Prom
     triggerKey === 'NEWSLETTER_OPT_IN_ORG_USER' ||
     triggerKey === 'EMAIL_VERIFICATION_USE_CUSTOM' ||
     triggerKey === 'PASSWORD_RESET_USE_CUSTOM' ||
+    triggerKey === 'ROUTE_MATCH_DIGEST_USER' ||
     triggerKey === 'USER_LOGIN_SECURITY_ADMIN'
   ) {
     if (!payload.userId) return null
@@ -148,6 +152,12 @@ async function buildVars(triggerKey: string, payload: EmailTriggerPayload): Prom
     }
     if (triggerKey === 'USER_LOGIN_SECURITY_ADMIN') {
       vars.loginAt = payload.loginAtIso ?? new Date().toISOString()
+    }
+    if (triggerKey === 'ROUTE_MATCH_DIGEST_USER') {
+      vars.routeSummary = payload.routeSummary ?? ''
+      vars.requestCount = payload.requestCount ?? '0'
+      vars.requestLines = payload.requestLines ?? ''
+      vars.requestsUrl = `${appUrl}/map`
     }
     if (triggerKey === 'EMAIL_VERIFICATION_USE_CUSTOM' && !payload.verifyUrl) return null
     if (triggerKey === 'PASSWORD_RESET_USE_CUSTOM' && !payload.resetUrl) return null

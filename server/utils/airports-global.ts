@@ -190,3 +190,20 @@ export function getAirportByIata(code: string): (AirportGlobal & { lng: number }
   if (!a) return undefined
   return { ...a, lng: a.lon }
 }
+
+/** it/pl haben keine Airport-Übersetzungen → wie de behandeln */
+function resolveAirportLocale(requestLocale?: string): Locale {
+  const l = (requestLocale || 'de').toLowerCase()
+  if (l === 'en' || l === 'es' || l === 'fr') return l
+  return 'de'
+}
+
+/** z. B. „München (MUC)“ passend zur Request-Locale */
+export function formatAirportForDisplay(iataCode: string, requestLocale?: string): string {
+  const code = (iataCode || '').trim().toUpperCase()
+  if (!code) return ''
+  const raw = loadAirports().find((x) => x.iata === code)
+  if (!raw) return (iataCode || '').trim()
+  const a = applyLocale(raw, resolveAirportLocale(requestLocale))
+  return `${a.city} (${a.iata})`
+}

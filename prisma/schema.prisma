@@ -72,8 +72,40 @@ model User {
   profile          UserProfile?
   reviewsGiven     Review[]              @relation("Reviewer")
   reviewsReceived  Review[]              @relation("Reviewee")
+  routeSubscriptions RouteSubscription[]
 
   @@index([blockedAt])
+}
+
+model RouteSubscription {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  originAirport String   @map("origin_airport")
+  destAirport   String   @map("dest_airport")
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events RouteNotificationEvent[]
+
+  @@unique([userId, originAirport, destAirport])
+  @@index([originAirport, destAirport, enabled])
+  @@map("route_subscriptions")
+}
+
+model RouteNotificationEvent {
+  id             String   @id @default(cuid())
+  subscriptionId String   @map("subscription_id")
+  requestId      String   @map("request_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  sentAt         DateTime? @map("sent_at")
+
+  subscription RouteSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, requestId])
+  @@index([sentAt, createdAt])
+  @@map("route_notification_events")
 }
 
 model UserProfile {

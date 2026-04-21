@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import type { SelectedRoute } from '~/components/MapView.vue'
+
 const route = useRoute()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const id = route.params.id as string
+
+const MAX_ANIMALS_PER_SPONSOR = 5
+
+type DestinationRow = { airportCode: string; lat?: number | null; lng?: number | null }
 
 interface GroupRequest {
   id: string
@@ -12,13 +18,22 @@ interface GroupRequest {
   latestDate: string
   originAirport: string
   destAirport: string
-  animalCanFlyInCargo?: boolean
-  animalCanFlyInCabin?: boolean
+  destinations?: Array<{ airportCode: string }>
 }
 
 interface Request {
   id: string
+  title?: string
   status: string
+  originAirport?: string
+  destAirport?: string
+  destinations?: DestinationRow[]
+  earliestDate?: string
+  latestDate?: string
+  originLat?: number | null
+  originLng?: number | null
+  destLat?: number | null
+  destLng?: number | null
   group?: {
     id: string
     title: string
@@ -33,6 +48,52 @@ const request = computed(() => data.value?.request ?? null)
 const group = computed(() => request.value?.group ?? null)
 const groupRequests = computed(() => group.value?.requests ?? [])
 
+function destinationCodesLine(r: { destAirport: string; destinations?: Array<{ airportCode: string }> | null }): string {
+  const list = r.destinations?.filter((d) => d.airportCode?.trim()) ?? []
+  if (list.length > 0) return list.map((d) => d.airportCode).join(', ')
+  return r.destAirport
+}
+
+const routeDestinationsLabel = computed(() => {
+  const r = request.value
+  if (!r?.destAirport) return ''
+  return destinationCodesLine({ destAirport: r.destAirport, destinations: r.destinations })
+})
+
+const routeMapLines = computed((): SelectedRoute[] | null => {
+  const r = request.value
+  if (!r || r.originLat == null || r.originLng == null) return null
+  const from: [number, number] = [r.originLng, r.originLat]
+  const dests = r.destinations?.filter((d) => d.lat != null && d.lng != null) ?? []
+  if (dests.length > 0) {
+    return dests.map((d) => ({ from, to: [d.lng!, d.lat!] as [number, number] }))
+  }
+  if (r.destLat != null && r.destLng != null) {
+    return [{ from, to: [r.destLng, r.destLat] }]
+  }
+  return null
+})
+
+const hasRouteCoords = computed(() => routeMapLines.value != null && routeMapLines.value.length > 0)
+
+const selectedRoutesForMap = computed((): SelectedRoute[] | null => {
+  const lines = routeMapLines.value
+  return lines && lines.length > 0 ? lines : null
+})
+
+const mapCenter = computed((): [number, number] => {
+  const r = request.value
+  const lines = routeMapLines.value
+  if (!r || !lines?.length) return [10.45, 51.17]
+  const lngs: number[] = [r.originLng!]
+  const lats: number[] = [r.originLat!]
+  for (const seg of lines) {
+    lngs.push(seg.to[0])
+    lats.push(seg.to[1])
+  }
+  return [lngs.reduce((a, b) => a + b, 0) / lngs.length, lats.reduce((a, b) => a + b, 0) / lats.length]
+})
+
 const { data: me } = await useFetch<{ user: { id: string; role: string; email?: string; phone?: string | null } }>(
   '/api/auth/me',
 )
@@ -44,13 +105,12 @@ const loading = ref(false)
 const uploadFile = ref<File | null>(null)
 
 const computedMinTravelers = computed(() => {
-  const cabinCount = (groupRequests.value ?? []).reduce((sum, r) => sum + (r.animalCanFlyInCabin ? 1 : 0), 0)
-  // Mindestens 1 Person, auch wenn alle Tiere nur Frachtraum brauchen.
-  return Math.max(1, cabinCount)
+  const animalCount = groupRequests.value?.length ?? 0
+  return Math.max(1, Math.ceil(animalCount / MAX_ANIMALS_PER_SPONSOR))
 })
 
 const form = reactive({
-  // Reisende müssen in der Gruppe aufgeteilt werden (mind. Anzahl durch Passagierkabine).
+  // Mindestanzahl aus Gruppengröße: höchstens MAX_ANIMALS_PER_SPONSOR Tiere pro Person.
   travelers: [{ vorname: '', nachname: '' }] as Array<{ vorname: string; nachname: string }>,
   anzahlPersonen: 1,
   abflughafen: '',
@@ -64,23 +124,28 @@ const form = reactive({
   datenschutz: false,
 })
 
-// Synchronisiere Reisenden-Anzahl automatisch mit der Mindestanzahl.
-watch(
-  computedMinTravelers,
-  (min) => {
-    form.anzahlPersonen = min
-    if (!form.travelers || form.travelers.length === 0) {
-      form.travelers = Array.from({ length: min }, () => ({ vorname: '', nachname: '' }))
-      return
-    }
-    if (form.travelers.length > min) form.travelers = form.travelers.slice(0, min)
-    if (form.travelers.length < min) {
-      const add = min - form.travelers.length
-      form.travelers.push(...Array.from({ length: add }, () => ({ vorname: '', nachname: '' })))
-    }
-  },
-  { immediate: true },
-)
+const MAX_TRAVELERS_INPUT = 50
+
+function resizeTravelersToCount(desired: number) {
+  const min = computedMinTravelers.value
+  let n = Math.floor(Number(desired))
+  if (!Number.isFinite(n)) n = min
+  n = Math.min(MAX_TRAVELERS_INPUT, Math.max(min, n))
+  if (form.anzahlPersonen !== n) form.anzahlPersonen = n
+  if (!form.travelers?.length) {
+    form.travelers = Array.from({ length: n }, () => ({ vorname: '', nachname: '' }))
+    return
+  }
+  if (form.travelers.length > n) form.travelers = form.travelers.slice(0, n)
+  else if (form.travelers.length < n) {
+    const add = n - form.travelers.length
+    form.travelers.push(...Array.from({ length: add }, () => ({ vorname: '', nachname: '' })))
+  }
+}
+
+// Mindestanzahl bei Gruppenwechsel erzwingen; höhere manuelle Wahl bleibt erhalten.
+watch(computedMinTravelers, () => resizeTravelersToCount(form.anzahlPersonen), { immediate: true })
+watch(() => form.anzahlPersonen, (v) => resizeTravelersToCount(v))
 
 const { data: profileForApply, execute: fetchProfileForApply } = useFetch<{
   profile: { firstName?: string | null; lastName?: string | null } | null
@@ -182,10 +247,78 @@ const backToMapUrl = computed(() => `/map`)
         <p class="text-sm text-slate-500 mt-2">
           {{ t('request.togetherApplyIntro') }}
         </p>
+        <p v-if="request.originAirport && routeDestinationsLabel" class="mt-3 text-slate-700 break-words">
+          <span class="font-medium">{{ request.originAirport }}</span>
+          <span class="mx-2 text-slate-400">→</span>
+          <span class="font-medium">{{ routeDestinationsLabel }}</span>
+        </p>
+        <p
+          v-if="request.earliestDate && request.latestDate"
+          class="text-sm text-slate-500 mt-1"
+        >
+          {{ new Date(request.earliestDate).toLocaleDateString(locale) }} –
+          {{ new Date(request.latestDate).toLocaleDateString(locale) }}
+        </p>
       </div>
     </div>
 
-    <div class="w-full max-w-[1200px] mx-auto px-4 sm:px-6 pb-12 pt-8">
+    <section
+      v-if="request.originAirport && routeDestinationsLabel"
+      class="w-full max-w-[1200px] mx-auto px-4 sm:px-6 pb-2"
+    >
+      <div class="flex flex-col sm:flex-row sm:items-stretch gap-3 sm:gap-4 mb-3">
+        <h2 class="text-base font-semibold text-slate-900 shrink-0">{{ t('request.route') }}</h2>
+        <div class="flex-1 flex flex-wrap items-center gap-4 px-4 py-3 rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="text-center">
+              <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('request.departure') }}</p>
+              <p class="text-lg font-bold text-slate-900">{{ request.originAirport }}</p>
+            </div>
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </div>
+            <div class="text-center max-w-[min(100%,280px)]">
+              <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('request.destination') }}</p>
+              <p class="text-lg font-bold text-slate-900 break-words leading-snug">{{ routeDestinationsLabel }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rounded-xl overflow-hidden shadow-lg border border-slate-200 bg-white">
+        <ClientOnly v-if="hasRouteCoords && selectedRoutesForMap">
+          <MapView
+            :pins="[]"
+            :selected-routes="selectedRoutesForMap"
+            :center="mapCenter"
+            :zoom="5"
+            class="h-[200px] sm:h-[260px] w-full"
+          />
+          <template #fallback>
+            <div class="h-[200px] flex items-center justify-center bg-slate-100 text-slate-500">
+              {{ t('request.mapLoading') }}
+            </div>
+          </template>
+        </ClientOnly>
+        <div
+          v-else
+          class="h-[100px] flex items-center justify-center gap-3 bg-gradient-to-r from-amber-50 to-slate-50 border-b border-slate-100 px-2"
+        >
+          <div class="text-center">
+            <p class="text-xs uppercase text-slate-500">{{ t('request.departure') }}</p>
+            <p class="text-lg font-bold text-slate-900">{{ request.originAirport }}</p>
+          </div>
+          <span class="text-slate-400">→</span>
+          <div class="text-center max-w-[min(100%,280px)]">
+            <p class="text-xs uppercase text-slate-500">{{ t('request.destination') }}</p>
+            <p class="text-lg font-bold text-slate-900 break-words leading-snug">{{ routeDestinationsLabel }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="w-full max-w-[1200px] mx-auto px-4 sm:px-6 pb-12 pt-4 sm:pt-6">
       <section v-if="group && groupRequests.length > 1" class="mb-8">
         <div class="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
           <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
@@ -202,7 +335,7 @@ const backToMapUrl = computed(() => `/map`)
               <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0">
                   <div class="font-medium text-slate-900 truncate">{{ gr.title }}</div>
-                  <div class="text-xs text-slate-600 mt-0.5 truncate">{{ gr.originAirport }} → {{ gr.destAirport }}</div>
+                  <div class="text-xs text-slate-600 mt-0.5 line-clamp-2">{{ gr.originAirport }} → {{ destinationCodesLine(gr) }}</div>
                 </div>
                 <div class="text-[11px] text-slate-500 whitespace-nowrap">
                   {{ new Date(gr.earliestDate).toLocaleDateString() }} – {{ new Date(gr.latestDate).toLocaleDateString() }}
@@ -251,14 +384,14 @@ const backToMapUrl = computed(() => `/map`)
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">{{ t('request.travelersCount') }}</label>
             <input
-              :value="form.anzahlPersonen"
+              v-model.number="form.anzahlPersonen"
               type="number"
-              min="1"
-              disabled
-              class="w-24 cursor-not-allowed opacity-70 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500"
+              :min="computedMinTravelers"
+              :max="MAX_TRAVELERS_INPUT"
+              class="w-28 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500"
             />
-            <p class="text-xs text-slate-500 mt-1">
-              {{ t('request.minimumTravelers', { count: form.anzahlPersonen }) }}
+            <p class="text-xs text-slate-500 mt-1 max-w-prose">
+              {{ t('request.togetherTravelersHint', { min: computedMinTravelers }) }}
             </p>
           </div>
 

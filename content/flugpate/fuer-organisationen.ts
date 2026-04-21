@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const fuerOrganisationenContent: FlugpatePageContent = {
   meta: {
-    title: 'Flugpaten für Organisationen – Vorteile & Prozesse | PawBridge',
+    title: 'Flugpaten für Organisationen – Vorteile & Prozesse | PawTransfer',
     description:
       'Warum Flugpaten für Tierschutzorganisationen sinnvoll sind: Prozesse optimieren, Dokumentation, Vertrauen und Transparenz aufbauen.',
-    ogTitle: 'Flugpaten für Organisationen | PawBridge',
+    ogTitle: 'Flugpaten für Organisationen | PawTransfer',
     ogDescription:
       'Vorteile und Abläufe für Vereine: Wie Organisationen von Flugpaten profitieren.',
   },

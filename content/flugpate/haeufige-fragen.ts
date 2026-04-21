@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const haeufigeFragenContent: FlugpatePageContent = {
   meta: {
-    title: 'Häufige Fragen zur Flugpatenschaft | PawBridge',
+    title: 'Häufige Fragen zur Flugpatenschaft | PawTransfer',
     description:
       'Über 20 Antworten zu Flugpate, Flugpatenschaft, Tiertransport im Flugzeug, Kosten, Dokumenten und Ablauf. Ihr Guide für den Einstieg.',
-    ogTitle: 'FAQ Flugpatenschaft | PawBridge',
+    ogTitle: 'FAQ Flugpatenschaft | PawTransfer',
     ogDescription:
       'Die wichtigsten Fragen und Antworten rund um Flugpate und Flugpatenschaft.',
   },

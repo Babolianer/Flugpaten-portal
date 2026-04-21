@@ -46,6 +46,7 @@ interface Conversation {
 const { user, fetchUser } = useAuth()
 const { t, locale } = useI18n()
 const { getSpeciesLabel } = useSpeciesLabel()
+const { getRouteSubscription, upsertRouteSubscription, setRouteSubscriptionEnabled } = useRouteSubscription()
 const applications = ref<Application[]>([])
 const conversations = ref<Conversation[]>([])
 const requests = ref<Request[]>([])
@@ -59,6 +60,8 @@ const isPageVisible = ref(true)
 const applicationFilter = ref<'all' | 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WAITING_LIST'>('all')
 
 type MatchType = 'DIRECT' | 'RADIUS' | 'COUNTRY'
+
+type MapFilterValues = import('~/components/MapFilterBar.vue').MapFilterValues
 
 interface MapPin {
   id: string
@@ -74,9 +77,10 @@ interface MapPin {
   distanceKm?: number
 }
 
-interface MapConnection {
-  from: [number, number]
-  to: [number, number]
+interface DestEntry {
+  airportCode: string
+  lat: number | null
+  lng: number | null
 }
 
 interface MapRequest {
@@ -84,71 +88,113 @@ interface MapRequest {
   title: string
   originAirport: string
   destAirport: string
+  originAirportDisplay?: string
+  destAirportsDisplay?: string
   earliestDate: string
   latestDate: string
   originLat: number | null
   originLng: number | null
   destLat: number | null
   destLng: number | null
+  destinations?: DestEntry[]
   organization?: { name: string; slug: string }
   animal?: { name: string; species: string; imageUrl?: string | null } | null
+  animalCanFlyInCargo?: boolean
+  animalCanFlyInCabin?: boolean
   matchType?: MatchType
   distanceKm?: number
 }
 
-const profileLoading = ref(true)
-const mapFilters = ref({
+const defaultMapFilters = (): MapFilterValues => ({
   dateFrom: '',
   dateTo: '',
   originAirport: '',
   destAirport: '',
   species: 'all',
-  flexDays: false,
+  flexOption: '3',
 })
+
+const profileLoading = ref(true)
+const mapFilters = ref<MapFilterValues>(defaultMapFilters())
 
 const mapPins = ref<MapPin[]>([])
-const mapConnections = ref<MapConnection[]>([])
 const mapRequests = ref<MapRequest[]>([])
 const mapSelectedId = ref<string | null>(null)
-const mapRef = ref<{ flyTo: (lng: number, lat: number, zoom?: number) => void } | null>(null)
+const mapRef = ref<{
+  flyTo: (lng: number, lat: number, zoom?: number) => void
+  fitToPins: () => void
+  resize: () => void
+} | null>(null)
 const mapLoading = ref(false)
+const mapRouteSubscription = ref<{ id: string; enabled: boolean } | null>(null)
+const mapNotifyBusy = ref(false)
 
-const mapSelectedRoute = computed(() => {
+/** Wie auf /map: mehrere Ziel-Segmente aus `destinations` oder ein Paar origin/dest */
+const mapSelectedRoutes = computed(() => {
   if (!mapSelectedId.value) return null
   const req = mapRequests.value.find((r) => r.id === mapSelectedId.value)
-  if (!req || req.originLat == null || req.originLng == null || req.destLat == null || req.destLng == null) return null
-  return {
-    from: [req.originLng, req.originLat] as [number, number],
-    to: [req.destLng, req.destLat] as [number, number],
+  if (!req || req.originLat == null || req.originLng == null) return null
+  const dests = req.destinations && req.destinations.length > 0 ? req.destinations : null
+  if (dests && dests.length > 0) {
+    const routes = dests
+      .filter((d) => d.lat != null && d.lng != null)
+      .map((d) => ({
+        from: [req.originLng!, req.originLat!] as [number, number],
+        to: [d.lng!, d.lat!] as [number, number],
+      }))
+    return routes.length > 0 ? routes : null
   }
-})
-
-const mapSelectedRequest = computed(() => {
-  if (!mapSelectedId.value) return null
-  return mapRequests.value.find((r) => r.id === mapSelectedId.value) ?? null
+  if (req.destLat == null || req.destLng == null) return null
+  return [
+    {
+      from: [req.originLng, req.originLat] as [number, number],
+      to: [req.destLng, req.destLat] as [number, number],
+    },
+  ]
 })
 
 const mapGroupedRequests = computed(() => {
   const direct: MapRequest[] = []
   const radius: MapRequest[] = []
   const country: MapRequest[] = []
+  const other: MapRequest[] = []
   for (const r of mapRequests.value) {
     if (r.matchType === 'DIRECT') direct.push(r)
     else if (r.matchType === 'RADIUS') radius.push(r)
     else if (r.matchType === 'COUNTRY') country.push(r)
-    else direct.push(r)
+    else other.push(r)
   }
-  return { direct, radius, country }
+  return { direct, radius, country, other }
 })
+
+const mapHasDirect = computed(() => mapGroupedRequests.value.direct.length > 0)
+const mapHasSimpleMatches = computed(() => mapGroupedRequests.value.other.length > 0)
 
 const mapHeadlineText = computed(() => {
   const n = mapRequests.value.length
   if (n === 0) return null
-  const hasDirect = mapGroupedRequests.value.direct.length > 0
-  const hasSimpleMatches = mapRequests.value.some((r) => !r.matchType)
-  if (hasDirect || hasSimpleMatches) return t('map.resultCount', { count: n })
+  if (mapHasDirect.value || mapHasSimpleMatches.value) return t('map.resultCount', { count: n })
   return t('map.noExactButAlternatives')
 })
+
+const mapHasActiveFilters = computed(
+  () =>
+    !!(
+      mapFilters.value.dateFrom ||
+      mapFilters.value.originAirport ||
+      mapFilters.value.destAirport ||
+      mapFilters.value.species !== 'all'
+    ),
+)
+
+let loadMapDataTimer: ReturnType<typeof setTimeout> | null = null
+function loadMapDataDebounced() {
+  if (loadMapDataTimer) clearTimeout(loadMapDataTimer)
+  loadMapDataTimer = setTimeout(() => {
+    loadMapDataTimer = null
+    void loadMapData()
+  }, 300)
+}
 
 async function loadMapData() {
   mapLoading.value = true
@@ -165,38 +211,46 @@ async function loadMapData() {
       params.set('destAirport', mapFilters.value.destAirport)
     }
     if (mapFilters.value.species && mapFilters.value.species !== 'all') params.set('species', mapFilters.value.species)
+    params.set('radius_km', '200')
 
-    const res = await $fetch<{ pins: MapPin[]; requests: MapRequest[]; connections?: MapConnection[] }>(
-      '/api/map/pins?' + params.toString(),
-    )
+    const res = await $fetch<{ pins: MapPin[]; requests: MapRequest[] }>('/api/map/pins?' + params.toString())
     mapPins.value = res.pins
-    mapConnections.value = res.connections ?? []
     mapRequests.value = res.requests
+    await nextTick()
+    mapRef.value?.fitToPins()
   } finally {
     mapLoading.value = false
   }
 }
 
-function onMapFilter(f: typeof mapFilters.value) {
+function onMapFilter(f: MapFilterValues) {
   mapFilters.value = { ...f }
-  loadMapData()
+  loadMapDataDebounced()
+  void refreshMapRouteSubscriptionStatus()
 }
 
 function onMapPinClick(pin: MapPin) {
   mapSelectedId.value = pin.requestId ?? pin.id
   const req = pin.requestId ? mapRequests.value.find((x) => x.id === pin.requestId) : null
-  if (req && req.originLat != null && req.originLng != null && req.destLat != null && req.destLng != null && mapRef.value) {
-    // mapSelectedRoute computed updates map
-  } else if (pin && mapRef.value) {
+  const hasCoords =
+    req &&
+    req.originLat != null &&
+    req.originLng != null &&
+    ((req.destinations && req.destinations.some((d) => d.lat != null && d.lng != null)) ||
+      (req.destLat != null && req.destLng != null))
+  if (!hasCoords && pin && mapRef.value) {
     mapRef.value.flyTo(pin.lng, pin.lat)
   }
 }
 
 function onMapRequestClick(req: MapRequest) {
   mapSelectedId.value = req.id
-  if (req.originLat != null && req.originLng != null && req.destLat != null && req.destLng != null) {
-    // mapSelectedRoute updates map
-  } else {
+  const hasCoords =
+    req.originLat != null &&
+    req.originLng != null &&
+    ((req.destinations && req.destinations.some((d) => d.lat != null && d.lng != null)) ||
+      (req.destLat != null && req.destLng != null))
+  if (!hasCoords) {
     const pin = mapPins.value.find((p) => p.requestId === req.id)
     if (pin && mapRef.value) mapRef.value.flyTo(pin.lng, pin.lat)
   }
@@ -371,11 +425,16 @@ onMounted(async () => {
   }
   await loadData()
   loadMapData()
+  void refreshMapRouteSubscriptionStatus()
   startPolling()
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onUnmounted(() => {
+  if (loadMapDataTimer) {
+    clearTimeout(loadMapDataTimer)
+    loadMapDataTimer = null
+  }
   stopPolling()
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
@@ -385,6 +444,58 @@ function starDisplay(rating: number) {
   const half = rating % 1 >= 0.5 ? 1 : 0
   const empty = 5 - full - half
   return { full, half, empty }
+}
+
+const canManageMapRouteAlert = computed(() => {
+  return !!(mapFilters.value.originAirport && mapFilters.value.destAirport)
+})
+
+const mapRouteAlertEnabled = computed(() => {
+  return mapRouteSubscription.value?.enabled ?? false
+})
+
+const mapNotifyCtaLabel = computed(() => {
+  if (mapNotifyBusy.value) return t('map.notifyWorking')
+  if (mapRouteAlertEnabled.value) return t('map.notifyDeactivate')
+  return t('map.notifyCta')
+})
+
+async function refreshMapRouteSubscriptionStatus() {
+  if (!canManageMapRouteAlert.value || !user.value) {
+    mapRouteSubscription.value = null
+    return
+  }
+  try {
+    const sub = await getRouteSubscription(mapFilters.value.originAirport, mapFilters.value.destAirport)
+    mapRouteSubscription.value = sub ? { id: sub.id, enabled: sub.enabled } : null
+  } catch {
+    mapRouteSubscription.value = null
+  }
+}
+
+async function onToggleMapRouteAlert() {
+  if (!canManageMapRouteAlert.value || mapNotifyBusy.value) return
+  if (!user.value) {
+    await navigateTo('/login')
+    return
+  }
+  mapNotifyBusy.value = true
+  try {
+    if (mapRouteSubscription.value) {
+      const nextState = !mapRouteSubscription.value.enabled
+      const sub = await setRouteSubscriptionEnabled(mapRouteSubscription.value.id, nextState)
+      mapRouteSubscription.value = { id: sub.id, enabled: sub.enabled }
+    } else {
+      const sub = await upsertRouteSubscription(mapFilters.value.originAirport, mapFilters.value.destAirport, true)
+      mapRouteSubscription.value = { id: sub.id, enabled: sub.enabled }
+    }
+  } catch {
+    // Bei Session-Verlust den Nutzer sauber neu einloggen lassen.
+    await fetchUser()
+    if (!user.value) await navigateTo('/login')
+  } finally {
+    mapNotifyBusy.value = false
+  }
 }
 </script>
 
@@ -756,16 +867,15 @@ function starDisplay(rating: number) {
     <div class="mb-8">
       <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">{{ t('dashboard.mapTitle') }}</h2>
       <p class="text-xs text-slate-500 mb-4">{{ t('dashboard.mapDescription') }}</p>
-      <FilterBar class="mb-4" @filter="onMapFilter" />
+      <MapFilterBar v-model="mapFilters" class="mb-4" @filter="onMapFilter" />
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div class="lg:col-span-2 rounded-xl overflow-hidden shadow-lg min-w-0">
           <ClientOnly>
             <MapView
               ref="mapRef"
               :pins="mapPins"
-              :connections="mapConnections"
               :selected-id="mapSelectedId"
-              :selected-route="mapSelectedRoute"
+              :selected-routes="mapSelectedRoutes"
               class="h-[280px] sm:h-[380px] lg:h-[500px] w-full"
               @pin-click="onMapPinClick"
             />
@@ -781,21 +891,30 @@ function starDisplay(rating: number) {
           </p>
         </div>
         <div class="space-y-4 min-w-0">
-          <div v-if="mapLoading" class="text-slate-500 text-sm">Suche läuft...</div>
+          <div v-if="mapLoading" class="text-slate-500 text-sm">{{ t('common.searching') }}</div>
           <template v-else>
             <h3 v-if="mapHeadlineText" class="font-semibold text-slate-900 text-base sm:text-lg">
               {{ mapHeadlineText }}
             </h3>
-            <p v-else-if="mapFilters.dateFrom || mapFilters.originAirport || mapFilters.destAirport" class="text-sm sm:text-base text-slate-600">
+            <p v-else-if="mapHasActiveFilters" class="text-sm sm:text-base text-slate-600">
               {{ t('map.noResults') }}
             </p>
-            <div v-if="mapRequests.length === 0 && (mapFilters.dateFrom || mapFilters.originAirport || mapFilters.destAirport)" class="mt-4">
-              <NuxtLink
-                to="/map"
-                class="block w-full px-4 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium text-center transition-colors min-h-[48px]"
+            <p v-else-if="mapRequests.length === 0" class="text-sm sm:text-base text-slate-600">
+              {{ t('map.noResults') }}
+            </p>
+            <div v-if="mapRequests.length === 0 && mapHasActiveFilters" class="mt-4">
+              <button
+                type="button"
+                class="block w-full px-4 py-3 rounded-lg text-slate-900 font-medium text-center transition-colors min-h-[48px] disabled:opacity-60 disabled:cursor-not-allowed"
+                :class="mapRouteAlertEnabled ? 'bg-slate-300 hover:bg-slate-200' : 'bg-amber-500 hover:bg-amber-400'"
+                :disabled="!canManageMapRouteAlert || mapNotifyBusy"
+                @click="onToggleMapRouteAlert"
               >
-                {{ t('map.notifyCta') }}
-              </NuxtLink>
+                {{ mapNotifyCtaLabel }}
+              </button>
+              <p v-if="mapRouteAlertEnabled" class="mt-2 text-xs text-emerald-700">
+                {{ t('map.notifyEnabledHint') }}
+              </p>
             </div>
             <div class="space-y-4 sm:space-y-6 max-h-[50vh] sm:max-h-[420px] lg:max-h-[520px] overflow-y-auto overflow-x-hidden">
               <section v-if="mapGroupedRequests.direct.length" class="space-y-2">
@@ -827,6 +946,17 @@ function starDisplay(rating: number) {
                 <div class="space-y-3">
                   <RequestCard
                     v-for="req in mapGroupedRequests.country"
+                    :key="req.id"
+                    :request="req"
+                    :selected="mapSelectedId === req.id"
+                    @click="onMapRequestClick(req)"
+                  />
+                </div>
+              </section>
+              <section v-if="mapGroupedRequests.other.length" class="space-y-2">
+                <div class="space-y-3">
+                  <RequestCard
+                    v-for="req in mapGroupedRequests.other"
                     :key="req.id"
                     :request="req"
                     :selected="mapSelectedId === req.id"

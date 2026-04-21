@@ -1,6 +1,7 @@
 import { prisma } from '~~/server/utils/prisma'
 import { getRequestLocale } from '~~/server/utils/locale'
 import { translateStrings } from '~~/server/utils/translateContent'
+import { formatAirportForDisplay } from '~~/server/utils/airports-global'
 
 export default defineEventHandler(async (event) => {
   const locale = getRequestLocale(event)
@@ -11,7 +12,15 @@ export default defineEventHandler(async (event) => {
     },
     take: 3,
     orderBy: { createdAt: 'desc' },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      originAirport: true,
+      destAirport: true,
+      earliestDate: true,
+      latestDate: true,
+      animalCanFlyInCargo: true,
+      animalCanFlyInCabin: true,
       organization: { select: { id: true, name: true, slug: true } },
       animal: { select: { id: true, name: true, species: true, imageUrl: true } },
     },
@@ -22,10 +31,14 @@ export default defineEventHandler(async (event) => {
     title: r.title,
     originAirport: r.originAirport,
     destAirport: r.destAirport,
+    originAirportDisplay: formatAirportForDisplay(r.originAirport, locale),
+    destAirportsDisplay: formatAirportForDisplay(r.destAirport, locale),
     earliestDate: r.earliestDate.toISOString(),
     latestDate: r.latestDate.toISOString(),
     organization: r.organization,
     animal: r.animal,
+    animalCanFlyInCargo: r.animalCanFlyInCargo,
+    animalCanFlyInCabin: r.animalCanFlyInCabin,
   }))
 
   if (locale !== 'de') {

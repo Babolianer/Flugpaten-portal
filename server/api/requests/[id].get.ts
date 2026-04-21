@@ -48,6 +48,10 @@ export default defineEventHandler(async (event) => {
       },
       animal: true,
       group: { select: { id: true, title: true } },
+      destinations: {
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, airportCode: true, lat: true, lng: true, sortOrder: true },
+      },
     },
   })
 
@@ -228,9 +232,13 @@ export default defineEventHandler(async (event) => {
         latestDate: true,
         originAirport: true,
         destAirport: true,
-          animalCanFlyInCargo: true,
-          animalCanFlyInCabin: true,
+        animalCanFlyInCargo: true,
+        animalCanFlyInCabin: true,
         animal: { select: { name: true, species: true, imageUrl: true } },
+        destinations: {
+          orderBy: { sortOrder: 'asc' },
+          select: { airportCode: true, lat: true, lng: true, sortOrder: true },
+        },
       },
       orderBy: { earliestDate: 'asc' },
     })

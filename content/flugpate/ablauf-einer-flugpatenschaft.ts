@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const ablaufFlugpatenschaftContent: FlugpatePageContent = {
   meta: {
-    title: 'Ablauf einer Flugpatenschaft – Schritt für Schritt | PawBridge',
+    title: 'Ablauf einer Flugpatenschaft – Schritt für Schritt | PawTransfer',
     description:
       'So läuft eine Flugpatenschaft ab: von der Kontaktaufnahme über Check-in und Flug bis zur Übergabe im Zielland. Transparent und praxisnah erklärt.',
-    ogTitle: 'Ablauf einer Flugpatenschaft | PawBridge',
+    ogTitle: 'Ablauf einer Flugpatenschaft | PawTransfer',
     ogDescription:
       'Kontaktaufnahme, Dokumentenprüfung, Übergabe am Flughafen, Transport und Ankunft – der komplette Ablauf einer Flugpatenschaft.',
   },

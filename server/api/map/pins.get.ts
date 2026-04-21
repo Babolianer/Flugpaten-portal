@@ -1,5 +1,5 @@
 import { prisma } from '~~/server/utils/prisma'
-import { ensureAirportsLoaded, getAirportByIata, getIatasInCountry, parseCountryFilter } from '~~/server/utils/airports-global'
+import { ensureAirportsLoaded, formatAirportForDisplay, getAirportByIata, getIatasInCountry, parseCountryFilter } from '~~/server/utils/airports-global'
 import { haversineKm } from '~~/server/utils/geo'
 import { getRequestLocale } from '~~/server/utils/locale'
 import { translateStrings } from '~~/server/utils/translateContent'
@@ -284,6 +284,10 @@ export default defineEventHandler(async (event) => {
   let requestList = enrichedList.map((r) => {
     const dests = (r as { destinations?: Array<{ airportCode: string; lat: number | null; lng: number | null }> }).destinations
     const firstDest = dests && dests.length > 0 ? dests[0] : null
+    const destAirportsDisplay =
+      dests && dests.length > 0
+        ? dests.map((d) => formatAirportForDisplay(d.airportCode, locale)).filter(Boolean).join(', ')
+        : formatAirportForDisplay(r.destAirport, locale)
     return {
     id: r.id,
     title: r.title,
@@ -293,6 +297,8 @@ export default defineEventHandler(async (event) => {
     latestDate: r.latestDate,
     originAirport: r.originAirport,
     destAirport: r.destAirport,
+    originAirportDisplay: formatAirportForDisplay(r.originAirport, locale),
+    destAirportsDisplay,
     originLat: r.originLat,
     originLng: r.originLng,
     destLat: firstDest?.lat ?? r.destLat,

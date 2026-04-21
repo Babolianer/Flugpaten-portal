@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const risikenUndSicherheitContent: FlugpatePageContent = {
   meta: {
-    title: 'Risiken und Sicherheit – Seriöse Flugpatenschaft | PawBridge',
+    title: 'Risiken und Sicherheit – Seriöse Flugpatenschaft | PawTransfer',
     description:
       'Missbrauch verhindern, seriöse Organisationen erkennen, Dokumente prüfen. So schützen Sie sich und die Tiere bei der Flugpatenschaft.',
-    ogTitle: 'Risiken und Sicherheit | PawBridge',
+    ogTitle: 'Risiken und Sicherheit | PawTransfer',
     ogDescription:
       'Sicher und seriös als Flugpate: Warnzeichen und Vertrauensmerkmale.',
   },

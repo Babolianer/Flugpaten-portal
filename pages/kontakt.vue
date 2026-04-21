@@ -2,7 +2,7 @@
 const { t } = useI18n()
 
 useHead({
-  title: `${t('contact.title')} – PawBridge`,
+  title: () => `${t('contact.title')} – ${t('app.name')}`,
   meta: [{ name: 'description', content: t('contact.metaDescription') }],
 })
 </script>

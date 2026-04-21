@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 import { ensureOrgAccess } from '~~/server/utils/orgAccess'
+import { enqueueRouteNotificationEventsForRequest, processDueRouteDigestBatches } from '~~/server/utils/routeNotifications'
 
 const destSchema = z.object({
   airportCode: z.string().min(1),
@@ -111,6 +112,17 @@ export default defineEventHandler(async (event) => {
       },
     },
   })
+
+  try {
+    await enqueueRouteNotificationEventsForRequest({
+      requestId: request.id,
+      originAirport: request.originAirport,
+      destinationAirports: dests.map((entry) => entry.airportCode),
+    })
+    await processDueRouteDigestBatches()
+  } catch (err) {
+    console.error('[route-notification]', err)
+  }
 
   return { request }
 })

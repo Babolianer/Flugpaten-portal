@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const rechtlicheHinweiseContent: FlugpatePageContent = {
   meta: {
-    title: 'Rechtliche Hinweise zur Flugpatenschaft | PawBridge',
+    title: 'Rechtliche Hinweise zur Flugpatenschaft | PawTransfer',
     description:
       'Allgemeine Orientierung zu Verantwortung, Einfuhrbestimmungen, TRACES und EU-Heimtierverordnung. Keine Rechtsberatung – bitte prüfen Sie die für Sie geltenden Vorgaben.',
-    ogTitle: 'Rechtliche Hinweise Flugpatenschaft | PawBridge',
+    ogTitle: 'Rechtliche Hinweise Flugpatenschaft | PawTransfer',
     ogDescription:
       'Allgemeine Hinweise zu rechtlichen Themen bei Flugpatenschaften. Keine Rechtsberatung.',
   },
@@ -21,8 +21,8 @@ export const rechtlicheHinweiseContent: FlugpatePageContent = {
       id: 'haftungsausschluss',
       title: 'Haftungsausschluss',
       paragraphs: [
-        'PawBridge stellt ausschließlich die Plattform zur Vermittlung zwischen Organisationen und Flugpaten bereit. Die Durchführung des Transports erfolgt eigenverantwortlich zwischen Flugpate und Organisation. PawBridge ist nicht am Transport beteiligt und übernimmt keinerlei Verantwortung für dessen Ablauf oder Ergebnis.',
-        'Die Nutzer sind selbst dafür verantwortlich, alle für sie geltenden rechtlichen Vorgaben (beispielsweise zu Einreise, TRACES, Impfungen, Fluggesellschaft, Zoll) einzuhalten. PawBridge übernimmt keine Haftung für Schäden, Verzögerungen, Zurückweisungen, Dokumentenfehler oder sonstige transportbezogene Vorfälle.',
+        'PawTransfer stellt ausschließlich die Plattform zur Vermittlung zwischen Organisationen und Flugpaten bereit. Die Durchführung des Transports erfolgt eigenverantwortlich zwischen Flugpate und Organisation. PawTransfer ist nicht am Transport beteiligt und übernimmt keinerlei Verantwortung für dessen Ablauf oder Ergebnis.',
+        'Die Nutzer sind selbst dafür verantwortlich, alle für sie geltenden rechtlichen Vorgaben (beispielsweise zu Einreise, TRACES, Impfungen, Fluggesellschaft, Zoll) einzuhalten. PawTransfer übernimmt keine Haftung für Schäden, Verzögerungen, Zurückweisungen, Dokumentenfehler oder sonstige transportbezogene Vorfälle.',
         'Es wird ausdrücklich empfohlen, sämtliche Details, Verantwortlichkeiten und Kosten im Vorfeld direkt mit der jeweiligen Organisation schriftlich abzustimmen.',
       ],
     },
@@ -83,7 +83,7 @@ export const rechtlicheHinweiseContent: FlugpatePageContent = {
     {
       question: 'Wer haftet, wenn das Tier am Flughafen zurückgewiesen wird?',
       answer:
-        'Das hängt von der Vereinbarung mit der Organisation und der jeweiligen Ursache ab. Fehlende oder fehlerhafte Dokumente können u. a. in der Verantwortung der Organisation liegen. Es wird empfohlen, vor Abreise die Papiere zu prüfen und bei Zweifeln mit der Organisation Rücksprache zu halten. PawBridge übernimmt hierfür keine Haftung.',
+        'Das hängt von der Vereinbarung mit der Organisation und der jeweiligen Ursache ab. Fehlende oder fehlerhafte Dokumente können u. a. in der Verantwortung der Organisation liegen. Es wird empfohlen, vor Abreise die Papiere zu prüfen und bei Zweifeln mit der Organisation Rücksprache zu halten. PawTransfer übernimmt hierfür keine Haftung.',
     },
     {
       question: 'Was ist TRACES und wer erstellt es?',

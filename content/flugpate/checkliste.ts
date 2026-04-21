@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const checklisteContent: FlugpatePageContent = {
   meta: {
-    title: 'Checkliste Flugpatenschaft – Vor dem Flug, am Flughafen, danach | PawBridge',
+    title: 'Checkliste Flugpatenschaft – Vor dem Flug, am Flughafen, danach | PawTransfer',
     description:
       'Checkliste für Flugpaten: Vor dem Flug, am Flughafen und nach der Ankunft. Nichts vergessen – sicher und entspannt reisen.',
-    ogTitle: 'Checkliste Flugpatenschaft | PawBridge',
+    ogTitle: 'Checkliste Flugpatenschaft | PawTransfer',
     ogDescription:
       'Praktische Checkliste für Flugpaten: Vorbereitung, Flughafen, Ankunft.',
   },

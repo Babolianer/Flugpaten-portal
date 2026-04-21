@@ -91,6 +91,8 @@ const filterTo = ref('')
 const purgeDays = ref<number>(30)
 const purgingArchive = ref(false)
 const purgeDeletedCount = ref<number | null>(null)
+const digestSending = ref(false)
+const digestProcessedUsers = ref<number | null>(null)
 
 const detailId = ref<string | null>(null)
 const detail = ref<{
@@ -217,6 +219,23 @@ async function purgeEmailArchive() {
     console.error(e)
   } finally {
     purgingArchive.value = false
+  }
+}
+
+async function sendRouteDigestNow() {
+  if (digestSending.value) return
+  digestSending.value = true
+  digestProcessedUsers.value = null
+  try {
+    const res = await $fetch<{ processedUsers: number }>('/api/admin/email-archive/route-digest/send', {
+      method: 'POST',
+    })
+    digestProcessedUsers.value = res.processedUsers
+    await loadArchive(1)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    digestSending.value = false
   }
 }
 
@@ -872,6 +891,32 @@ function trackFocus(triggerKey: string, field: 'subject' | 'body') {
             {{ t('admin.emails.archivePurgeButton') }}
           </button>
         </div>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+          <div class="space-y-1">
+            <h4 class="text-sm font-semibold text-slate-900">Strecken-Digest ausfuehren</h4>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Sendet alle faelligen Sammelbenachrichtigungen aus Strecken-Abos sofort.
+            </p>
+          </div>
+          <span v-if="digestSending" class="text-xs text-slate-500">{{ t('admin.loading') }}</span>
+          <span
+            v-else-if="digestProcessedUsers !== null"
+            class="text-xs font-medium rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-800"
+          >
+            {{ digestProcessedUsers }} Nutzer verarbeitet
+          </span>
+        </div>
+        <button
+          type="button"
+          class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          :disabled="digestSending"
+          @click="sendRouteDigestNow"
+        >
+          Jetzt senden
+        </button>
       </div>
 
       <p class="text-sm text-slate-600">{{ t('admin.emails.archiveTotal', { total: archiveTotal }) }}</p>

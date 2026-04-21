@@ -2,10 +2,10 @@ import type { FlugpatePageContent } from './types'
 
 export const tiertransportImFlugzeugContent: FlugpatePageContent = {
   meta: {
-    title: 'Tiertransport im Flugzeug – IATA, Kabine & Fracht | PawBridge',
+    title: 'Tiertransport im Flugzeug – IATA, Kabine & Fracht | PawTransfer',
     description:
       'Tiertransport im Flugzeug: IATA-Richtlinien, Transportboxen, Kabine vs. Frachtraum, Stressreduktion und Unterschiede zwischen Airlines.',
-    ogTitle: 'Tiertransport im Flugzeug | PawBridge',
+    ogTitle: 'Tiertransport im Flugzeug | PawTransfer',
     ogDescription:
       'Alles zu Transportboxen, Kabinentransport, Fracht und Airline-Bedingungen.',
   },
