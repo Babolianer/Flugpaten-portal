@@ -7,6 +7,16 @@ import { fireEmailTrigger } from '~~/server/utils/emailTriggerEngine'
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
 
+function isLegacyRequestApplicationSchemaError(msg: string): boolean {
+  if (!msg) return false
+  const lowerMsg = msg.toLowerCase()
+  const mentionsRelevantField = ['applicationdata', 'attachmentpath', 'groupid', 'application_data', 'attachment_path', 'group_id']
+    .some((field) => lowerMsg.includes(field))
+  if (!mentionsRelevantField) return false
+
+  return lowerMsg.includes('unknown argument') || lowerMsg.includes('does not exist')
+}
+
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['USER', 'ADMIN'])
 
@@ -188,7 +198,7 @@ export default defineEventHandler(async (event) => {
     return { applications: result.applications, conversations: result.conversations }
   } catch (dbErr: unknown) {
     const msg = dbErr instanceof Error ? dbErr.message : String(dbErr)
-    if (msg.includes('Unknown argument') && (msg.includes('applicationData') || msg.includes('attachmentPath') || msg.includes('groupId'))) {
+    if (isLegacyRequestApplicationSchemaError(msg)) {
       const targetRequestIds = groupRequestIds.length ? groupRequestIds : [requestId]
       const result = await prisma.$transaction(async (tx) => {
         const applications = []
