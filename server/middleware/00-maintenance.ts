@@ -1,5 +1,5 @@
 /**
- * Wartungsmodus: Blockiert alle Seiten – nur die Wartungsseite, Login und Org-Pre-Registrierung sind erreichbar.
+ * Wartungsmodus: Blockiert alle Seiten – nur freigegebene Wartungs-/Auth-Routen bleiben erreichbar.
  * Eingeloggte Admins und Org-Benutzer haben Zugriff.
  * Nutzer mit gültigem Bypass-Cookie (maintenance-login) haben vollen Zugriff inkl. /register.
  */
@@ -8,6 +8,8 @@ export default defineEventHandler(async (event) => {
 
   const allowedWithoutAuth = [
     '/maintenance',
+    '/auth/forgot-password',
+    '/auth/reset-password',
     '/api/site/maintenance',
     '/api/auth/login',
     '/api/auth/register',
