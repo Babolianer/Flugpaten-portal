@@ -1,4 +1,3 @@
-import Papa from 'papaparse'
 import { prisma } from '~~/server/utils/prisma'
 import { requireRole } from '~~/server/utils/auth'
 
@@ -21,6 +20,63 @@ function getValue(row: Record<string, string>, ...keys: string[]): string | null
   return null
 }
 
+function splitCsvLine(line: string, delimiter: string): string[] {
+  const cells: string[] = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    const next = i + 1 < line.length ? line[i + 1] : ''
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        current += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+
+    if (ch === delimiter && !inQuotes) {
+      cells.push(current.trim())
+      current = ''
+      continue
+    }
+
+    current += ch
+  }
+
+  cells.push(current.trim())
+  return cells.map((cell) =>
+    cell.startsWith('"') && cell.endsWith('"') ? cell.slice(1, -1).replace(/""/g, '"') : cell
+  )
+}
+
+function parseCsvRows(csvText: string): Record<string, string>[] {
+  const lines = csvText
+    .replace(/^\uFEFF/, '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (lines.length < 2) return []
+
+  const headerLine = lines[0]
+  const delimiter = headerLine.includes(';') ? ';' : ','
+  const headers = splitCsvLine(headerLine, delimiter).map((h) => h.trim())
+
+  return lines.slice(1).map((line) => {
+    const values = splitCsvLine(line, delimiter)
+    const row: Record<string, string> = {}
+    for (let i = 0; i < headers.length; i++) {
+      row[headers[i]] = values[i] ?? ''
+    }
+    return row
+  })
+}
+
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
 
@@ -31,17 +87,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const csvText = new TextDecoder('utf-8').decode(file.data)
-  const parsed = Papa.parse<Record<string, string>>(csvText, {
-    header: true,
-    skipEmptyLines: true,
-  })
-
-  if (parsed.errors.length) {
-    throw createError({
-      statusCode: 400,
-      message: `CSV-Fehler: ${parsed.errors[0]?.message || 'Ungültiges Format'}`,
-    })
-  }
+  const rows = parseCsvRows(csvText)
+  if (!rows.length) throw createError({ statusCode: 400, message: 'CSV enthält keine Datenzeilen' })
 
   const today = new Date()
   const naechsteDefault = addDays(today, 3)
@@ -55,7 +102,7 @@ export default defineEventHandler(async (event) => {
     notizen: string | null
   }[] = []
 
-  for (const row of parsed.data) {
+  for (const row of rows) {
     const name = getValue(row, 'name', 'Name', 'organisation', 'org') || getValue(row, 'organisation_name', 'org_name')
     if (!name) continue
 

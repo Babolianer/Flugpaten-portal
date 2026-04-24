@@ -1,14 +1,30 @@
 const DEFAULT_FOOTER = 'Aaron Löchner · aaron.loechner@gmx.de · 015224822057'
 
+export type BuildEmailHtmlConfig = {
+  appUrl: string
+  logoUrl?: string
+  footerText?: string | null
+  footerHtml?: string | null
+  /**
+   * Nur für explizit werbliche Mails (z. B. Akquise): Link „Falls ihr Interesse …“ unter dem Text.
+   * Transaktions-Mails (Workflows, Passwort, Verifizierung) sollten `false` setzen.
+   */
+  showAppInterestLink?: boolean
+  /**
+   * Nur für explizit persönliche Akquise-Mails: fester Gruß „Herzliche Grüße / Aaron“.
+   * System-Workflows: `false`.
+   */
+  showDefaultSignOff?: boolean
+}
+
 /**
- * E-Mail-Template für Acquise-Versand – wirkt wie eine normale persönliche E-Mail.
- * footerText: im Frontend einstellbar, kein Link (kein localhost im Footer).
- * Plattform-Link nur, wenn appUrl keine Localhost-URL ist.
+ * E-Mail-HTML aus Plaintext + optionalem Footer.
+ * Akquise/Mailing: `showAppInterestLink` und `showDefaultSignOff` auf true setzen.
  */
 export function buildEmailHtml(
   bodyPlain: string,
   _organisationName: string,
-  config: { appUrl: string; logoUrl?: string; footerText?: string | null; footerHtml?: string | null }
+  config: BuildEmailHtmlConfig
 ): string {
   const paragraphs = bodyPlain
     .split(/\n\n+/)
@@ -22,8 +38,16 @@ export function buildEmailHtml(
 
   const appUrl = (config.appUrl || '').trim()
   const isProductionUrl = appUrl.length > 0 && !appUrl.includes('localhost')
-  const platformLinkHtml = isProductionUrl
+  const showInterest = config.showAppInterestLink === true && isProductionUrl
+  const platformLinkHtml = showInterest
     ? `<p style="margin: 1.5em 0 0 0; color: #1e293b;">Falls ihr Interesse habt: <a href="${escapeHtml(appUrl)}" style="color: #0ea5e9;">${escapeHtml(appUrl)}</a></p>`
+    : ''
+  const showSignOff = config.showDefaultSignOff === true
+  const signOffHtml = showSignOff
+    ? `<p style="margin: 1.5em 0 0 0; color: #1e293b;">
+      Herzliche Grüße<br>
+      Aaron
+    </p>`
     : ''
 
   const footerRaw = (config.footerText && config.footerText.trim()) || DEFAULT_FOOTER
@@ -45,10 +69,7 @@ export function buildEmailHtml(
   <div style="max-width: 580px; margin: 0 auto;">
     ${paragraphs}
     ${platformLinkHtml}
-    <p style="margin: 1.5em 0 0 0; color: #1e293b;">
-      Herzliche Grüße<br>
-      Aaron
-    </p>
+    ${signOffHtml}
     ${footerHtml}
   </div>
 </body>

@@ -3,6 +3,7 @@ import { requireAuth } from '~~/server/utils/auth'
 import { prisma } from '~~/server/utils/prisma'
 
 const schema = z.object({
+  displayName: z.string().trim().min(1).max(120).optional(),
   firstName: z.string().max(100).optional().nullable(),
   lastName: z.string().max(100).optional().nullable(),
   phone: z.string().max(50).optional().nullable(),
@@ -27,7 +28,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid input', data: parsed.error.flatten() })
   }
 
-  const { firstName, lastName, phone, preferredLanguage, ...profileData } = parsed.data
+  const { displayName, firstName, lastName, phone, preferredLanguage, ...profileData } = parsed.data
 
   const userUpdate: {
     displayName?: string
@@ -40,7 +41,9 @@ export default defineEventHandler(async (event) => {
   if (firstName !== undefined) userUpdate.firstName = firstName?.trim() || null
   if (lastName !== undefined) userUpdate.lastName = lastName?.trim() || null
   if (preferredLanguage !== undefined) userUpdate.preferredLanguage = preferredLanguage
-  if (firstName !== undefined || lastName !== undefined) {
+  if (displayName !== undefined) {
+    userUpdate.displayName = displayName
+  } else if (firstName !== undefined || lastName !== undefined) {
     const existing = await prisma.user.findUnique({ where: { id: user.id }, select: { firstName: true, lastName: true } })
     const first = (firstName ?? existing?.firstName ?? null)?.trim() || ''
     const last = (lastName ?? existing?.lastName ?? null)?.trim() || ''

@@ -9,6 +9,8 @@ const schema = z.object({
   recipientKind: z.enum(['ORG_CONTACT_EMAIL', 'USER_SELF', 'ADMIN_EMAIL']).optional(),
   subjectTemplate: z.string().min(1).optional(),
   bodyTemplate: z.string().min(1).optional(),
+  subjectTemplateEn: z.string().nullable().optional(),
+  bodyTemplateEn: z.string().nullable().optional(),
   labelDe: z.string().min(1).optional(),
   descriptionDe: z.string().nullable().optional(),
 })
@@ -40,6 +42,12 @@ export default defineEventHandler(async (event) => {
       ...(data.recipientKind !== undefined ? { recipientKind: data.recipientKind } : {}),
       ...(data.subjectTemplate !== undefined ? { subjectTemplate: data.subjectTemplate } : {}),
       ...(data.bodyTemplate !== undefined ? { bodyTemplate: data.bodyTemplate } : {}),
+      ...(data.subjectTemplateEn !== undefined
+        ? { subjectTemplateEn: data.subjectTemplateEn?.trim() ? data.subjectTemplateEn.trim() : null }
+        : {}),
+      ...(data.bodyTemplateEn !== undefined
+        ? { bodyTemplateEn: data.bodyTemplateEn?.trim() ? data.bodyTemplateEn.trim() : null }
+        : {}),
       ...(data.labelDe !== undefined ? { labelDe: data.labelDe } : {}),
       ...(data.descriptionDe !== undefined ? { descriptionDe: data.descriptionDe } : {}),
     },

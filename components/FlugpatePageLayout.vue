@@ -3,14 +3,19 @@ const props = defineProps<{
   slug: string
 }>()
 
-const { t } = useI18n()
-const { getPageContent } = useFlugpateContent()
+const { t, locale } = useI18n()
+const { loadPageContent } = useFlugpateContent()
 
-const content = computed(() => getPageContent(props.slug))
+const { data: content, pending } = await useAsyncData(
+  'flugpate-page-content',
+  () => loadPageContent(props.slug),
+  { watch: [() => props.slug, locale] },
+)
 
 const pageTitle = computed(() => t(`flugpate.topics.${props.slug}.title`))
 
 watchEffect(() => {
+  if (pending.value) return
   if (!content.value) {
     throw createError({ statusCode: 404, statusMessage: 'Seite nicht gefunden' })
   }

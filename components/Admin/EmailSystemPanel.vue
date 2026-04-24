@@ -19,6 +19,8 @@ interface RuleRow {
   recipientKind: 'ORG_CONTACT_EMAIL' | 'USER_SELF' | 'ADMIN_EMAIL'
   subjectTemplate: string
   bodyTemplate: string
+  subjectTemplateEn: string
+  bodyTemplateEn: string
   sortOrder: number
 }
 
@@ -115,7 +117,14 @@ const detailBusy = ref(false)
 
 watch(rules, (list) => {
   const next: Record<string, RuleRow> = {}
-  for (const r of list) next[r.triggerKey] = { ...r }
+  for (const r of list) {
+    const row = r as RuleRow & { subjectTemplateEn?: string | null; bodyTemplateEn?: string | null }
+    next[r.triggerKey] = {
+      ...r,
+      subjectTemplateEn: row.subjectTemplateEn ?? '',
+      bodyTemplateEn: row.bodyTemplateEn ?? '',
+    }
+  }
   editDraft.value = next
   // Default-Auswahl: erstes Element. Auswahl beibehalten, wenn möglich.
   if (!selectedTriggerKey.value && list.length > 0) {
@@ -264,6 +273,8 @@ async function saveRule(key: string) {
     // So kann auch „Inaktiv“ gespeichert werden, ohne dass Betreff/Text zwingend gesetzt sein müssen.
     if (subject) payload.subjectTemplate = d.subjectTemplate
     if (body) payload.bodyTemplate = d.bodyTemplate
+    payload.subjectTemplateEn = d.subjectTemplateEn.trim() || null
+    payload.bodyTemplateEn = d.bodyTemplateEn.trim() || null
 
     await $fetch(`/api/admin/email-rules/${encodeURIComponent(key)}`, {
       method: 'PATCH',
@@ -390,10 +401,12 @@ watch(
 )
 
 /** Platzhalter-Modal: welche Regel + Betreff vs. Text */
-const phPickerContext = ref<{ triggerKey: string; field: 'subject' | 'body' } | null>(null)
-const lastFocusedField = ref<Record<string, 'subject' | 'body'>>({})
+const phPickerContext = ref<{ triggerKey: string; field: 'subject' | 'body' | 'subjectEn' | 'bodyEn' } | null>(null)
+const lastFocusedField = ref<Record<string, 'subject' | 'body' | 'subjectEn' | 'bodyEn'>>({})
 const subjectRefs = ref<Record<string, HTMLInputElement | null>>({})
 const bodyRefs = ref<Record<string, HTMLTextAreaElement | null>>({})
+const subjectEnRefs = ref<Record<string, HTMLInputElement | null>>({})
+const bodyEnRefs = ref<Record<string, HTMLTextAreaElement | null>>({})
 
 watch(selectedTriggerKey, (key) => {
   // Modal schließen, sobald ein anderer Trigger ausgewählt wird.
@@ -409,7 +422,15 @@ function setBodyRef(key: string, el: unknown) {
   bodyRefs.value[key] = el instanceof HTMLTextAreaElement ? el : null
 }
 
-function openPhPicker(triggerKey: string, field: 'subject' | 'body') {
+function setSubjectEnRef(key: string, el: unknown) {
+  subjectEnRefs.value[key] = el instanceof HTMLInputElement ? el : null
+}
+
+function setBodyEnRef(key: string, el: unknown) {
+  bodyEnRefs.value[key] = el instanceof HTMLTextAreaElement ? el : null
+}
+
+function openPhPicker(triggerKey: string, field: 'subject' | 'body' | 'subjectEn' | 'bodyEn') {
   phPickerContext.value = { triggerKey, field }
 }
 
@@ -438,16 +459,24 @@ function insertAtCursor(
   })
 }
 
-function applySnippet(triggerKey: string, field: 'subject' | 'body', code: string) {
+function applySnippet(triggerKey: string, field: 'subject' | 'body' | 'subjectEn' | 'bodyEn', code: string) {
   const d = editDraft.value[triggerKey]
   if (!d) return
   if (field === 'subject') {
     insertAtCursor(subjectRefs.value[triggerKey], d.subjectTemplate, code, (v) => {
       d.subjectTemplate = v
     })
-  } else {
+  } else if (field === 'body') {
     insertAtCursor(bodyRefs.value[triggerKey], d.bodyTemplate, code, (v) => {
       d.bodyTemplate = v
+    })
+  } else if (field === 'subjectEn') {
+    insertAtCursor(subjectEnRefs.value[triggerKey], d.subjectTemplateEn, code, (v) => {
+      d.subjectTemplateEn = v
+    })
+  } else {
+    insertAtCursor(bodyEnRefs.value[triggerKey], d.bodyTemplateEn, code, (v) => {
+      d.bodyTemplateEn = v
     })
   }
 }
@@ -463,7 +492,7 @@ function quickInsertPlaceholder(triggerKey: string, varKey: string) {
   applySnippet(triggerKey, field, placeholderCode(varKey))
 }
 
-function trackFocus(triggerKey: string, field: 'subject' | 'body') {
+function trackFocus(triggerKey: string, field: 'subject' | 'body' | 'subjectEn' | 'bodyEn') {
   lastFocusedField.value = { ...lastFocusedField.value, [triggerKey]: field }
 }
 </script>
@@ -690,6 +719,54 @@ function trackFocus(triggerKey: string, field: 'subject' | 'body') {
                     class="min-h-[280px] w-full resize-y rounded-lg border border-slate-300 px-4 py-3 text-sm font-mono leading-relaxed text-slate-900 shadow-sm outline-none ring-slate-400 focus:border-slate-400 focus:ring-2"
                     @focus="trackFocus(selectedTriggerKey, 'body')"
                   />
+                </div>
+
+                <div class="space-y-4 border-t border-slate-200 pt-5">
+                  <p class="text-xs text-slate-600">{{ t('admin.emails.trigger.enBlockHint') }}</p>
+                  <div class="space-y-2">
+                    <div class="flex flex-wrap items-end justify-between gap-2">
+                      <label class="block min-w-[200px] flex-1 text-xs font-medium text-slate-600" :for="`subj-en-${selectedTriggerKey}`">
+                        {{ t('admin.emails.subjectEn') }}
+                      </label>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
+                        @click="openPhPicker(selectedTriggerKey, 'subjectEn')"
+                      >
+                        {{ t('admin.emails.trigger.insertPlaceholder') }}
+                      </button>
+                    </div>
+                    <input
+                      :id="`subj-en-${selectedTriggerKey}`"
+                      :ref="(el) => setSubjectEnRef(selectedTriggerKey, el)"
+                      v-model="editDraft[selectedTriggerKey].subjectTemplateEn"
+                      type="text"
+                      class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none ring-slate-400 focus:border-slate-400 focus:ring-2"
+                      @focus="trackFocus(selectedTriggerKey, 'subjectEn')"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex flex-wrap items-end justify-between gap-2">
+                      <label class="block min-w-[200px] flex-1 text-xs font-medium text-slate-600" :for="`body-en-${selectedTriggerKey}`">
+                        {{ t('admin.emails.bodyEn') }}
+                      </label>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
+                        @click="openPhPicker(selectedTriggerKey, 'bodyEn')"
+                      >
+                        {{ t('admin.emails.trigger.insertPlaceholder') }}
+                      </button>
+                    </div>
+                    <textarea
+                      :id="`body-en-${selectedTriggerKey}`"
+                      :ref="(el) => setBodyEnRef(selectedTriggerKey, el)"
+                      v-model="editDraft[selectedTriggerKey].bodyTemplateEn"
+                      rows="10"
+                      class="min-h-[200px] w-full resize-y rounded-lg border border-slate-300 px-4 py-3 text-sm font-mono leading-relaxed text-slate-900 shadow-sm outline-none ring-slate-400 focus:border-slate-400 focus:ring-2"
+                      @focus="trackFocus(selectedTriggerKey, 'bodyEn')"
+                    />
+                  </div>
                 </div>
 
                 <div class="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-4">

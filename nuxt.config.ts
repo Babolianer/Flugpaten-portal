@@ -15,7 +15,7 @@ export default defineNuxtConfig({
       autoprefixer: {},
     },
   },
-  css: ['~/assets/css/main.css', 'maplibre-gl/dist/maplibre-gl.css'],
+  css: ['~/assets/css/main.css'],
   compatibilityDate: '2024-11-01',
   nitro: {
     preset: 'vercel',

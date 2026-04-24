@@ -23,8 +23,8 @@ function closeLangDropdown() {
   langDropdownOpen.value = false
 }
 
-function selectLocale(code: string) {
-  setLocale(code)
+async function selectLocale(code: string) {
+  await setLocale(code)
   closeLangDropdown()
 }
 
@@ -98,6 +98,38 @@ watch(() => route.path, () => {
   if (user.value?.role === 'USER' || user.value?.role === 'ORG_USER') loadUnreadCount()
 })
 
+/** Desktop: Textlinks in der Kopfzeile */
+const navTextClass = 'text-white/95 hover:text-amber-400 transition-colors whitespace-nowrap border-b-2 border-transparent pb-0.5'
+const navTextActiveClass = '!text-amber-400 font-semibold border-amber-400'
+
+/** Desktop: Posteingang (Hintergrund-Hover) */
+const navInboxClass = 'relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-transparent hover:bg-slate-800 transition-colors whitespace-nowrap'
+const navInboxActiveClass = '!bg-slate-800 border-amber-400/80 text-amber-100'
+
+/** Desktop: Profil-Avatar */
+const navProfileClass = 'flex items-center justify-center w-10 h-10 rounded-full bg-slate-700 border-2 border-slate-600 hover:bg-slate-600 hover:border-slate-500 transition-colors shrink-0'
+const navProfileActiveClass = '!border-amber-400 ring-2 ring-amber-400/50'
+
+/** Desktop: CTA „Flugpaten werden“ */
+const navMapCtaClass = 'px-4 py-2 rounded-lg border-2 border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-slate-900 font-medium transition-colors whitespace-nowrap min-h-[44px] inline-flex items-center justify-center'
+const navMapCtaActiveClass = '!bg-amber-400 !text-slate-900'
+
+/** Desktop: Registrieren */
+const navRegisterClass = 'px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium transition-colors whitespace-nowrap min-h-[44px] inline-flex items-center justify-center'
+const navRegisterActiveClass = '!ring-2 !ring-amber-300 !ring-offset-2 !ring-offset-slate-900'
+
+/** Mobil: Menüzeilen */
+const navMobileRowClass = 'py-3 px-4 rounded-lg border-l-4 border-transparent hover:bg-slate-800 text-white font-medium transition-colors'
+const navMobileRowActiveClass = '!bg-slate-800 !text-amber-300 !border-amber-400'
+
+const navMobileMapCtaClass = 'inline-flex px-3 py-2 rounded-lg border-2 border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-slate-900 font-medium text-sm transition-colors whitespace-nowrap min-h-[40px] items-center justify-center'
+const navMobileMapCtaActiveClass = '!bg-amber-400 !text-slate-900'
+
+const navMobileRegisterClass = 'py-3 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium text-center mt-2 transition-colors'
+const navMobileRegisterActiveClass = '!ring-2 !ring-amber-300 !ring-inset'
+
+const isHomePage = computed(() => route.path === '/')
+
 onMounted(async () => {
   await fetchUser()
   if (user.value?.role === 'USER' || user.value?.role === 'ORG_USER') {
@@ -116,7 +148,8 @@ onUnmounted(() => {
     <div class="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-4">
       <NuxtLink
         to="/"
-        class="flex items-center gap-2 sm:gap-3 text-base sm:text-xl font-bold tracking-tight hover:text-amber-400 transition-colors min-w-0 shrink-0 cursor-pointer"
+        class="flex items-center gap-2 sm:gap-3 text-base sm:text-xl font-bold tracking-tight hover:text-amber-400 transition-colors min-w-0 shrink-0 cursor-pointer rounded-lg"
+        :class="{ 'ring-2 ring-amber-400/50 ring-offset-2 ring-offset-slate-900': isHomePage }"
         @click="closeMobileMenu"
         @mouseenter="logoHover = true"
         @mouseleave="logoHover = false"
@@ -135,23 +168,49 @@ onUnmounted(() => {
       </NuxtLink>
 
       <!-- Desktop nav (ab md): Wissen + Flugpaten werden (Button) -->
-      <nav class="hidden md:flex items-center gap-4 lg:gap-6 shrink-0">
-        <NuxtLink v-if="hasKnowledgeTopics" to="/flugpate" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.wissen') }}</NuxtLink>
-        <NuxtLink to="/orgs-map" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.organisations') }}</NuxtLink>
+      <nav class="hidden md:flex items-center gap-4 lg:gap-6 shrink-0" :aria-label="t('nav.mainMenu')">
+        <NuxtLink
+          v-if="hasKnowledgeTopics"
+          to="/flugpate"
+          :class="navTextClass"
+          :active-class="navTextActiveClass"
+        >{{ t('nav.wissen') }}</NuxtLink>
+        <NuxtLink
+          to="/orgs-map"
+          :class="navTextClass"
+          :active-class="navTextActiveClass"
+        >{{ t('nav.organisations') }}</NuxtLink>
         <NuxtLink
           to="/map"
-          class="px-4 py-2 rounded-lg border-2 border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-slate-900 font-medium transition-colors whitespace-nowrap min-h-[44px] inline-flex items-center justify-center"
+          :class="navMapCtaClass"
+          :active-class="navMapCtaActiveClass"
         >
           {{ t('nav.flugpatenWerden') }}
         </NuxtLink>
         <template v-if="user">
-          <NuxtLink v-if="user.role === 'ADMIN'" to="/admin" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.admin') }}</NuxtLink>
-          <NuxtLink v-if="user.role === 'ORG_USER'" to="/org/dashboard" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.dashboard') }}</NuxtLink>
-          <NuxtLink v-if="user.role === 'USER'" to="/dashboard" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.dashboard') }}</NuxtLink>
+          <NuxtLink
+            v-if="user.role === 'ADMIN'"
+            to="/admin"
+            :class="navTextClass"
+            :active-class="navTextActiveClass"
+          >{{ t('nav.admin') }}</NuxtLink>
+          <NuxtLink
+            v-if="user.role === 'ORG_USER'"
+            to="/org/dashboard"
+            :class="navTextClass"
+            :active-class="navTextActiveClass"
+          >{{ t('nav.dashboard') }}</NuxtLink>
+          <NuxtLink
+            v-if="user.role === 'USER'"
+            to="/dashboard"
+            :class="navTextClass"
+            :active-class="navTextActiveClass"
+          >{{ t('nav.dashboard') }}</NuxtLink>
           <NuxtLink
             v-if="user.role === 'ORG_USER'"
             to="/inbox"
-            class="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap"
+            :class="navInboxClass"
+            :active-class="navInboxActiveClass"
           >
             <span>{{ t('nav.inbox') }}</span>
             <span
@@ -164,7 +223,8 @@ onUnmounted(() => {
           <NuxtLink
             v-if="user.role === 'USER'"
             to="/inbox"
-            class="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors whitespace-nowrap"
+            :class="navInboxClass"
+            :active-class="navInboxActiveClass"
           >
             <span>{{ t('nav.inbox') }}</span>
             <span
@@ -177,7 +237,8 @@ onUnmounted(() => {
           <NuxtLink
             v-if="user.role === 'USER' && user.id"
             :to="`/user/${user.id}`"
-            class="flex items-center justify-center w-10 h-10 rounded-full bg-slate-700 border border-slate-600 hover:bg-slate-600 hover:border-slate-500 transition-colors shrink-0"
+            :class="navProfileClass"
+            :active-class="navProfileActiveClass"
             :title="t('profile.viewFullProfile')"
             :aria-label="t('profile.viewFullProfile')"
           >
@@ -195,10 +256,15 @@ onUnmounted(() => {
           </button>
         </template>
         <template v-else>
-          <NuxtLink to="/login" class="hover:text-amber-400 transition-colors whitespace-nowrap">{{ t('nav.login') }}</NuxtLink>
+          <NuxtLink
+            to="/login"
+            :class="navTextClass"
+            :active-class="navTextActiveClass"
+          >{{ t('nav.login') }}</NuxtLink>
           <NuxtLink
             to="/register"
-            class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium transition-colors whitespace-nowrap min-h-[44px] inline-flex items-center justify-center"
+            :class="navRegisterClass"
+            :active-class="navRegisterActiveClass"
           >
             {{ t('nav.register') }}
           </NuxtLink>
@@ -259,7 +325,8 @@ onUnmounted(() => {
       <div class="flex md:hidden items-center gap-2 shrink-0">
         <NuxtLink
           to="/map"
-          class="inline-flex px-3 py-2 rounded-lg border-2 border-amber-400 text-amber-400 hover:bg-amber-400 hover:text-slate-900 font-medium text-sm transition-colors whitespace-nowrap min-h-[40px] items-center justify-center"
+          :class="navMobileMapCtaClass"
+          :active-class="navMobileMapCtaActiveClass"
           @click="closeMobileMenu"
         >
           {{ t('nav.flugpatenWerden') }}
@@ -350,7 +417,8 @@ onUnmounted(() => {
           <NuxtLink
             v-if="user && (user.role === 'ORG_USER')"
             to="/inbox"
-            class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium flex items-center justify-between"
+            :class="[navMobileRowClass, 'flex items-center justify-between']"
+            :active-class="navMobileRowActiveClass"
             @click="closeMobileMenu"
           >
             <span>{{ t('nav.inbox') }}</span>
@@ -364,7 +432,8 @@ onUnmounted(() => {
           <NuxtLink
             v-if="user && user.role === 'USER'"
             to="/inbox"
-            class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium flex items-center justify-between"
+            :class="[navMobileRowClass, 'flex items-center justify-between']"
+            :active-class="navMobileRowActiveClass"
             @click="closeMobileMenu"
           >
             <span>{{ t('nav.inbox') }}</span>
@@ -376,14 +445,33 @@ onUnmounted(() => {
             </span>
           </NuxtLink>
           <!-- 2. Dashboard -->
-          <NuxtLink v-if="user?.role === 'ADMIN'" to="/admin" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.admin') }}</NuxtLink>
-          <NuxtLink v-if="user?.role === 'ORG_USER'" to="/org/dashboard" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.dashboard') }}</NuxtLink>
-          <NuxtLink v-if="user?.role === 'USER'" to="/dashboard" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.dashboard') }}</NuxtLink>
+          <NuxtLink
+            v-if="user?.role === 'ADMIN'"
+            to="/admin"
+            :class="navMobileRowClass"
+            :active-class="navMobileRowActiveClass"
+            @click="closeMobileMenu"
+          >{{ t('nav.admin') }}</NuxtLink>
+          <NuxtLink
+            v-if="user?.role === 'ORG_USER'"
+            to="/org/dashboard"
+            :class="navMobileRowClass"
+            :active-class="navMobileRowActiveClass"
+            @click="closeMobileMenu"
+          >{{ t('nav.dashboard') }}</NuxtLink>
+          <NuxtLink
+            v-if="user?.role === 'USER'"
+            to="/dashboard"
+            :class="navMobileRowClass"
+            :active-class="navMobileRowActiveClass"
+            @click="closeMobileMenu"
+          >{{ t('nav.dashboard') }}</NuxtLink>
           <!-- 3. Profil -->
           <NuxtLink
             v-if="user?.role === 'USER' && user?.id"
             :to="`/user/${user.id}`"
-            class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium flex items-center gap-3"
+            :class="[navMobileRowClass, 'flex items-center gap-3']"
+            :active-class="navMobileRowActiveClass"
             :aria-label="t('profile.viewFullProfile')"
             @click="closeMobileMenu"
           >
@@ -396,15 +484,36 @@ onUnmounted(() => {
           </NuxtLink>
           <p v-else-if="user" class="py-2 px-4 text-slate-400 text-sm">{{ user.displayName }}</p>
           <!-- 4. Organisationen -->
-          <NuxtLink to="/orgs-map" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.organisations') }}</NuxtLink>
+          <NuxtLink
+            to="/orgs-map"
+            :class="navMobileRowClass"
+            :active-class="navMobileRowActiveClass"
+            @click="closeMobileMenu"
+          >{{ t('nav.organisations') }}</NuxtLink>
           <!-- 5. Wissen -->
-          <NuxtLink v-if="hasKnowledgeTopics" to="/flugpate" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium" @click="closeMobileMenu">{{ t('nav.wissen') }}</NuxtLink>
+          <NuxtLink
+            v-if="hasKnowledgeTopics"
+            to="/flugpate"
+            :class="navMobileRowClass"
+            :active-class="navMobileRowActiveClass"
+            @click="closeMobileMenu"
+          >{{ t('nav.wissen') }}</NuxtLink>
           <template v-if="user">
             <button type="button" class="py-3 px-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-left w-full font-medium mt-2" @click="logout(); closeMobileMenu()">{{ t('nav.logout') }}</button>
           </template>
           <template v-else>
-            <NuxtLink to="/login" class="py-3 px-4 rounded-lg hover:bg-slate-800 text-white font-medium mt-2" @click="closeMobileMenu">{{ t('nav.login') }}</NuxtLink>
-            <NuxtLink to="/register" class="py-3 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium text-center mt-2" @click="closeMobileMenu">{{ t('nav.register') }}</NuxtLink>
+            <NuxtLink
+              to="/login"
+              :class="[navMobileRowClass, 'mt-2']"
+              :active-class="navMobileRowActiveClass"
+              @click="closeMobileMenu"
+            >{{ t('nav.login') }}</NuxtLink>
+            <NuxtLink
+              to="/register"
+              :class="navMobileRegisterClass"
+              :active-class="navMobileRegisterActiveClass"
+              @click="closeMobileMenu"
+            >{{ t('nav.register') }}</NuxtLink>
           </template>
         </div>
       </nav>

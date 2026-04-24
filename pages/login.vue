@@ -25,7 +25,7 @@ async function submit() {
     })
     await fetchUser()
     const preferredLanguage = user.value?.preferredLanguage
-    if (preferredLanguage) setLocale(preferredLanguage)
+    if (preferredLanguage) await setLocale(preferredLanguage)
     const target = redirect.value
     const role = user.value?.role
     if (role === 'ADMIN' && (target === '/dashboard' || !route.query.redirect)) {

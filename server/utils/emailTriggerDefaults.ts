@@ -9,6 +9,8 @@ export type DefaultRuleRow = {
   recipientKind: EmailRecipientKind
   subjectTemplate: string
   bodyTemplate: string
+  subjectTemplateEn?: string
+  bodyTemplateEn?: string
   sortOrder: number
 }
 
@@ -22,6 +24,7 @@ export const EMAIL_TRIGGER_DEFAULTS: DefaultRuleRow[] = [
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'ORG_CONTACT_EMAIL',
     subjectTemplate: 'PawTransfer: Neue Fluganfrage zu „{{requestTitle}}“',
+    subjectTemplateEn: 'PawTransfer: New application for "{{requestTitle}}"',
     bodyTemplate: `Hallo {{orgName}},
 
 {{userDisplayName}} ({{userEmail}}) hat sich auf die Transportanfrage „{{requestTitle}}“ beworben.
@@ -31,8 +34,29 @@ Route: {{originAirport}} → {{destAirport}}
 Nachricht des Flugpaten:
 {{applicantMessage}}
 
+Bewerbungsformular (alle Felder):
+{{applicationDetails}}
+
+{{attachmentInfo}}
+
 Chat im Portal: {{inboxUrl}}
 Transportanfrage: {{requestUrl}}`,
+    bodyTemplateEn: `Hello {{orgName}},
+
+{{userDisplayName}} ({{userEmail}}) has applied for the transport request "{{requestTitle}}".
+
+Route: {{originAirport}} → {{destAirport}}
+
+Message from the volunteer:
+{{applicantMessage}}
+
+Application form (all fields):
+{{applicationDetails}}
+
+{{attachmentInfo}}
+
+Inbox in the portal: {{inboxUrl}}
+Request: {{requestUrl}}`,
     sortOrder: 10,
   },
   {
@@ -43,11 +67,25 @@ Transportanfrage: {{requestUrl}}`,
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'ORG_CONTACT_EMAIL',
     subjectTemplate: 'PawTransfer: Eintrag auf der Warteliste – {{requestTitle}}',
+    subjectTemplateEn: 'PawTransfer: Waiting list entry – {{requestTitle}}',
     bodyTemplate: `Hallo {{orgName}},
 
 {{userDisplayName}} ({{userEmail}}) möchte auf die Warteliste für „{{requestTitle}}“.
 
 Route: {{originAirport}} → {{destAirport}}
+
+Nachricht:
+{{applicantMessage}}
+
+Chat: {{inboxUrl}}`,
+    bodyTemplateEn: `Hello {{orgName}},
+
+{{userDisplayName}} ({{userEmail}}) would like to join the waiting list for "{{requestTitle}}".
+
+Route: {{originAirport}} → {{destAirport}}
+
+Message:
+{{applicantMessage}}
 
 Chat: {{inboxUrl}}`,
     sortOrder: 20,
@@ -61,6 +99,7 @@ Chat: {{inboxUrl}}`,
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'USER_SELF',
     subjectTemplate: 'PawTransfer: Transport „{{requestTitle}}“ wurde storniert',
+    subjectTemplateEn: 'PawTransfer: Transport "{{requestTitle}}" was cancelled',
     bodyTemplate: `Hallo {{userDisplayName}},
 
 die Transportanfrage „{{requestTitle}}“ wurde von {{orgName}} storniert.
@@ -68,6 +107,14 @@ die Transportanfrage „{{requestTitle}}“ wurde von {{orgName}} storniert.
 Route: {{originAirport}} → {{destAirport}}
 
 Du findest den Eintrag weiterhin im Dashboard mit dem Status „Storniert“.
+Details: {{requestUrl}}`,
+    bodyTemplateEn: `Hello {{userDisplayName}},
+
+the transport request "{{requestTitle}}" was cancelled by {{orgName}}.
+
+Route: {{originAirport}} → {{destAirport}}
+
+You can still find the entry in your dashboard with status "Cancelled".
 Details: {{requestUrl}}`,
     sortOrder: 25,
   },
@@ -79,12 +126,19 @@ Details: {{requestUrl}}`,
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'ADMIN_EMAIL',
     subjectTemplate: 'PawTransfer: Neue Organisations-Registrierung (Prüfung)',
+    subjectTemplateEn: 'PawTransfer: New organisation registration (review)',
     bodyTemplate: `Neue Organisation „{{orgName}}“ (Slug: {{orgSlug}}) hat sich registriert.
 
 Kontakt-E-Mail Organisation: {{orgContactEmail}}
 Nutzer-Konto: {{orgUserEmail}}
 
 Admin-Bereich: {{adminUrl}}`,
+    bodyTemplateEn: `New organisation "{{orgName}}" (slug: {{orgSlug}}) has registered.
+
+Organisation contact email: {{orgContactEmail}}
+User account: {{orgUserEmail}}
+
+Admin area: {{adminUrl}}`,
     sortOrder: 30,
   },
   {
@@ -95,9 +149,15 @@ Admin-Bereich: {{adminUrl}}`,
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'USER_SELF',
     subjectTemplate: 'Willkommen bei PawTransfer, {{userDisplayName}}!',
+    subjectTemplateEn: 'Welcome to PawTransfer, {{userDisplayName}}!',
     bodyTemplate: `Hallo {{userDisplayName}},
 
 schön, dass du dabei bist. Du kannst jetzt passende Transportanfragen finden und dich bewerben.
+
+{{appUrl}}`,
+    bodyTemplateEn: `Hello {{userDisplayName}},
+
+great to have you on board. You can now find suitable transport requests and apply.
 
 {{appUrl}}`,
     sortOrder: 40,
@@ -110,9 +170,13 @@ schön, dass du dabei bist. Du kannst jetzt passende Transportanfragen finden un
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'ADMIN_EMAIL',
     subjectTemplate: 'PawTransfer: Nutzer-Anmeldung {{userEmail}}',
+    subjectTemplateEn: 'PawTransfer: User login {{userEmail}}',
     bodyTemplate: `Nutzer {{userDisplayName}} ({{userEmail}}) hat sich angemeldet.
 
 Zeitpunkt: {{loginAt}}`,
+    bodyTemplateEn: `User {{userDisplayName}} ({{userEmail}}) has logged in.
+
+Time: {{loginAt}}`,
     sortOrder: 50,
   },
   {
@@ -123,9 +187,15 @@ Zeitpunkt: {{loginAt}}`,
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'USER_SELF',
     subjectTemplate: 'PawTransfer: Benachrichtigungen aktiviert',
+    subjectTemplateEn: 'PawTransfer: Notifications enabled',
     bodyTemplate: `Hallo {{userDisplayName}},
 
 du hast bei der Registrierung Benachrichtigungen / den Newsletter aktiviert. Wir halten dich auf dem Laufenden.
+
+{{appUrl}}`,
+    bodyTemplateEn: `Hello {{userDisplayName}},
+
+you enabled notifications / the newsletter during registration. We will keep you posted.
 
 {{appUrl}}`,
     sortOrder: 60,
@@ -138,9 +208,15 @@ du hast bei der Registrierung Benachrichtigungen / den Newsletter aktiviert. Wir
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'USER_SELF',
     subjectTemplate: 'PawTransfer: Benachrichtigungen aktiviert',
+    subjectTemplateEn: 'PawTransfer: Notifications enabled',
     bodyTemplate: `Hallo {{userDisplayName}},
 
 du hast bei der Registrierung Benachrichtigungen / den Newsletter aktiviert.
+
+{{appUrl}}`,
+    bodyTemplateEn: `Hello {{userDisplayName}},
+
+you enabled notifications during organisation registration.
 
 {{appUrl}}`,
     sortOrder: 70,
@@ -154,9 +230,14 @@ du hast bei der Registrierung Benachrichtigungen / den Newsletter aktiviert.
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'USER_SELF',
     subjectTemplate: 'PawTransfer: E-Mail bestätigen',
+    subjectTemplateEn: 'PawTransfer: Confirm your email',
     bodyTemplate: `Hallo {{userDisplayName}},
 
 bitte bestätige deine E-Mail-Adresse:
+{{verifyUrl}}`,
+    bodyTemplateEn: `Hello {{userDisplayName}},
+
+please confirm your email address:
 {{verifyUrl}}`,
     sortOrder: 80,
   },
@@ -169,12 +250,19 @@ bitte bestätige deine E-Mail-Adresse:
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'USER_SELF',
     subjectTemplate: 'PawTransfer: Passwort zurücksetzen',
+    subjectTemplateEn: 'PawTransfer: Reset your password',
     bodyTemplate: `Hallo {{userDisplayName}},
 
 du kannst dein Passwort hier zurücksetzen:
 {{resetUrl}}
 
 Der Link ist nur begrenzt gültig.`,
+    bodyTemplateEn: `Hello {{userDisplayName}},
+
+you can reset your password here:
+{{resetUrl}}
+
+The link is only valid for a limited time.`,
     sortOrder: 90,
   },
   {
@@ -186,6 +274,7 @@ Der Link ist nur begrenzt gültig.`,
     deliveryMode: 'IMMEDIATE',
     recipientKind: 'USER_SELF',
     subjectTemplate: 'PawTransfer: Neue Transporte fuer deine Strecke',
+    subjectTemplateEn: 'PawTransfer: New transports for your route',
     bodyTemplate: `Hallo {{userDisplayName}},
 
 es gibt {{requestCount}} neue Transportanfrage(n) fuer deine aktive Strecke:
@@ -194,6 +283,14 @@ es gibt {{requestCount}} neue Transportanfrage(n) fuer deine aktive Strecke:
 {{requestLines}}
 
 Direkt ansehen: {{requestsUrl}}`,
+    bodyTemplateEn: `Hello {{userDisplayName}},
+
+there are {{requestCount}} new transport request(s) for your subscribed route:
+{{routeSummary}}
+
+{{requestLines}}
+
+View on the map: {{requestsUrl}}`,
     sortOrder: 100,
   },
 ]
@@ -208,6 +305,8 @@ export function toPrismaCreateInput(row: DefaultRuleRow): Prisma.EmailNotificati
     recipientKind: row.recipientKind,
     subjectTemplate: row.subjectTemplate,
     bodyTemplate: row.bodyTemplate,
+    subjectTemplateEn: row.subjectTemplateEn ?? null,
+    bodyTemplateEn: row.bodyTemplateEn ?? null,
     sortOrder: row.sortOrder,
   }
 }

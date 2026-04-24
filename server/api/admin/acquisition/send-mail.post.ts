@@ -65,6 +65,8 @@ export default defineEventHandler(async (event) => {
       logoUrl: mailLogoUrl,
       footerText: selectedFooter.footerText,
       footerHtml: selectedFooter.footerHtml,
+      showAppInterestLink: true,
+      showDefaultSignOff: true,
     })
     await sendEmail({
       from: mailFrom,
@@ -99,6 +101,8 @@ export default defineEventHandler(async (event) => {
       logoUrl: mailLogoUrl,
       footerText: selectedFooter.footerText,
       footerHtml: selectedFooter.footerHtml,
+      showAppInterestLink: true,
+      showDefaultSignOff: true,
     })
 
     try {

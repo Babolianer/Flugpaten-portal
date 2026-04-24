@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SelectedRoute } from '~/components/MapView.vue'
+import type { SelectedRoute } from '~/components/mapViewTypes'
 
 const route = useRoute()
 const { t, locale } = useI18n()
@@ -103,6 +103,10 @@ const message = ref('')
 const applied = ref(false)
 const loading = ref(false)
 const uploadFile = ref<File | null>(null)
+
+function onUploadFileChange(e: Event) {
+  uploadFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
+}
 
 const computedMinTravelers = computed(() => {
   const animalCount = groupRequests.value?.length ?? 0
@@ -472,7 +476,7 @@ const backToMapUrl = computed(() => `/map`)
               type="file"
               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-              @change="(e: Event) => { uploadFile = (e.target as HTMLInputElement).files?.[0] ?? null }"
+              @change="onUploadFileChange"
             />
             <p class="text-xs text-slate-500 mt-1">{{ t('request.uploadHint') }}</p>
           </div>

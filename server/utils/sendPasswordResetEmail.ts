@@ -33,6 +33,8 @@ Der Link ist 1 Stunde gültig. Falls du die Anfrage nicht gestellt hast, ignorie
     logoUrl: runtimeConfig.mailLogoUrl || '',
     footerText,
     footerHtml,
+    showAppInterestLink: false,
+    showDefaultSignOff: false,
   })
 
   await sendEmail({

@@ -287,6 +287,8 @@ export default defineEventHandler(async (event) => {
       logoUrl: mailLogoUrl,
       footerText: selectedFooter.footerText,
       footerHtml: selectedFooter.footerHtml,
+      showAppInterestLink: true,
+      showDefaultSignOff: true,
     })
     const { messageId } = await sendEmail({
       from: mailFrom,
@@ -341,6 +343,8 @@ export default defineEventHandler(async (event) => {
       logoUrl: mailLogoUrl,
       footerText: selectedFooter.footerText,
       footerHtml: selectedFooter.footerHtml,
+      showAppInterestLink: true,
+      showDefaultSignOff: true,
     })
     const subj = replacePlaceholders(subject, r.name)
     try {

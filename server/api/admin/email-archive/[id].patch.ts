@@ -45,6 +45,8 @@ export default defineEventHandler(async (event) => {
       appUrl,
       logoUrl: mailLogoUrl,
       footerText: null,
+      showAppInterestLink: false,
+      showDefaultSignOff: false,
     })
   }
 

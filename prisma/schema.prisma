@@ -509,6 +509,9 @@ model EmailNotificationRule {
   recipientKind   EmailRecipientKind @map("recipient_kind")
   subjectTemplate String            @map("subject_template") @db.Text
   bodyTemplate    String            @map("body_template") @db.Text
+  // Optional: EN-Vorlagen wenn Empfänger preferredLanguage mit en* beginnt
+  subjectTemplateEn String?         @map("subject_template_en") @db.Text
+  bodyTemplateEn    String?         @map("body_template_en") @db.Text
   sortOrder       Int               @default(0) @map("sort_order")
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")

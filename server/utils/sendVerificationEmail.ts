@@ -32,6 +32,8 @@ ${verifyUrl}`
     logoUrl: runtimeConfig.mailLogoUrl || '',
     footerText,
     footerHtml,
+    showAppInterestLink: false,
+    showDefaultSignOff: false,
   })
 
   await sendEmail({

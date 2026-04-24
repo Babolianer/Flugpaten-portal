@@ -5,6 +5,11 @@ import { EMAIL_TRIGGER_DEFAULTS, toPrismaCreateInput } from '~~/server/utils/ema
 import { sendVerificationEmail } from '~~/server/utils/sendVerificationEmail'
 import { sendPasswordResetEmail } from '~~/server/utils/sendPasswordResetEmail'
 import { loadMailFooterSettings, pickFooterForLocale } from '~~/server/utils/mailFooterSettings'
+import {
+  emailLangFromLocale,
+  formatApplicationDataForEmail,
+  formatAttachmentLineForEmail,
+} from '~~/server/utils/formatApplicationForEmail'
 
 export type OrgRegistrationPayload = {
   orgName: string
@@ -16,6 +21,8 @@ export type OrgRegistrationPayload = {
 export type EmailTriggerPayload = {
   organizationId?: string
   requestId?: string
+  /** Gespeicherte Bewerbung – für Platzhalter {{applicationDetails}} / {{attachmentInfo}} */
+  requestApplicationId?: string
   userId?: string
   conversationId?: string
   applicantMessage?: string
@@ -62,12 +69,12 @@ async function buildVars(triggerKey: string, payload: EmailTriggerPayload): Prom
     triggerKey === 'WAITING_LIST_ORG' ||
     triggerKey === 'TRANSPORT_CANCELLED_USER'
   ) {
-    const { organizationId, requestId, userId, conversationId, applicantMessage } = payload
+    const { organizationId, requestId, requestApplicationId, userId, conversationId, applicantMessage } = payload
     if (!organizationId || !requestId || !userId) return null
     const [org, req, user] = await Promise.all([
       prisma.organization.findUnique({
         where: { id: organizationId },
-        select: { name: true, contactEmail: true },
+        select: { name: true, contactEmail: true, preferredLanguage: true },
       }),
       prisma.transportRequest.findUnique({
         where: { id: requestId },
@@ -80,18 +87,43 @@ async function buildVars(triggerKey: string, payload: EmailTriggerPayload): Prom
     ])
     if (!org || !req || !user) return null
     const inboxPath = conversationId ? `${appUrl}/inbox/${conversationId}` : `${appUrl}/inbox`
+
+    const orgFacing = triggerKey === 'TRANSPORT_APPLICATION_ORG' || triggerKey === 'WAITING_LIST_ORG'
+    /** Standardsprache des E-Mail-Empfängers (Organisation bzw. Flugpate), nicht die des Bewerbers. */
+    const recipientLocale = orgFacing ? org.preferredLanguage || 'de' : user.preferredLanguage || 'de'
+    const detailLang = emailLangFromLocale(recipientLocale)
+
+    let applicationDetails = ''
+    let attachmentInfo = ''
+    if (triggerKey === 'TRANSPORT_APPLICATION_ORG') {
+      const appRow = requestApplicationId
+        ? await prisma.requestApplication.findUnique({
+            where: { id: requestApplicationId },
+            select: { applicationData: true, attachmentPath: true },
+          })
+        : await prisma.requestApplication.findFirst({
+            where: { requestId, userId },
+            orderBy: { createdAt: 'desc' },
+            select: { applicationData: true, attachmentPath: true },
+          })
+      applicationDetails = formatApplicationDataForEmail(appRow?.applicationData ?? null, detailLang)
+      attachmentInfo = formatAttachmentLineForEmail(appUrl, appRow?.attachmentPath ?? null, detailLang)
+    }
+
     return {
       ...base,
       orgName: org.name,
       userDisplayName: user.displayName,
       userEmail: user.email,
-      locale: user.preferredLanguage,
+      locale: recipientLocale,
       requestTitle: req.title,
       originAirport: req.originAirport,
       destAirport: req.destAirport,
       applicantMessage: applicantMessage ?? '',
       inboxUrl: inboxPath,
       requestUrl: `${appUrl}/requests/${requestId}`,
+      applicationDetails,
+      attachmentInfo,
     }
   }
 
@@ -264,8 +296,12 @@ export async function processEmailTrigger(triggerKey: string, payload: EmailTrig
 
   const config = useRuntimeConfig()
   const mailLogoUrl = config.mailLogoUrl || ''
-  const subject = applyTemplate(rule.subjectTemplate, vars)
-  const bodyPlain = applyTemplate(rule.bodyTemplate, vars)
+  const prefersEn = (vars.locale || '').trim().toLowerCase().startsWith('en')
+  const subjectTpl =
+    prefersEn && rule.subjectTemplateEn?.trim() ? rule.subjectTemplateEn.trim() : rule.subjectTemplate
+  const bodyTpl = prefersEn && rule.bodyTemplateEn?.trim() ? rule.bodyTemplateEn.trim() : rule.bodyTemplate
+  const subject = applyTemplate(subjectTpl, vars)
+  const bodyPlain = applyTemplate(bodyTpl, vars)
   const orgLabel = vars.orgName || 'PawTransfer'
   let footer = { footerText: null as string | null, footerHtml: null as string | null }
   try {
@@ -279,6 +315,8 @@ export async function processEmailTrigger(triggerKey: string, payload: EmailTrig
     logoUrl: mailLogoUrl,
     footerText: footer.footerText,
     footerHtml: footer.footerHtml,
+    showAppInterestLink: false,
+    showDefaultSignOff: false,
   })
 
   const row = await prisma.outboundEmail.create({

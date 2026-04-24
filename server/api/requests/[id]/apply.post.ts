@@ -189,6 +189,7 @@ export default defineEventHandler(async (event) => {
       fireEmailTrigger('TRANSPORT_APPLICATION_ORG', {
         organizationId: request.organizationId,
         requestId: firstApp.requestId,
+        requestApplicationId: firstApp.id,
         userId: user.id,
         conversationId: firstConv.id,
         applicantMessage: message,
@@ -258,6 +259,7 @@ export default defineEventHandler(async (event) => {
         fireEmailTrigger('TRANSPORT_APPLICATION_ORG', {
           organizationId: request.organizationId,
           requestId: firstApp.requestId,
+          requestApplicationId: firstApp.id,
           userId: user.id,
           conversationId: firstConv.id,
           applicantMessage: message,

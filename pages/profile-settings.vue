@@ -20,6 +20,7 @@ const message = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const avatarInputRef = ref<HTMLInputElement | null>(null)
 
 const form = ref({
+  displayName: '',
   firstName: '',
   lastName: '',
   phone: '',
@@ -31,6 +32,9 @@ const form = ref({
   frequentAirports: '',
   preferredLanguage: 'de',
 })
+
+/** Login-Session: E-Mail ist fest, wird nicht aus dem Formular gespeichert. */
+const accountEmail = computed(() => user.value?.email ?? '')
 
 const languageOptions = [
   { code: 'de', label: 'Deutsch' },
@@ -55,6 +59,8 @@ onMounted(async () => {
     await navigateTo('/admin')
     return
   }
+  // Anzeigename aus Session, bis Profil-API antwortet (oder bei Ladefehler als Fallback)
+  form.value.displayName = user.value.displayName?.trim() || ''
   try {
     const res = await $fetch<{
       profile: typeof profile.value
@@ -73,6 +79,13 @@ onMounted(async () => {
       form.value.preferredRoutes = (res.profile.preferredRoutes || []).join(', ')
       form.value.frequentAirports = (res.profile.frequentAirports || []).join(', ')
     }
+    const fromApi = (res.displayName ?? '').trim()
+    const fromSession = (user.value?.displayName ?? '').trim()
+    const combinedFromNames = [res.profile?.firstName, res.profile?.lastName]
+      .map((x) => (typeof x === 'string' ? x.trim() : ''))
+      .filter(Boolean)
+      .join(' ')
+    form.value.displayName = fromApi || fromSession || combinedFromNames
     form.value.phone = res.phone ?? (user.value as { phone?: string | null })?.phone ?? ''
     form.value.preferredLanguage = res.preferredLanguage || (user.value?.preferredLanguage as string) || 'de'
   } catch {
@@ -88,6 +101,11 @@ function parseList(s: string): string[] {
 }
 
 async function save() {
+  const displayNameTrimmed = form.value.displayName?.trim() || ''
+  if (!displayNameTrimmed) {
+    message.value = { type: 'error', text: t('profile.displayNameRequired') }
+    return
+  }
   saving.value = true
   message.value = null
   try {
@@ -96,6 +114,7 @@ async function save() {
       body: {
         firstName: form.value.firstName?.trim() || null,
         lastName: form.value.lastName?.trim() || null,
+        displayName: displayNameTrimmed,
         phone: form.value.phone?.trim() || null,
         city: form.value.city?.trim() || null,
         countryCode: form.value.countryCode?.trim() || null,
@@ -216,6 +235,25 @@ const inputClass = 'w-full rounded-xl border border-slate-200 px-4 py-3 text-sla
               {{ t('profile.sectionPersonal') }}
             </h3>
             <div class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-2">{{ t('profile.displayName') }}</label>
+                  <input v-model="form.displayName" type="text" required :class="inputClass" />
+                  <p class="mt-1.5 text-xs text-slate-500">{{ t('profile.displayNameHint') }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-2">{{ t('profile.email') }}</label>
+                  <input
+                    :value="accountEmail"
+                    type="email"
+                    autocomplete="email"
+                    :class="`${inputClass} bg-slate-100 text-slate-600 cursor-default`"
+                    readonly
+                    tabindex="-1"
+                  />
+                  <p class="mt-1.5 text-xs text-slate-500">{{ t('profile.emailReadonlyHint') }}</p>
+                </div>
+              </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-slate-700 mb-2">{{ t('profile.firstName') }}</label>

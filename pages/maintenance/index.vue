@@ -19,6 +19,11 @@ watch(langDropdownOpen, (isOpen) => {
 })
 
 const flagEmoji: Record<string, string> = { de: '🇩🇪', gb: '🇬🇧', fr: '🇫🇷', es: '🇪🇸', it: '🇮🇹', pl: '🇵🇱' }
+
+async function onSelectLocale(code: string) {
+  await setLocale(code)
+  langDropdownOpen.value = false
+}
 </script>
 
 <template>
@@ -46,7 +51,7 @@ const flagEmoji: Record<string, string> = { de: '🇩🇪', gb: '🇬🇧', fr: 
             type="button"
             class="w-full text-left px-4 py-2 text-sm hover:bg-amber-50 flex items-center gap-2"
             :class="locale === loc.code ? 'bg-amber-50 text-amber-800 font-medium' : 'text-slate-700'"
-            @click="setLocale(loc.code); langDropdownOpen = false"
+            @click="void onSelectLocale(loc.code)"
           >
             <span class="text-base">{{ flagEmoji[loc.flagCountry] || '🌐' }}</span>
             {{ loc.name }}
