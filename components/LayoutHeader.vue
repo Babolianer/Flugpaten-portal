@@ -128,8 +128,6 @@ const navMobileMapCtaActiveClass = '!bg-amber-400 !text-slate-900'
 const navMobileRegisterClass = 'py-3 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium text-center mt-2 transition-colors'
 const navMobileRegisterActiveClass = '!ring-2 !ring-amber-300 !ring-inset'
 
-const isHomePage = computed(() => route.path === '/')
-
 onMounted(async () => {
   await fetchUser()
   if (user.value?.role === 'USER' || user.value?.role === 'ORG_USER') {
@@ -149,7 +147,6 @@ onUnmounted(() => {
       <NuxtLink
         to="/"
         class="flex items-center gap-2 sm:gap-3 text-base sm:text-xl font-bold tracking-tight hover:text-amber-400 transition-colors min-w-0 shrink-0 cursor-pointer rounded-lg"
-        :class="{ 'ring-2 ring-amber-400/50 ring-offset-2 ring-offset-slate-900': isHomePage }"
         @click="closeMobileMenu"
         @mouseenter="logoHover = true"
         @mouseleave="logoHover = false"
